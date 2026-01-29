@@ -1,0 +1,3225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ritual Quiz Platform - Interactive Demo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+            background: #050510;
+            color: white;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Animated Background */
+        .background {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        .orb1 {
+            width: 400px;
+            height: 400px;
+            background: #8B5CF6;
+            top: 10%;
+            left: 10%;
+        }
+        
+        .orb2 {
+            width: 400px;
+            height: 400px;
+            background: #3B82F6;
+            bottom: 10%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+        
+        .orb3 {
+            width: 350px;
+            height: 350px;
+            background: #EC4899;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            25% { transform: translateY(-20px) translateX(10px); }
+            50% { transform: translateY(-40px) translateX(-10px); }
+            75% { transform: translateY(-20px) translateX(10px); }
+        }
+        
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            animation: slideDown 0.6s ease-out;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .nav-link:hover {
+            color: #8B5CF6;
+        }
+        
+        /* Screens */
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        /* Start Screen */
+        .start-screen {
+            max-width: 900px;
+            margin: 4rem auto;
+            text-align: center;
+        }
+        
+        .title {
+            font-size: 6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: glow 2s ease-in-out infinite alternate;
+            line-height: 1.1;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 3rem;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        
+        .info-title {
+            font-size: 1.5rem;
+            color: #8B5CF6;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .info-list {
+            list-style: none;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .info-list li {
+            padding: 0.5rem 0;
+        }
+        
+        .btn-primary {
+            padding: 1rem 3rem;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+            font-family: inherit;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(139, 92, 246, 0.8);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+        
+        /* Quiz Screen */
+        .quiz-screen {
+            max-width: 1000px;
+            margin: 2rem auto;
+        }
+        
+        .progress-bar {
+            margin-bottom: 1rem;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+        
+        .difficulty-badge {
+            padding: 0.25rem 0.75rem;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        
+        .progress-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8B5CF6, #3B82F6, #EC4899);
+            transition: width 0.5s ease-out;
+            border-radius: 999px;
+        }
+        
+        .question-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+        }
+        
+        .question-text {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .option {
+            padding: 1.25rem 1.5rem;
+            background: rgba(31, 41, 55, 0.5);
+            border: 2px solid #374151;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1rem;
+        }
+        
+        .option:hover:not(.disabled) {
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+        
+        .option.selected {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8B5CF6;
+        }
+        
+        .option.correct {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: #22C55E;
+        }
+        
+        .option.wrong {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #EF4444;
+        }
+        
+        .option.disabled {
+            cursor: not-allowed;
+        }
+        
+        .feedback {
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        
+        .feedback.correct {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22C55E;
+        }
+        
+        .feedback.wrong {
+            background: rgba(239, 68, 68, 0.2);
+            color: #EF4444;
+        }
+        
+        /* User Details Form */
+        .form-screen {
+            max-width: 700px;
+            margin: 4rem auto;
+        }
+        
+        .form-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+        }
+        
+        .form-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(31, 41, 55, 0.8);
+            border: 2px solid #374151;
+            border-radius: 16px;
+            color: white;
+            font-size: 1.1rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #8B5CF6;
+            background: rgba(31, 41, 55, 1);
+        }
+        
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-button {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(139, 92, 246, 0.2);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 16px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .file-input-button:hover {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8B5CF6;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .image-preview {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .preview-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #8B5CF6;
+        }
+        
+        .helper-text {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 0.5rem;
+        }
+        
+        /* Result Screen */
+        .result-screen {
+            max-width: 1200px;
+            margin: 2rem auto;
+        }
+        
+        .ritual-card {
+            background: linear-gradient(to bottom right, #0F0F23, #050510);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .ritual-card::before,
+        .ritual-card::after {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+        
+        .ritual-card::before {
+            background: rgba(139, 92, 246, 0.2);
+            top: -100px;
+            right: -100px;
+        }
+        
+        .ritual-card::after {
+            background: rgba(59, 130, 246, 0.2);
+            bottom: -100px;
+            left: -100px;
+        }
+        
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .card-title {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .divider {
+            height: 2px;
+            width: 150px;
+            background: linear-gradient(90deg, #8B5CF6, #EC4899);
+            margin: 1rem auto;
+            border-radius: 999px;
+        }
+        
+        .card-body {
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+        
+        .profile-section {
+            flex-shrink: 0;
+        }
+        
+        .profile-pic {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            font-weight: 700;
+            border: 4px solid #8B5CF6;
+            overflow: hidden;
+        }
+        
+        .profile-pic img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .info-section {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .role-title {
+            font-size: 1.5rem;
+            color: #8B5CF6;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .score-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .score-value {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .role-description {
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+        }
+        
+        .card-footer {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(139, 92, 246, 0.3);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn-action {
+            padding: 1rem;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.3s;
+            font-family: inherit;
+        }
+        
+        .btn-action:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-download {
+            background: #8B5CF6;
+            color: white;
+        }
+        
+        .btn-share {
+            background: #1DA1F2;
+            color: white;
+        }
+        
+        .btn-retake {
+            background: linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899);
+            color: white;
+        }
+        
+        .score-breakdown {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .breakdown-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .breakdown-item {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        
+        .breakdown-item.correct {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22C55E;
+        }
+        
+        .breakdown-item.wrong {
+            background: rgba(239, 68, 68, 0.2);
+            color: #EF4444;
+        }
+        
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5)); }
+            to { filter: drop-shadow(0 0 40px rgba(139, 92, 246, 0.8)); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 3rem;
+            }
+            
+            .card-body {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .breakdown-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background">
+        <div class="orb orb1"></div>
+        <div class="orb orb2"></div>
+        <div class="orb orb3"></div>
+    </div>
+    
+    <div class="container">
+        <nav class="nav">
+            <div class="logo">RITUAL QUIZ</div>
+            <div class="nav-links">
+                <a href="#" class="nav-link">About</a>
+                <a href="#" class="nav-link">Docs</a>
+                <a href="https://www.ritualfoundation.com" class="nav-link" target="_blank">Ritual.com</a>
+            </div>
+        </nav>
+        
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <div class="start-screen">
+                <h1 class="title">Ritual Quiz</h1>
+                <p class="subtitle">Test Your Knowledge of the World's First Sovereign Execution Layer for AI</p>
+                
+                <div class="info-card">
+                    <h2 class="info-title">📊 Quiz Format</h2>
+                    <ul class="info-list">
+                        <li>• 10 Questions Total</li>
+                        <li>• Test your knowledge of Ritual Foundation</li>
+                        <li>• Earn your Ritual Card based on your score</li>
+                    </ul>
+                </div>
+                
+                <button class="btn-primary" onclick="startQuiz()">Start Quiz</button>
+            </div>
+        </div>
+        
+        <!-- Quiz Screen -->
+        <div id="quiz-screen" class="screen">
+            <div class="quiz-screen">
+                <div class="progress-bar">
+                    <div class="progress-header">
+                        <span id="question-counter">Question 1 of 10</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <div class="question-card">
+                    <h2 class="question-text" id="question-text"></h2>
+                    
+                    <div class="options" id="options-container"></div>
+                    
+                    <button class="btn-primary" id="submit-btn" style="width: 100%" onclick="submitAnswer()" disabled>Submit Answer</button>
+                    
+                    <div id="feedback" class="feedback" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Details Form Screen -->
+        <div id="form-screen" class="screen">
+            <div class="form-screen">
+                <div class="form-card">
+                    <h2 class="form-title">Generate Your Ritual Card</h2>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="username">Your Name *</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            class="form-input" 
+                            placeholder="Enter your name..." 
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Profile Picture (Optional)</label>
+                        <div class="file-input-wrapper">
+                            <div class="file-input-button">
+                                <span>📷</span>
+                                <span id="file-name">Choose File</span>
+                            </div>
+                            <input 
+                                type="file" 
+                                id="profile-pic" 
+                                accept="image/*"
+                                onchange="handleFileSelect(event)"
+                            >
+                        </div>
+                        <p class="helper-text">Upload an image for your Ritual Card</p>
+                        
+                        <div id="image-preview" class="image-preview" style="display: none;">
+                            <img id="preview-img" class="preview-img" alt="Profile preview">
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateCard()" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Generate Card
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Result Screen -->
+        <div id="result-screen" class="screen">
+            <div class="result-screen">
+                <div class="ritual-card">
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h1 class="card-title">Ritual Card</h1>
+                            <div class="divider"></div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <div class="profile-section">
+                                <div class="profile-pic" id="card-profile-pic">
+                                    <span id="profile-initial">Q</span>
+                                </div>
+                            </div>
+                            
+                            <div class="info-section">
+                                <h2 class="user-name" id="card-username">Quiz Taker</h2>
+                                <p class="role-title" id="role-title"></p>
+                                
+                                <div class="score-display">
+                                    <span class="score-label">Score:</span>
+                                    <span class="score-value" id="final-score"></span>
+                                </div>
+                                
+                                <p class="role-description" id="role-description"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            ritualfoundation.com • @ritualfnd
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn-action btn-download" onclick="alert('In the real app, this downloads the card as PNG using html2canvas!')">📥 Download Card</button>
+                    <button class="btn-action btn-share" onclick="shareToX()">🐦 Share to X</button>
+                    <button class="btn-action btn-retake" onclick="retakeQuiz()">🔄 Retake Quiz</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+const questions = [
+    // EASY QUESTIONS (80 total)
+    {
+        question: "What is the primary mission of the Ritual Foundation?",
+        options: [
+            "Build the fastest chain",
+            "Steward the Ritual ecosystem",
+            "Replace existing blockchains",
+            "Create centralized AI tools"
+        ],
+        correctAnswer: 1,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual Chain described as?",
+        options: [
+            "A payment processor",
+            "An NFT marketplace",
+            "AI execution layer",
+            "A gaming platform"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What can builders integrate with Ritual VM?",
+        options: [
+            "AI models natively",
+            "Only simple contracts",
+            "Gaming engines",
+            "Payment systems"
+        ],
+        correctAnswer: 0,
+        difficulty: "easy"
+    },
+    {
+        question: "What is the Foundation's contact email?",
+        options: [
+            "contact@ritual.com",
+            "hello@ritualfoundation.org",
+            "support@ritual.net",
+            "info@ritualchain.org"
+        ],
+        correctAnswer: 1,
+        difficulty: "easy"
+    },
+    {
+        question: "What year did Bitcoin enable decentralized money?",
+        options: [
+            "2015",
+            "2009",
+            "2020",
+            "2000"
+        ],
+        correctAnswer: 1,
+        difficulty: "easy"
+    },
+    {
+        question: "What did Ethereum introduce in 2015?",
+        options: [
+            "Cryptocurrency mining",
+            "Digital wallets only",
+            "Smart contracts",
+            "Mobile payments"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual's X/Twitter handle?",
+        options: [
+            "@ritual",
+            "@ritualchain",
+            "@ritualfnd",
+            "@ritualai"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual make smart contracts?",
+        options: [
+            "Faster",
+            "Cheaper",
+            "Actually smart",
+            "Simpler"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual's belief about the future?",
+        options: [
+            "It's predetermined",
+            "It must be built",
+            "It happens automatically",
+            "It's unpredictable"
+        ],
+        correctAnswer: 1,
+        difficulty: "easy"
+    },
+    {
+        question: "How does Ritual's SDK integrate AI?",
+        options: [
+            "Complex processes",
+            "Manual setup required",
+            "Few lines of code",
+            "No integration available"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What convergence does Ritual represent?",
+        options: [
+            "Finance and gaming",
+            "AI and crypto",
+            "Social and commerce",
+            "Hardware and software"
+        ],
+        correctAnswer: 1,
+        difficulty: "easy"
+    },
+    {
+        question: "When was the Ritual Foundation announced?",
+        options: [
+            "October 10, 2024",
+            "January 1, 2024",
+            "November 19, 2024",
+            "December 25, 2023"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What type of blockchain is Ritual?",
+        options: [
+            "Layer 2 solution",
+            "Sidechain",
+            "Layer 1 blockchain",
+            "Fork of Ethereum"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual enable for model creators?",
+        options: [
+            "Basic file storage",
+            "Manual tracking only",
+            "Transparent monetization",
+            "Subscription services"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What properties does Ritual bring to AI?",
+        options: [
+            "Speed only",
+            "Cost reduction",
+            "Trustless properties",
+            "Complexity"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What encourages Ritual for interested people?",
+        options: [
+            "Wait and watch",
+            "Do nothing",
+            "Follow @ritualfnd",
+            "Send emails only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What year was the Transformer paper written?",
+        options: [
+            "2015",
+            "2020",
+            "2017",
+            "2023"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is the copyright year on Ritual's site?",
+        options: [
+            "2024",
+            "2023",
+            "2025",
+            "2026"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "How does Ritual view network access?",
+        options: [
+            "Permissioned access",
+            "Restricted to partners",
+            "Permissionless access",
+            "Paid access only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual efficiently orchestrate?",
+        options: [
+            "Only tokens",
+            "Storage only",
+            "All compute types",
+            "Bandwidth"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What can users do with Ritual's natural language?",
+        options: [
+            "Nothing",
+            "Only read content",
+            "Generate transactions",
+            "Send messages"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Infernet described as?",
+        options: [
+            "A complete product",
+            "A standalone app",
+            "First building block",
+            "A token"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What can protocols use Ritual as?",
+        options: [
+            "A storage solution",
+            "A token bridge",
+            "An AI Coprocessor",
+            "A validator"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual SDK provide access to?",
+        options: [
+            "Limited features",
+            "Restricted to partners",
+            "Network of providers",
+            "Paid access only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What drove AI innovations recently?",
+        options: [
+            "Government funding",
+            "Academic research only",
+            "Consumer adoption",
+            "Corporate mandates"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual's architectural goal?",
+        options: [
+            "Fastest blockchain",
+            "Lowest fees",
+            "Enhance capabilities",
+            "Most validators"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What AI models can Ritual access?",
+        options: [
+            "Only LLMs",
+            "Only image models",
+            "LLMs and classical ML",
+            "No AI models"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual enable for agents?",
+        options: [
+            "Send tokens",
+            "Create NFTs",
+            "Live onchain forever",
+            "Trade automatically"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual's single focus?",
+        options: [
+            "Profit maximization",
+            "Market dominance",
+            "Enrich user capabilities",
+            "Token price"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "Where can model creators host models?",
+        options: [
+            "Only centralized servers",
+            "Personal computers",
+            "Distributed network nodes",
+            "Cloud only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual positioning itself as?",
+        options: [
+            "Just another blockchain",
+            "A gaming platform",
+            "The schelling point",
+            "An exchange"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual need for best results?",
+        options: [
+            "Users",
+            "Money",
+            "Right infrastructure",
+            "Time"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Infernet's evolution target?",
+        options: [
+            "A wallet",
+            "A DEX",
+            "Modular suite",
+            "An NFT marketplace"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What AI paper was mentioned in docs?",
+        options: [
+            "Deep Learning Fundamentals",
+            "Neural Networks Explained",
+            "Attention is All You Need",
+            "AI Revolution"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "Who was a Transformer paper author?",
+        options: [
+            "Vitalik Buterin",
+            "Satoshi Nakamoto",
+            "Illia Polosukhin",
+            "Sam Altman"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What blockchains can benefit from Ritual?",
+        options: [
+            "None",
+            "Only Ethereum",
+            "High-performance chains",
+            "Only Bitcoin"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What made AI most expressive?",
+        options: [
+            "Only speed improvements",
+            "Marketing",
+            "Consumer adoption and innovation",
+            "Cost reduction"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What has Ritual's team been doing?",
+        options: [
+            "Only planning",
+            "Marketing",
+            "Building architecture",
+            "Fundraising"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What can developers do with Ritual?",
+        options: [
+            "Only view them",
+            "Delete them",
+            "Train and trade models",
+            "Copy them"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual's architecture optimize for?",
+        options: [
+            "Only speed",
+            "Storage capacity",
+            "Heterogeneous compute",
+            "Network bandwidth"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What Ritual AI landscape problems exist?",
+        options: [
+            "Slow processing only",
+            "High costs only",
+            "Centralization and censorship",
+            "Poor user interfaces"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual allow model integration?",
+        options: [
+            "Only viewing",
+            "Deletion",
+            "Inference and fine-tuning",
+            "Copying"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual transcend?",
+        options: [
+            "Nothing",
+            "Restricts by region",
+            "Geographic boundaries",
+            "Works in specific countries"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What cryptography does Ritual use?",
+        options: [
+            "Heavy, slow cryptography",
+            "No cryptography",
+            "Lightweight schemes",
+            "Basic encryption only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What model sizes does Ritual support?",
+        options: [
+            "Only small models",
+            "Limited model types",
+            "Unbounded sizes",
+            "Text models only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual bring to nodes?",
+        options: [
+            "Only validators",
+            "Just users",
+            "Nodes with compute access",
+            "Only investors"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What guarantees does Ritual provide?",
+        options: [
+            "Speed only",
+            "Low costs",
+            "Integrity and privacy",
+            "Easy setup"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Infernet expose?",
+        options: [
+            "Only data storage",
+            "Basic functions",
+            "AI model interfaces",
+            "User accounts"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual Foundation invest in?",
+        options: [
+            "Only cryptocurrencies",
+            "Real estate",
+            "Talent and strategic capital",
+            "Stocks"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "How will users consume apps via Ritual?",
+        options: [
+            "Through third parties only",
+            "Offline only",
+            "Natively through Ritual",
+            "Via mobile apps only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual expand for users?",
+        options: [
+            "Storage space",
+            "Token supply",
+            "EOA account capabilities",
+            "Network speed"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "Who are Ritual's co-founders?",
+        options: [
+            "Unknown founders",
+            "Vitalik and Satoshi",
+            "Niraj and Akilesh",
+            "Mark and Elon"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What was Niraj Pant's previous role?",
+        options: [
+            "CEO of OpenAI",
+            "Developer at Ethereum",
+            "GP at Polychain",
+            "Founder of Bitcoin"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What was Akilesh Potti's background?",
+        options: [
+            "Marketing specialist",
+            "Crypto trader",
+            "Partner at Polychain",
+            "Game developer"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual help identify?",
+        options: [
+            "Only bugs",
+            "Just user counts",
+            "Unique value propositions",
+            "Only costs"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What network does Ritual connect to?",
+        options: [
+            "Only investors",
+            "Just developers",
+            "Partners and mentors",
+            "Only users"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual Shrine represent?",
+        options: [
+            "A token sale",
+            "A course",
+            "Invitation to define future",
+            "A conference"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual's team size?",
+        options: [
+            "5 people",
+            "100 people",
+            "20-strong team",
+            "2 people"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What experience does Ritual's team have?",
+        options: [
+            "Only crypto",
+            "Only AI",
+            "Crypto and AI",
+            "Only finance"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What can users encapsulate with Ritual?",
+        options: [
+            "Nothing special",
+            "Only read data",
+            "Complex logic in models",
+            "Manual execution"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What will Ritual Foundation release?",
+        options: [
+            "Only documentation",
+            "Just marketing materials",
+            "Prototyped products",
+            "Nothing new"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual's design team help with?",
+        options: [
+            "Only logos",
+            "Just color schemes",
+            "Branding to interfaces",
+            "Only wireframes"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual enable developers to build?",
+        options: [
+            "Simple apps",
+            "Basic websites",
+            "New applications",
+            "Mobile games"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What has been seen in crypto AI space?",
+        options: [
+            "No changes",
+            "Only token launches",
+            "Stack experimentation",
+            "Decreased activity"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What problem with AI infrastructure exists?",
+        options: [
+            "Too decentralized",
+            "Too expensive",
+            "Centralized chokepoints",
+            "Too simple"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What major AI agent problem exists?",
+        options: [
+            "Too intelligent",
+            "Too expensive",
+            "Not doing useful things",
+            "Too fast"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What must developers currently do?",
+        options: [
+            "Use ready solutions",
+            "Nothing",
+            "Jerry-rig their stack",
+            "Only use APIs"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual handle for developers?",
+        options: [
+            "Only payments",
+            "Just UI",
+            "Complex stack building",
+            "Only storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What has crypto lost sight of?",
+        options: [
+            "Too much innovation",
+            "Too much user focus",
+            "Building for new users",
+            "Too decentralized"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What do today's blockchains optimize for?",
+        options: [
+            "New use cases",
+            "Net-new behavior",
+            "Existing users",
+            "Developer experience"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Ritual's infrastructure enable?",
+        options: [
+            "Just data storage",
+            "Only token transfers",
+            "Models as core features",
+            "Basic operations"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual's grand vision?",
+        options: [
+            "Replace all blockchains",
+            "Create new internet",
+            "Schelling point of AI",
+            "Build gaming platforms"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What will Ritual release for developers?",
+        options: [
+            "Just one tool",
+            "Only documentation",
+            "Suite of protocols",
+            "Nothing new"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is Ritual described as network-wise?",
+        options: [
+            "Centralized network",
+            "Private blockchain",
+            "Open execution layer",
+            "Testing environment"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What three properties does Ritual provide?",
+        options: [
+            "Fast, cheap, centralized",
+            "Expensive, slow, secure",
+            "Censorship resistant, privacy, verifiable",
+            "Open, closed, hybrid"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What support does Shrine provide?",
+        options: [
+            "Only financial support",
+            "Just documentation",
+            "Comprehensive hands-on support",
+            "No support"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What people does Shrine look for?",
+        options: [
+            "Casual observers",
+            "Average developers",
+            "Renegades and pathfinders",
+            "Non-technical users"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What does Shrine help with beyond tech?",
+        options: [
+            "Nothing else",
+            "Only coding",
+            "Design and connections",
+            "Just documentation"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What AI expertise is welcomed?",
+        options: [
+            "None",
+            "Only theoretical knowledge",
+            "Applied to onchain apps",
+            "Gaming AI only"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    {
+        question: "What is ideal Shrine application timing?",
+        options: [
+            "Only when fully built",
+            "Never",
+            "When you have vision",
+            "Only after launch"
+        ],
+        correctAnswer: 2,
+        difficulty: "easy"
+    },
+    
+    // MEDIUM QUESTIONS (80 total)
+    {
+        question: "What properties does crypto bring to AI?",
+        options: [
+            "Speed and cost only",
+            "Complexity reduction",
+            "Decentralized, accessible, transparent",
+            "Centralized control"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Ritual VM purpose-built for?",
+        options: [
+            "Gaming applications",
+            "File storage systems",
+            "Heterogeneous compute",
+            "Social networks"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Ritual Shrine?",
+        options: [
+            "A cryptocurrency wallet",
+            "A decentralized exchange",
+            "AI and crypto incubator",
+            "An NFT platform"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Foundation's unique approach?",
+        options: [
+            "Only passive grants",
+            "No developer support",
+            "Hands-on community work",
+            "Just marketing focus"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "How is Ritual's SDK described?",
+        options: [
+            "Most complex available",
+            "A beta platform",
+            "Easiest and fastest",
+            "Experimental framework"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable for DeFi?",
+        options: [
+            "Only token swaps",
+            "Fixed interest rates",
+            "Autonomous adaptation",
+            "Manual trading only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Infernet in Ritual ecosystem?",
+        options: [
+            "A wallet application",
+            "A trading bot",
+            "First evolution of Ritual",
+            "A social platform"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Ritual's current AI landscape view?",
+        options: [
+            "Slow processing",
+            "Poor interfaces",
+            "Broken capital formation",
+            "High costs"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What do modern blockchains prioritize?",
+        options: [
+            "Security and privacy",
+            "Token economics",
+            "Latency and throughput",
+            "Decentralization"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Ritual's architectural focus?",
+        options: [
+            "Profit maximization",
+            "Market dominance",
+            "Enrich onchain capabilities",
+            "Token price"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can developers train with Ritual?",
+        options: [
+            "Only view models",
+            "Copy models",
+            "Track and trade models",
+            "Delete models"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What functions can Ritual invoke?",
+        options: [
+            "One-time execution only",
+            "Manual triggering",
+            "Recurring conditional",
+            "Random execution"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is behind user magnitude increases?",
+        options: [
+            "Better marketing",
+            "Lower fees",
+            "Net-new behavior innovation",
+            "Faster transactions"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can agents do for lending?",
+        options: [
+            "Nothing",
+            "Only display data",
+            "Manage risk automatically",
+            "Send notifications"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual bring nodes together with?",
+        options: [
+            "Only validators",
+            "Traders only",
+            "Compute and model creators",
+            "Developers only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Foundation plan with community?",
+        options: [
+            "Work from distance",
+            "No interaction",
+            "Develop new directions",
+            "Through emails only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What primitives extend beyond AI?",
+        options: [
+            "None",
+            "Basic features",
+            "New category primitives",
+            "Simple contracts"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What functionalities does Foundation recruit?",
+        options: [
+            "Only marketing",
+            "Development only",
+            "BD, marketing and growth",
+            "Sales only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What AI and crypto convergence will create?",
+        options: [
+            "Only minor improvements",
+            "Just faster apps",
+            "Transform and create categories",
+            "Only cost savings"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is missing in blockchain innovation?",
+        options: [
+            "Speed",
+            "Marketing",
+            "Revolutionary infrastructure",
+            "Users"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What blockchain is Ritual built on?",
+        options: [
+            "Fork of Ethereum",
+            "Layer 2 solution",
+            "Purpose-built Layer 1",
+            "Sidechain"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What problem does AI stack have?",
+        options: [
+            "Too many guarantees",
+            "Too expensive",
+            "Lack of strong SLAs",
+            "Too complex"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is existing AI infrastructure problem?",
+        options: [
+            "Too decentralized",
+            "Too cheap",
+            "Permissioned and centralized",
+            "Too simple"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What has Ritual been doing two years?",
+        options: [
+            "Only planning",
+            "Marketing",
+            "Researching and building",
+            "Fundraising"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Shrine help beyond implementation?",
+        options: [
+            "Nothing else",
+            "Only coding",
+            "Product refinement and design",
+            "Just documentation"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "Does Shrine operate in-person or remote?",
+        options: [
+            "Only in-person",
+            "Only in San Francisco",
+            "Primarily remote",
+            "Only remote, no meetings"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can RaaS providers integrate?",
+        options: [
+            "Only basic features",
+            "Simple tokens",
+            "Heterogeneous compute",
+            "Basic storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual efficiently price?",
+        options: [
+            "Only tokens",
+            "Storage only",
+            "All types of compute",
+            "Bandwidth"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual believe about convergence?",
+        options: [
+            "It's overhyped",
+            "It's impossible",
+            "Most promising frontier",
+            "It's outdated"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What execution does Ritual provide?",
+        options: [
+            "Basic computation",
+            "Simple scripts",
+            "AI inference and ZK proofs",
+            "Manual processes"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What date was Ritual announced?",
+        options: [
+            "January 1, 2024",
+            "December 25, 2023",
+            "November 19, 2024",
+            "October 10, 2024"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can Ritual enable impossible before?",
+        options: [
+            "Simple apps",
+            "Basic websites",
+            "Onchain AI integration",
+            "Mobile games"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable monetization with?",
+        options: [
+            "Basic selling",
+            "Subscription only",
+            "Verifiable provenance",
+            "Free access only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual's cryptography guarantee?",
+        options: [
+            "Speed only",
+            "Low costs",
+            "Integrity and privacy",
+            "Easy setup"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What verification does Ritual support?",
+        options: [
+            "Only small models",
+            "Limited model types",
+            "Unbounded model sizes",
+            "Text models only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What most crypto AI infrastructure lacks?",
+        options: [
+            "Too decentralized",
+            "Too expensive",
+            "Composability across stack",
+            "Too simple"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can one-click launchers integrate?",
+        options: [
+            "Only basic features",
+            "Simple tokens",
+            "Compute with fee markets",
+            "Basic storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable IP marketplaces?",
+        options: [
+            "Basic storage",
+            "Simple sharing",
+            "Native provenance primitives",
+            "Manual tracking"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What access does SDK provide?",
+        options: [
+            "Limited features",
+            "Restricted to partners",
+            "Permissionless network access",
+            "Paid access only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What problems plague AI landscape?",
+        options: [
+            "Only cost",
+            "Just complexity",
+            "Broken capital and centralization",
+            "Only speed"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can protocols harness with Ritual?",
+        options: [
+            "Just data storage",
+            "Only token transfers",
+            "Models as core features",
+            "Basic operations"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual provide specialized execution?",
+        options: [
+            "Basic computation",
+            "Simple scripts",
+            "AI, ZK, TEE execution",
+            "Manual processes"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "How long has Ritual team been building?",
+        options: [
+            "Six months",
+            "One year",
+            "Two years",
+            "Five years"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable for generated content?",
+        options: [
+            "Basic storage",
+            "Simple sharing",
+            "IP marketplaces",
+            "Manual tracking"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual vision for users involve?",
+        options: [
+            "Through third parties only",
+            "Offline only",
+            "Native consumption",
+            "Via mobile apps only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What properties does Ritual ensure for AI?",
+        options: [
+            "Speed only",
+            "Cost reduction",
+            "Trustless blockchain properties",
+            "Complexity"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Ritual's approach to foundations?",
+        options: [
+            "Passive approach",
+            "No involvement",
+            "Different kind of foundation",
+            "Standard model"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual abstract for developers?",
+        options: [
+            "Only payments",
+            "Just UI",
+            "Stack building process",
+            "Only storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What enabled recent AI growth?",
+        options: [
+            "Government funding",
+            "Academic research only",
+            "Rapid consumer adoption",
+            "Corporate mandates"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can Ritual enable for new users?",
+        options: [
+            "Only minor improvements",
+            "Just faster apps",
+            "New application categories",
+            "Only cost savings"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What will Ritual become for web3?",
+        options: [
+            "Just another blockchain",
+            "A gaming platform",
+            "The schelling point",
+            "An exchange"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What new DeFi primitives does Ritual enable?",
+        options: [
+            "Basic token swaps",
+            "Simple staking",
+            "AI-pegged stablecoins",
+            "Manual trading"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Foundation's approach include?",
+        options: [
+            "Only grants",
+            "No involvement",
+            "Strategic capital and building",
+            "Marketing only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What problem does SOTA fee market solve?",
+        options: [
+            "Transaction speed",
+            "User adoption",
+            "Prover market decentralization",
+            "Token distribution"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can Ritual enable for smart contracts?",
+        options: [
+            "One-time execution only",
+            "Manual triggering",
+            "Recurring conditional invocation",
+            "Random execution"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What integration can Ritual VM enable?",
+        options: [
+            "Only viewing",
+            "Deletion",
+            "Native AI model integration",
+            "Copying"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can users create with natural language?",
+        options: [
+            "Nothing",
+            "Only read content",
+            "Transactions and interactions",
+            "Send messages"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What is Ritual building for developers?",
+        options: [
+            "Just one tool",
+            "Only documentation",
+            "Suite of utilities",
+            "Nothing new"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What type of execution layer is Ritual?",
+        options: [
+            "Centralized network",
+            "Private blockchain",
+            "Open modular sovereign",
+            "Testing environment"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable developers to do?",
+        options: [
+            "Simple apps",
+            "Basic websites",
+            "Previously unfeasible apps",
+            "Mobile games"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "How does Ritual support ecosystem building?",
+        options: [
+            "Passive grants only",
+            "No involvement",
+            "Hands-on working alongside",
+            "Marketing only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual's VM enable developers?",
+        options: [
+            "Only view models",
+            "Copy models",
+            "Integrate in few lines",
+            "Delete models"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can protocols autonomously adapt with?",
+        options: [
+            "Only token swaps",
+            "Fixed rates",
+            "Transparent models",
+            "Manual trading"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual transcend for models?",
+        options: [
+            "Nothing",
+            "Restricts regions",
+            "Geographic and closed ecosystems",
+            "Specific countries only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can agents manage for protocols?",
+        options: [
+            "Nothing",
+            "Only display data",
+            "Risk parameters automatically",
+            "Send notifications"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual prioritize for privacy?",
+        options: [
+            "Heavy cryptography",
+            "No cryptography",
+            "Lightweight schemes",
+            "Basic encryption"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual's approach enable?",
+        options: [
+            "Just faster apps",
+            "Only cost savings",
+            "Entirely new categories",
+            "Only minor improvements"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What type of network is Ritual?",
+        options: [
+            "Centralized",
+            "Private",
+            "Distributed compute network",
+            "Testing only"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Shrine provide beyond financial?",
+        options: [
+            "Nothing else",
+            "Only coding",
+            "Technical, design, strategic",
+            "Just documentation"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can builders access through Ritual?",
+        options: [
+            "Only LLMs",
+            "Only image models",
+            "LLMs and classical ML",
+            "No AI models"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable agents to do?",
+        options: [
+            "Send tokens",
+            "Create NFTs",
+            "Live onchain permanently",
+            "Trade automatically"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What makes Ritual different from traditional?",
+        options: [
+            "Only passive grants",
+            "No support",
+            "Hands-on community approach",
+            "Just marketing"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual's infrastructure optimize?",
+        options: [
+            "Only speed",
+            "Storage only",
+            "Any heterogeneous compute",
+            "Network bandwidth"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What can Ritual enable for chains?",
+        options: [
+            "None",
+            "Only Ethereum",
+            "Prover networks and IP markets",
+            "Only Bitcoin"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What SDK does Ritual provide?",
+        options: [
+            "Most complex",
+            "Beta platform",
+            "Easiest and most reliable",
+            "Experimental"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What convergence does AI and crypto represent?",
+        options: [
+            "Overhyped",
+            "Impossible",
+            "Promising technology frontier",
+            "Outdated"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual enable for developers?",
+        options: [
+            "Simple apps",
+            "Basic websites",
+            "Complex automated systems",
+            "Mobile games"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    {
+        question: "What does Ritual say future requires?",
+        options: [
+            "It happens automatically",
+            "It's predetermined",
+            "It must be built",
+            "It's unpredictable"
+        ],
+        correctAnswer: 2,
+        difficulty: "medium"
+    },
+    
+    // HARD QUESTIONS (40 total)
+    {
+        question: "What mechanism does Ritual use for provers?",
+        options: [
+            "Basic fee structure",
+            "No fee market",
+            "SOTA fee market mechanism",
+            "Fixed pricing"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What provenance primitives does Ritual enable?",
+        options: [
+            "Basic file storage",
+            "Simple licensing",
+            "Native model and output provenance",
+            "Manual tracking"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What can appchain launchers integrate?",
+        options: [
+            "Only basic features",
+            "Simple tokens",
+            "Heterogeneous compute with fee markets",
+            "Basic storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What three key Ritual AI properties are?",
+        options: [
+            "Fast, cheap, centralized",
+            "Expensive, slow, secure",
+            "Censorship resistant, privacy, verifiable",
+            "Open, closed, hybrid"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual enable DeFi protocols?",
+        options: [
+            "Only token swaps",
+            "Fixed interest rates",
+            "Autonomous real-time adaptation",
+            "Manual trading only"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What infrastructure properties does Ritual have?",
+        options: [
+            "Speed and cost",
+            "Complexity reduction",
+            "Decentralized, accessible, transparent",
+            "Centralized control"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What primitives enable new categories?",
+        options: [
+            "None",
+            "Basic features",
+            "Novel primitives beyond AI",
+            "Simple contracts"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual's fee market tackle?",
+        options: [
+            "Transaction speed",
+            "User adoption",
+            "Prover market decentralization",
+            "Token distribution"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What can agents do onchain forever?",
+        options: [
+            "Send tokens",
+            "Create NFTs",
+            "Live without takedown",
+            "Trade automatically"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What DeFi innovations does Ritual enable?",
+        options: [
+            "Basic token swaps",
+            "Simple staking",
+            "AI-pegged stables and LLM markets",
+            "Manual trading"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What execution specialization does Ritual offer?",
+        options: [
+            "Basic computation",
+            "Simple scripts",
+            "AI inference, ZK, TEE, cross-chain",
+            "Manual processes"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What can smart contracts invoke with Ritual?",
+        options: [
+            "One-time only",
+            "Manual triggering",
+            "Recurring conditional without keepers",
+            "Random execution"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What verification does Ritual construct?",
+        options: [
+            "Only small models",
+            "Limited types",
+            "Unbounded classical and foundation",
+            "Text only"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual abstract for protocols?",
+        options: [
+            "Only payments",
+            "Just UI",
+            "Stack building at protocol layer",
+            "Only storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What integration enables RaaS providers?",
+        options: [
+            "Only basic features",
+            "Simple tokens",
+            "Heterogeneous compute with incentivized markets",
+            "Basic storage"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual enable for models?",
+        options: [
+            "Only viewing",
+            "Deletion",
+            "Train, track, trade with provenance",
+            "Copying"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What marketplaces do primitives enable?",
+        options: [
+            "Basic storage",
+            "Simple sharing",
+            "IP marketplaces for generated content",
+            "Manual tracking"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual enable protocols harness?",
+        options: [
+            "Just data storage",
+            "Only transfers",
+            "Models as core not wrappers",
+            "Basic operations"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What network does Ritual SDK provide?",
+        options: [
+            "Limited features",
+            "Restricted partners",
+            "Permissionless model and compute providers",
+            "Paid only"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What cryptographic guarantees does Ritual offer?",
+        options: [
+            "Speed only",
+            "Low costs",
+            "Computational integrity and privacy",
+            "Easy setup"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual enable users encapsulate?",
+        options: [
+            "Nothing special",
+            "Only read data",
+            "Complex logic in AI models",
+            "Manual execution"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What can agents manage in protocols?",
+        options: [
+            "Nothing",
+            "Display only",
+            "Risk parameters based on conditions",
+            "Notifications"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What privacy schemes does Ritual use?",
+        options: [
+            "Heavy cryptography",
+            "No cryptography",
+            "Lightweight statistical and cryptographic",
+            "Basic encryption"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What model sizes can Ritual verify?",
+        options: [
+            "Only small",
+            "Limited types",
+            "Unbounded classical and foundation",
+            "Text only"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What can Infernet evolve into?",
+        options: [
+            "A wallet",
+            "A DEX",
+            "Modular suite interop with base layers",
+            "NFT marketplace"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What infrastructure issues does Ritual address?",
+        options: [
+            "Only cost",
+            "Just complexity",
+            "Capital, centralization, censorship, opacity",
+            "Only speed"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What composability problem exists today?",
+        options: [
+            "Too decentralized",
+            "Too expensive",
+            "Chokepoints and lacks stack composability",
+            "Too simple"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What major AI agent issue exists?",
+        options: [
+            "Too intelligent",
+            "Too expensive",
+            "Not useful and questioned authenticity",
+            "Too fast"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What primitives extend to new categories?",
+        options: [
+            "None",
+            "Basic features",
+            "Same primitives for AI extend beyond",
+            "Simple contracts"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What SLA problems exist in AI stack?",
+        options: [
+            "Too many guarantees",
+            "Too expensive",
+            "Lack of integrity, privacy, censorship SLAs",
+            "Too complex"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What monetization does Ritual enable?",
+        options: [
+            "Basic selling",
+            "Subscription only",
+            "Transparent with verifiable provenance",
+            "Free only"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual's architecture enable?",
+        options: [
+            "Basic computation",
+            "Simple scripts",
+            "Any heterogeneous compute current or future",
+            "Manual processes"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What network does Ritual bring together?",
+        options: [
+            "Only validators",
+            "Just users",
+            "Distributed nodes with compute and creators",
+            "Only investors"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What enabled innovations in AI models?",
+        options: [
+            "Government funding",
+            "Academic only",
+            "Rapid consumer adoption and architecture",
+            "Corporate mandates"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What has crypto lost sight of recently?",
+        options: [
+            "Too much innovation",
+            "Too much user focus",
+            "Net-new users and expanding capabilities",
+            "Too decentralized"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What can developers do that wasn't feasible?",
+        options: [
+            "Simple apps",
+            "Basic websites",
+            "Build previously unfeasible with contracts",
+            "Mobile games"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What AI landscape problems does Ritual solve?",
+        options: [
+            "Slow processing",
+            "High costs",
+            "Broken capital, centralization, censorship",
+            "Poor interfaces"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What does Ritual enable for chains?",
+        options: [
+            "None",
+            "Only Ethereum",
+            "High-performance prover networks, RaaS, IP",
+            "Only Bitcoin"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What has experimentation covered in crypto?",
+        options: [
+            "No changes",
+            "Only tokens",
+            "Almost every AI stack layer",
+            "Decreased activity"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    },
+    {
+        question: "What infrastructure problem still exists?",
+        options: [
+            "Too decentralized",
+            "Too expensive",
+            "Few built on suitable AI infrastructure",
+            "Too simple"
+        ],
+        correctAnswer: 2,
+        difficulty: "hard"
+    }
+];
+            { min: 0, max: 4, title: 'Initiate', description: 'Beginning your journey into the Ritual ecosystem' },
+            { min: 5, max: 6, title: 'Ritty Bitty', description: 'Getting the hang of Ritual concepts' },
+            { min: 7, max: 7, title: 'Ritty', description: 'Solid understanding of Ritual' },
+            { min: 8, max: 9, title: 'Ritualist', description: 'Deep knowledge of the Ritual ecosystem' },
+            { min: 10, max: 10, title: 'Mage', description: 'Master of Ritual wisdom' }
+        ];
+        
+        let currentQuestion = 0;
+        let selectedAnswer = null;
+        let score = 0;
+        let answers = [];
+        let showingFeedback = false;
+        let userImageData = null;
+        
+        function startQuiz() {
+            currentQuestion = 0;
+            selectedAnswer = null;
+            score = 0;
+            answers = [];
+            showingFeedback = false;
+            userImageData = null;
+            
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('quiz-screen').classList.add('active');
+            
+            loadQuestion();
+        }
+        
+        function loadQuestion() {
+            const question = questions[currentQuestion];
+            
+            // Update progress
+            document.getElementById('question-counter').textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+            document.getElementById('progress-fill').style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+            
+            // Update question
+            document.getElementById('question-text').textContent = question.question;
+            
+            // Create options
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            // Reset button
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('feedback').style.display = 'none';
+            selectedAnswer = null;
+            showingFeedback = false;
+        }
+        
+        function selectAnswer(index) {
+            if (showingFeedback) return;
+            
+            selectedAnswer = index;
+            
+            // Update UI
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, i) => {
+                option.classList.remove('selected');
+                if (i === index) {
+                    option.classList.add('selected');
+                }
+            });
+            
+            document.getElementById('submit-btn').disabled = false;
+        }
+        
+        function submitAnswer() {
+            if (selectedAnswer === null || showingFeedback) return;
+            
+            const question = questions[currentQuestion];
+            const isCorrect = selectedAnswer === question.correctAnswer;
+            
+            answers.push(isCorrect);
+            if (isCorrect) score++;
+            
+            showingFeedback = true;
+            
+            // Show feedback
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, i) => {
+                option.classList.add('disabled');
+                if (i === question.correctAnswer) {
+                    option.classList.add('correct');
+                } else if (i === selectedAnswer && !isCorrect) {
+                    option.classList.add('wrong');
+                }
+            });
+            
+            const feedback = document.getElementById('feedback');
+            feedback.style.display = 'block';
+            feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
+            feedback.textContent = isCorrect ? '✓ Correct!' : '✗ Incorrect';
+            
+            // Auto advance
+            setTimeout(() => {
+                if (currentQuestion < questions.length - 1) {
+                    currentQuestion++;
+                    loadQuestion();
+                } else {
+                    showForm();
+                }
+            }, isCorrect ? 2000 : 5000); // 2s for correct, 5s for wrong to read correct answer
+        }
+        
+        function showForm() {
+            document.getElementById('quiz-screen').classList.remove('active');
+            document.getElementById('form-screen').classList.add('active');
+            
+            // Reset form
+            document.getElementById('user-form').reset();
+            document.getElementById('file-name').textContent = 'Choose File';
+            document.getElementById('image-preview').style.display = 'none';
+            userImageData = null;
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('file-name').textContent = file.name;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    userImageData = e.target.result;
+                    document.getElementById('preview-img').src = userImageData;
+                    document.getElementById('image-preview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function generateCard() {
+            const username = document.getElementById('username').value.trim();
+            
+            if (!username) {
+                alert('Please enter your name!');
+                return;
+            }
+            
+            showResults(username);
+        }
+        
+        function showResults(username) {
+            document.getElementById('form-screen').classList.remove('active');
+            document.getElementById('result-screen').classList.add('active');
+            
+            // Calculate role
+            const role = roles.find(r => score >= r.min && score <= r.max);
+            
+            // Update card with user info
+            document.getElementById('card-username').textContent = username;
+            
+            const profilePicElement = document.getElementById('card-profile-pic');
+            const initialElement = document.getElementById('profile-initial');
+            
+            if (userImageData) {
+                // Show uploaded image
+                profilePicElement.innerHTML = `<img src="${userImageData}" alt="${username}">`;
+            } else {
+                // Show initial
+                initialElement.textContent = username.charAt(0).toUpperCase();
+            }
+            
+            document.getElementById('role-title').textContent = role.title + ' ✨';
+            document.getElementById('final-score').textContent = `${score}/10`;
+            document.getElementById('role-description').textContent = role.description;
+        }
+        
+        function retakeQuiz() {
+            document.getElementById('result-screen').classList.remove('active');
+            document.getElementById('start-screen').classList.add('active');
+        }
+        
+        function shareToX() {
+            const username = document.getElementById('card-username').textContent;
+            const role = roles.find(r => score >= r.min && score <= r.max);
+            const text = `I just completed the Ritual Quiz and earned the ${role.title} rank 🔮 Score: ${score}/10\n\nThink you can beat me? Take the Ritual Quiz 👇\n\n@ritualfnd`;
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
