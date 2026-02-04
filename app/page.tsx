@@ -8,6 +8,7 @@ interface Question {
   question: string;
   options: string[];
   correctAnswer: number;
+  correctAnswerText?: string; // The actual correct answer text
   difficulty: string;
 }
 
@@ -53,10 +54,15 @@ export default function Home() {
       ...shuffleArray(hard).slice(0, 2),
     ];
 
-    const questionsWithShuffledOptions = selectedQuestions.map(q => ({
-      ...q,
-      options: shuffleArray([...q.options]),
-    }));
+    // Store the correct answer text BEFORE shuffling options
+    const questionsWithShuffledOptions = selectedQuestions.map(q => {
+      const correctAnswerText = q.options[q.correctAnswer];
+      return {
+        ...q,
+        correctAnswerText, // Store the actual correct answer
+        options: shuffleArray([...q.options]),
+      };
+    });
 
     setQuestions(shuffleArray(questionsWithShuffledOptions));
   };
@@ -88,7 +94,8 @@ export default function Home() {
     if (selectedAnswer === null) return;
 
     const currentQuestion = questions[currentQuestionIndex];
-    const isCorrect = currentQuestion.options[selectedAnswer] === currentQuestion.options[currentQuestion.correctAnswer];
+    // Compare the selected option text with the stored correct answer text
+    const isCorrect = currentQuestion.options[selectedAnswer] === currentQuestion.correctAnswerText;
 
     setAnswers([...answers, isCorrect]);
     if (isCorrect) {
@@ -135,9 +142,15 @@ export default function Home() {
     if (!cardRef.current) return;
 
     try {
+      // Force a small delay to ensure all dynamic content (score, role, image) is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#050510',
         scale: 2,
+        useCORS: true, // Allow cross-origin images
+        logging: false, // Disable console logs
+        allowTaint: true, // Allow tainted canvas
       });
 
       const link = document.createElement('a');
@@ -237,7 +250,7 @@ export default function Home() {
               <div className="space-y-4">
                 {currentQuestion.options.map((option, index) => {
                   const isSelected = selectedAnswer === index;
-                  const isCorrect = showFeedback && currentQuestion.options[index] === currentQuestion.options[currentQuestion.correctAnswer];
+                  const isCorrect = showFeedback && option === currentQuestion.correctAnswerText;
                   const isWrong = showFeedback && isSelected && !isCorrect;
 
                   return (
@@ -337,7 +350,12 @@ export default function Home() {
 
                   <div className="relative z-10 space-y-6">
                     <div className="text-center">
-                      <h1 className="text-5xl font-bold text-gradient mb-2">Ritual Card</h1>
+                      <h1 className="text-5xl font-bold text-gradient mb-2" style={{
+                        background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }}>Ritual Card</h1>
                       <div className="h-1 w-32 bg-ritual-gradient mx-auto rounded-full"></div>
                     </div>
 
@@ -367,7 +385,12 @@ export default function Home() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-3 justify-center md:justify-start">
                             <span className="text-gray-400">Score:</span>
-                            <span className="text-4xl font-bold text-gradient">{score}/10</span>
+                            <span className="text-4xl font-bold text-gradient" style={{ 
+                              background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text'
+                            }}>{score}/10</span>
                           </div>
                           <p className="text-sm text-gray-400 italic">{role.description}</p>
                         </div>
