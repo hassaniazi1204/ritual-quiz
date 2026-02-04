@@ -399,11 +399,7 @@ export default function Home() {
                         <h1 
                           className="text-7xl font-black mb-3"
                           style={{
-                            background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 50%, #EC4899 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text',
-                            color: '#8B5CF6', // Fallback for html2canvas
+                            color: '#A78BFA', // Solid purple color instead of gradient
                           }}
                         >
                           RITUAL CARD
@@ -453,7 +449,7 @@ export default function Home() {
                           <div className="space-y-2">
                             <p 
                               className="text-4xl font-bold"
-                              style={{ color: '#8B5CF6' }}
+                              style={{ color: '#A78BFA' }}
                             >
                               {role.title} ✨
                             </p>
@@ -469,11 +465,7 @@ export default function Home() {
                               <span 
                                 className="text-7xl font-black"
                                 style={{
-                                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 50%, #EC4899 100%)',
-                                  WebkitBackgroundClip: 'text',
-                                  WebkitTextFillColor: 'transparent',
-                                  backgroundClip: 'text',
-                                  color: '#8B5CF6', // Fallback
+                                  color: '#A78BFA', // Solid purple color
                                 }}
                               >
                                 {score}/10
@@ -489,7 +481,7 @@ export default function Home() {
                           <p className="text-xl text-gray-400 font-semibold">
                             ritualfoundation.com
                           </p>
-                          <p className="text-lg text-ritual-purple font-bold">
+                          <p className="text-lg font-bold" style={{ color: '#A78BFA' }}>
                             @ritualfnd
                           </p>
                         </div>
