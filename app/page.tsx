@@ -33,6 +33,7 @@ export default function Home() {
   const [userName, setUserName] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
+  const [isGeneratingCard, setIsGeneratingCard] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,25 +142,59 @@ export default function Home() {
   const downloadCard = async () => {
     if (!cardRef.current) return;
 
+    setIsGeneratingCard(true);
+
     try {
-      // Force a small delay to ensure all dynamic content (score, role, image) is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      // Step 1: Wait for all dynamic content to fully render
+      // This includes fonts, images, and gradient calculations
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 2: Ensure images are fully loaded
+      const images = cardRef.current.getElementsByTagName('img');
+      const imagePromises = Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve; // Still resolve on error to not block
+        });
+      });
+      await Promise.all(imagePromises);
+
+      // Step 3: Generate high-quality canvas with optimal settings
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#050510',
-        scale: 2,
+        scale: 3, // High resolution for sharp export
         useCORS: true, // Allow cross-origin images
-        logging: false, // Disable console logs
-        allowTaint: true, // Allow tainted canvas
+        allowTaint: true, // Allow tainted canvas for user uploads
+        logging: false, // Clean console
+        windowWidth: 1080, // Force specific width for consistency
+        windowHeight: 1350, // Portrait ratio ideal for social media
+        // Improve text rendering
+        onclone: (clonedDoc) => {
+          const clonedCard = clonedDoc.querySelector('[data-card-ref]');
+          if (clonedCard) {
+            // Force all text to be fully opaque for better rendering
+            const allText = clonedCard.querySelectorAll('*');
+            allText.forEach((el: any) => {
+              if (el.style) {
+                el.style.opacity = '1';
+              }
+            });
+          }
+        },
       });
 
+      // Step 4: Download the image
       const link = document.createElement('a');
-      link.download = `ritual-card-${userName || 'user'}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.download = `ritual-card-${userName.replace(/\s+/g, '-').toLowerCase() || 'user'}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0); // Maximum quality
       link.click();
+
     } catch (error) {
       console.error('Error generating card:', error);
       alert('Error generating card. Please try again.');
+    } finally {
+      setIsGeneratingCard(false);
     }
   };
 
@@ -342,108 +377,174 @@ export default function Home() {
               </div>
             ) : (
               <>
-                {/* Ritual Card */}
-                <div ref={cardRef} className="bg-gradient-to-br from-ritual-dark to-ritual-darker p-8 rounded-2xl border-2 border-ritual-purple/50 relative overflow-hidden">
-                  {/* Decorative elements */}
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-ritual-purple/10 rounded-full blur-3xl"></div>
-                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-ritual-blue/10 rounded-full blur-3xl"></div>
+                {/* Ritual Card - Optimized for Image Export */}
+                <div 
+                  ref={cardRef} 
+                  data-card-ref
+                  className="mx-auto"
+                  style={{
+                    width: '1080px',
+                    maxWidth: '100%',
+                    aspectRatio: '1080/1350',
+                  }}
+                >
+                  <div className="w-full h-full bg-gradient-to-br from-ritual-dark to-ritual-darker p-12 rounded-3xl border-4 border-ritual-purple relative overflow-hidden">
+                    {/* Decorative glow elements */}
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-ritual-purple/20 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-ritual-blue/20 rounded-full blur-3xl"></div>
 
-                  <div className="relative z-10 space-y-6">
-                    <div className="text-center">
-                      <h1 className="text-5xl font-bold text-gradient mb-2" style={{
-                        background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                      }}>Ritual Card</h1>
-                      <div className="h-1 w-32 bg-ritual-gradient mx-auto rounded-full"></div>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row items-center gap-8">
-                      {/* Profile Section */}
-                      <div className="flex-shrink-0">
-                        {userImage ? (
-                          <img
-                            src={userImage}
-                            alt={userName}
-                            className="w-32 h-32 rounded-full border-4 border-ritual-purple object-cover"
-                          />
-                        ) : (
-                          <div className="w-32 h-32 rounded-full border-4 border-ritual-purple bg-ritual-gradient flex items-center justify-center text-4xl font-bold">
-                            {userName.charAt(0).toUpperCase() || '?'}
-                          </div>
-                        )}
+                    <div className="relative z-10 h-full flex flex-col justify-between">
+                      {/* Header */}
+                      <div className="text-center space-y-4">
+                        <h1 
+                          className="text-7xl font-black mb-3"
+                          style={{
+                            background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 50%, #EC4899 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            color: '#8B5CF6', // Fallback for html2canvas
+                          }}
+                        >
+                          RITUAL CARD
+                        </h1>
+                        <div 
+                          className="h-2 w-48 mx-auto rounded-full"
+                          style={{
+                            background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #EC4899)',
+                          }}
+                        ></div>
                       </div>
 
-                      {/* Info Section */}
-                      <div className="flex-1 text-center md:text-left space-y-4">
-                        <div>
-                          <h2 className="text-3xl font-bold">{userName || 'Anonymous'}</h2>
-                          <p className="text-ritual-purple text-xl font-semibold mt-1">{role.title}</p>
+                      {/* Main Content */}
+                      <div className="flex flex-col items-center gap-8 py-8">
+                        {/* Profile Picture */}
+                        <div className="flex-shrink-0">
+                          {userImage ? (
+                            <img
+                              src={userImage}
+                              alt={userName}
+                              className="w-48 h-48 rounded-full border-6 object-cover"
+                              style={{ borderColor: '#8B5CF6', borderWidth: '6px' }}
+                              crossOrigin="anonymous"
+                            />
+                          ) : (
+                            <div 
+                              className="w-48 h-48 rounded-full border-6 flex items-center justify-center text-7xl font-black"
+                              style={{
+                                background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
+                                borderColor: '#8B5CF6',
+                                borderWidth: '6px',
+                              }}
+                            >
+                              {userName.charAt(0).toUpperCase() || '?'}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-3 justify-center md:justify-start">
-                            <span className="text-gray-400">Score:</span>
-                            <span className="text-4xl font-bold text-gradient" style={{ 
-                              background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
-                              WebkitBackgroundClip: 'text',
-                              WebkitTextFillColor: 'transparent',
-                              backgroundClip: 'text'
-                            }}>{score}/10</span>
+                        {/* User Info */}
+                        <div className="text-center space-y-6 w-full px-8">
+                          {/* Name */}
+                          <h2 className="text-5xl font-black text-white break-words">
+                            {userName || 'Anonymous'}
+                          </h2>
+
+                          {/* Role */}
+                          <div className="space-y-2">
+                            <p 
+                              className="text-4xl font-bold"
+                              style={{ color: '#8B5CF6' }}
+                            >
+                              {role.title} ✨
+                            </p>
+                            <p className="text-xl text-gray-400 italic px-4">
+                              {role.description}
+                            </p>
                           </div>
-                          <p className="text-sm text-gray-400 italic">{role.description}</p>
+
+                          {/* Score */}
+                          <div className="bg-black/20 rounded-2xl p-6 border-2 border-ritual-purple/30">
+                            <div className="flex items-center justify-center gap-4">
+                              <span className="text-2xl text-gray-300 font-semibold">Score:</span>
+                              <span 
+                                className="text-7xl font-black"
+                                style={{
+                                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 50%, #EC4899 100%)',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                  backgroundClip: 'text',
+                                  color: '#8B5CF6', // Fallback
+                                }}
+                              >
+                                {score}/10
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="border-t border-ritual-purple/30 pt-4">
-                      <p className="text-center text-sm text-gray-500">
-                        ritualfoundation.com • @ritualfnd
-                      </p>
+                      {/* Footer */}
+                      <div className="border-t-2 border-ritual-purple/40 pt-6 mt-4">
+                        <div className="text-center space-y-2">
+                          <p className="text-xl text-gray-400 font-semibold">
+                            ritualfoundation.com
+                          </p>
+                          <p className="text-lg text-ritual-purple font-bold">
+                            @ritualfnd
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                   <button
                     onClick={downloadCard}
-                    className="py-4 bg-ritual-purple rounded-xl font-bold hover:scale-105 transition-transform duration-300"
+                    disabled={isGeneratingCard}
+                    className={`py-4 bg-ritual-purple rounded-xl font-bold transition-all duration-300 ${
+                      isGeneratingCard 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:scale-105'
+                    }`}
                   >
-                    📥 Download Card
+                    {isGeneratingCard ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating...
+                      </span>
+                    ) : (
+                      '📥 Download Card'
+                    )}
                   </button>
 
                   <button
                     onClick={shareToX}
-                    className="py-4 bg-blue-500 rounded-xl font-bold hover:scale-105 transition-transform duration-300"
+                    disabled={isGeneratingCard}
+                    className={`py-4 bg-blue-500 rounded-xl font-bold transition-all duration-300 ${
+                      isGeneratingCard 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:scale-105'
+                    }`}
                   >
                     🐦 Share to X
                   </button>
 
                   <button
                     onClick={() => window.location.reload()}
-                    className="py-4 bg-ritual-gradient rounded-xl font-bold hover:scale-105 transition-transform duration-300"
+                    disabled={isGeneratingCard}
+                    className={`py-4 bg-ritual-gradient rounded-xl font-bold transition-all duration-300 ${
+                      isGeneratingCard 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:scale-105'
+                    }`}
                   >
                     🔄 Retake Quiz
                   </button>
-                </div>
-
-                {/* Score Breakdown */}
-                <div className="ritual-card p-6 rounded-2xl backdrop-blur-sm">
-                  <h3 className="text-xl font-bold mb-4 text-center">Score Breakdown</h3>
-                  <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
-                    {answers.map((isCorrect, index) => (
-                      <div
-                        key={index}
-                        className={`aspect-square rounded-lg flex items-center justify-center font-bold ${
-                          isCorrect ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </>
             )}
