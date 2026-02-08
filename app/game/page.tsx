@@ -33,15 +33,15 @@ export default function MergeGame() {
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [nextBallLevel, setNextBallLevel] = useState(1);
+  const [currentBallLevel, setCurrentBallLevel] = useState(1);
   const [dropPosition, setDropPosition] = useState(400);
   const [isGeneratingCard, setIsGeneratingCard] = useState(false);
   const [userName, setUserName] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
   
-  const gameWidth = 800;
-  const gameHeight = 600;
+  const gameWidth = 420;
+  const gameHeight = 720;
   const topBoundary = 100;
 
   // Load all avatar images
@@ -178,7 +178,8 @@ export default function MergeGame() {
 
       // Draw next ball preview
       if (!gameOver) {
-        const previewConfig = BALL_CONFIG[nextBallLevel - 1];
+        const previewConfig = BALL_CONFIG[currentBallLevel - 1];
+        const previewImage = imagesRef.current[currentBallLevel];
         const previewImage = imagesRef.current[nextBallLevel];
         
         ctx.save();
@@ -265,60 +266,79 @@ export default function MergeGame() {
       if (anyBallAboveBoundary && !gameOver) {
         setGameOver(true);
         setShowCardForm(true);
-        Matter.Engine.clear(engine);
+        Matter.Render.stop(renderRef.current!);
+Matter.Runner.stop(Matter.Runner.create());
+Matter.Engine.clear(engine);
+
       }
     }, 500);
 
     return () => {
       clearInterval(checkGameOver);
       Matter.Render.stop(render);
-      Matter.Engine.clear(engine);
+      Matter.Render.stop(renderRef.current!);
+Matter.Runner.stop(Matter.Runner.create());
+Matter.Engine.clear(engine);
+
     };
   }, [gameOver]);
 
   // Create a new ball
   const createBall = (x: number, y: number, level: number) => {
-    if (!worldRef.current) return;
+  if (!worldRef.current) return;
 
-    const config = BALL_CONFIG[level - 1];
-    const body = Matter.Bodies.circle(x, y, config.radius, {
-      restitution: 0.3,
-      friction: 0.5,
-      render: { fillStyle: config.color },
-    });
+  // cleanup old bodies (prevents world overload)
+  if (ballsRef.current.length > 180) {
+    const remove = ballsRef.current.slice(0, 30);
+    remove.forEach(b => Matter.World.remove(worldRef.current!, b.body));
+    ballsRef.current = ballsRef.current.slice(30);
+  }
 
-    Matter.World.add(worldRef.current, body);
-    
-    ballsRef.current.push({
-      body,
-      level,
-      image: imagesRef.current[level],
-    });
-  };
+  const config = BALL_CONFIG[level - 1];
+
+  const body = Matter.Bodies.circle(x, y, config.radius, {
+    restitution: 0.25,
+    friction: 0.4,
+  });
+
+  Matter.World.add(worldRef.current, body);
+
+  ballsRef.current.push({
+    body,
+    level,
+    image: imagesRef.current[level],
+  });
+};
 
   // Drop ball on click
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver) return;
+const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  if (gameOver) return;
 
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
+  const rect = canvasRef.current?.getBoundingClientRect();
+  if (!rect) return;
 
-    const x = e.clientX - rect.left;
-    createBall(x, 50, nextBallLevel);
-    
-    // Randomize next ball (levels 1-3 most common)
-    const random = Math.random();
-    if (random < 0.5) setNextBallLevel(1);
-    else if (random < 0.8) setNextBallLevel(2);
-    else setNextBallLevel(3);
-  };
+  const x = e.clientX - rect.left;
+
+  // drop CURRENT ball
+  createBall(x, 50, currentBallLevel);
+
+  // promote next → current
+  setCurrentBallLevel(nextBallLevel);
+
+  // generate next
+  const random = Math.random();
+  if (random < 0.5) setNextBallLevel(1);
+  else if (random < 0.8) setNextBallLevel(2);
+  else setNextBallLevel(3);
+};
+
 
   // Track mouse position for ball preview
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (gameOver) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const x = Math.max(80, Math.min(gameWidth - 80, e.clientX - rect.left));
+    const x = Math.max(40, Math.min(gameWidth - 40, e.clientX - rect.left));
     setDropPosition(x);
   };
 
@@ -482,6 +502,18 @@ export default function MergeGame() {
               {score}
             </p>
           </div>
+<div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-6 rounded-2xl border-2 border-ritual-purple/50">
+  <h3 className="text-xl font-bold text-white mb-3">Next Ball</h3>
+  <div
+    className="w-20 h-20 rounded-full mx-auto border-4 border-white overflow-hidden"
+    style={{ background: BALL_CONFIG[nextBallLevel - 1].color }}
+  >
+    <img
+      src={BALL_CONFIG[nextBallLevel - 1].image}
+      className="w-full h-full object-cover"
+    />
+  </div>
+</div>
 
           {/* Instructions */}
           <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-6 rounded-2xl border-2 border-ritual-purple/50 backdrop-blur-sm">
@@ -496,20 +528,26 @@ export default function MergeGame() {
           </div>
 
           {/* Ball Levels */}
-          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-6 rounded-2xl border-2 border-ritual-purple/50 backdrop-blur-sm">
-            <h3 className="text-xl font-bold text-white mb-4">Ball Levels</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {BALL_CONFIG.map((config) => (
-                <div key={config.level} className="text-center">
-                  <div 
-                    className="w-10 h-10 rounded-full mx-auto mb-1"
-                    style={{ backgroundColor: config.color }}
-                  />
-                  <p className="text-xs text-gray-400">Lv{config.level}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <div className="grid grid-cols-5 gap-3">
+  {BALL_CONFIG.map((config) => (
+    <div key={config.level} className="text-center">
+      <div
+        className="w-12 h-12 rounded-full overflow-hidden mx-auto border-2 border-white"
+        style={{ background: config.color }}
+      >
+        <img
+          src={config.image}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      <p className="text-xs text-gray-400 mt-1">
+        Lv{config.level}
+      </p>
+    </div>
+  ))}
+</div>
+
 
           {/* Restart Button */}
           <button
