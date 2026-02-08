@@ -34,6 +34,7 @@ export default function MergeGame() {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [currentBallLevel, setCurrentBallLevel] = useState(1);
+  const [currentBallLevel, setCurrentBallLevel] = useState(1);
   const [dropPosition, setDropPosition] = useState(400);
   const [isGeneratingCard, setIsGeneratingCard] = useState(false);
   const [userName, setUserName] = useState('');
@@ -176,11 +177,11 @@ export default function MergeGame() {
         ctx.restore();
       });
 
-      // Draw next ball preview
-      if (!gameOver) {
-        const previewConfig = BALL_CONFIG[currentBallLevel - 1];
-        const previewImage = imagesRef.current[currentBallLevel];
-        const previewImage = imagesRef.current[nextBallLevel];
+      // Draw CURRENT ball preview (the one about to drop)
+if (!gameOver) {
+  const previewConfig = BALL_CONFIG[currentBallLevel - 1];
+  const previewImage = imagesRef.current[currentBallLevel];
+
         
         ctx.save();
         ctx.globalAlpha = 0.5;
@@ -372,6 +373,7 @@ const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setScore(0);
     setGameOver(false);
     setShowCardForm(false);
+    setCurrentBallLevel(1);
     setUserName('');
     setUserImage(null);
     setNextBallLevel(1);
