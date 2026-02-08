@@ -248,12 +248,21 @@ export default function Home() {
               </div>
             </div>
 
-            <button
-              onClick={startQuiz}
-              className="px-12 py-4 bg-ritual-gradient rounded-full text-xl font-bold hover:scale-105 transition-transform duration-300 card-glow"
-            >
-              Start Quiz
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={startQuiz}
+                className="px-12 py-4 bg-ritual-gradient rounded-full text-xl font-bold hover:scale-105 transition-transform duration-300 card-glow"
+              >
+                Start Quiz
+              </button>
+              
+              <a
+                href="/game"
+                className="px-12 py-4 bg-ritual-purple rounded-full text-xl font-bold hover:scale-105 transition-transform duration-300 text-center"
+              >
+                🎮 Play Game
+              </a>
+            </div>
           </div>
         </div>
       )}
