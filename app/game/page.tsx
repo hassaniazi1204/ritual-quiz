@@ -26,6 +26,16 @@ interface Ball {
 
 let ballIdCounter = 0;
 
+// Helper function to get random ball level (weighted towards lower levels)
+const getRandomBallLevel = (): number => {
+  const random = Math.random();
+  if (random < 0.4) return 1;
+  if (random < 0.7) return 2;
+  if (random < 0.85) return 3;
+  if (random < 0.95) return 4;
+  return 5;
+};
+
 export default function MergeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -33,12 +43,13 @@ export default function MergeGame() {
   const ballsRef = useRef<Ball[]>([]);
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
-  const canDropRef = useRef(true);
+  const cardRef = useRef<HTMLDivElement>(null);
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [currentBallLevel, setCurrentBallLevel] = useState(1);
-  const [nextBallLevel, setNextBallLevel] = useState(2);
+  const [currentBall, setCurrentBall] = useState(1);
+  const [nextBall, setNextBall] = useState(2);
+  const [canDropBall, setCanDropBall] = useState(true);
   const [dropPosition, setDropPosition] = useState(180);
   const [userName, setUserName] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
@@ -48,6 +59,7 @@ export default function MergeGame() {
   const gameHeight = 800;
   const topBoundary = 150;
   const wallThickness = 5;
+  const spawnY = 80;
 
   // Load all avatar images
   useEffect(() => {
@@ -57,6 +69,9 @@ export default function MergeGame() {
       img.crossOrigin = 'anonymous';
       imagesRef.current[config.level] = img;
     });
+    
+    // Initialize next ball
+    setNextBall(getRandomBallLevel());
   }, []);
 
   // Initialize Matter.js physics engine
@@ -76,7 +91,6 @@ export default function MergeGame() {
     const rightWall = Matter.Bodies.rectangle(gameWidth - wallThickness / 2, gameHeight / 2, wallThickness, gameHeight, wallOptions);
     
     Matter.World.add(engine.world, [ground, leftWall, rightWall]);
-
     Matter.Engine.run(engine);
 
     // Custom render loop
@@ -156,13 +170,13 @@ export default function MergeGame() {
       });
 
       // Draw preview ball following cursor
-      if (!gameOver && canDropRef.current) {
-        const previewConfig = BALL_CONFIG[currentBallLevel - 1];
-        const previewImage = imagesRef.current[currentBallLevel];
+      if (!gameOver && canDropBall) {
+        const previewConfig = BALL_CONFIG[currentBall - 1];
+        const previewImage = imagesRef.current[currentBall];
         
         ctx.save();
         ctx.globalAlpha = 0.7;
-        ctx.translate(dropPosition, 80);
+        ctx.translate(dropPosition, spawnY);
 
         ctx.fillStyle = previewConfig.color;
         ctx.beginPath();
@@ -191,12 +205,12 @@ export default function MergeGame() {
         ctx.stroke();
         ctx.restore();
 
-        // Draw drop line
+        // Draw drop guide line
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        ctx.moveTo(dropPosition, 80 + previewConfig.radius);
+        ctx.moveTo(dropPosition, spawnY + previewConfig.radius);
         ctx.lineTo(dropPosition, gameHeight - wallThickness);
         ctx.stroke();
         ctx.setLineDash([]);
@@ -240,7 +254,6 @@ export default function MergeGame() {
         setTimeout(() => {
           createBall(mergeX, mergeY, newLevel);
           setScore(prev => prev + mergeScore);
-          triggerScreenShake(mergeLevel);
           processingMergeRef.current.delete(mergeKey);
         }, 50);
       });
@@ -254,7 +267,7 @@ export default function MergeGame() {
         const config = BALL_CONFIG[ball.level - 1];
         const topOfBall = ball.body.position.y - config.radius;
         const isAboveLine = topOfBall < topBoundary;
-        const isSettled = Math.abs(ball.body.velocity.y) < 0.5 && Math.abs(ball.body.velocity.x) < 0.5;
+        const isSettled = Math.abs(ball.body.velocity.y) < 0.3 && Math.abs(ball.body.velocity.x) < 0.3;
         return isAboveLine && isSettled;
       });
       
@@ -273,16 +286,29 @@ export default function MergeGame() {
       engineRef.current = null;
       worldRef.current = null;
     };
-  }, []);
+  }, [gameOver, currentBall, canDropBall]);
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
 
     const config = BALL_CONFIG[level - 1];
+    
+    // Check if spawn area is clear
+    const tooClose = ballsRef.current.some(ball => {
+      const distance = Math.sqrt(
+        Math.pow(ball.body.position.x - x, 2) + 
+        Math.pow(ball.body.position.y - y, 2)
+      );
+      return distance < config.radius + BALL_CONFIG[ball.level - 1].radius + 5;
+    });
+    
+    if (tooClose && y < 100) return;
+
     const body = Matter.Bodies.circle(x, y, config.radius, {
       restitution: 0.2,
       friction: 0.3,
       density: 0.001,
+      frictionAir: 0.001,
     });
 
     Matter.World.add(worldRef.current, body);
@@ -296,7 +322,7 @@ export default function MergeGame() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver || !canDropRef.current) return;
+    if (gameOver || !canDropBall) return;
 
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -305,28 +331,29 @@ export default function MergeGame() {
     const scaleX = gameWidth / rect.width;
     const actualX = x * scaleX;
     
-    const config = BALL_CONFIG[currentBallLevel - 1];
-    const clampedX = Math.max(wallThickness + config.radius + 2, Math.min(gameWidth - wallThickness - config.radius - 2, actualX));
+    const config = BALL_CONFIG[currentBall - 1];
+    const clampedX = Math.max(
+      wallThickness + config.radius + 2, 
+      Math.min(gameWidth - wallThickness - config.radius - 2, actualX)
+    );
     
-    createBall(clampedX, 80, currentBallLevel);
+    // Prevent multiple drops
+    setCanDropBall(false);
     
-    canDropRef.current = false;
+    createBall(clampedX, spawnY, currentBall);
     
+    // Update ball queue
+    setCurrentBall(nextBall);
+    setNextBall(getRandomBallLevel());
+    
+    // Re-enable dropping after delay
     setTimeout(() => {
-      canDropRef.current = true;
-    }, 800);
-    
-    setCurrentBallLevel(nextBallLevel);
-    
-    const random = Math.random();
-    if (random < 0.4) setNextBallLevel(1);
-    else if (random < 0.7) setNextBallLevel(2);
-    else if (random < 0.85) setNextBallLevel(3);
-    else setNextBallLevel(4);
+      setCanDropBall(true);
+    }, 500);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver || !canDropRef.current) return;
+    if (gameOver || !canDropBall) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
@@ -334,33 +361,12 @@ export default function MergeGame() {
     const scaleX = gameWidth / rect.width;
     const actualX = x * scaleX;
     
-    const config = BALL_CONFIG[currentBallLevel - 1];
-    const clampedX = Math.max(wallThickness + config.radius + 2, Math.min(gameWidth - wallThickness - config.radius - 2, actualX));
+    const config = BALL_CONFIG[currentBall - 1];
+    const clampedX = Math.max(
+      wallThickness + config.radius + 2, 
+      Math.min(gameWidth - wallThickness - config.radius - 2, actualX)
+    );
     setDropPosition(clampedX);
-  };
-
-  const triggerScreenShake = (intensity: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const shakeAmount = intensity * 1.5;
-    const duration = 150;
-    const startTime = Date.now();
-
-    const shake = () => {
-      const elapsed = Date.now() - startTime;
-      if (elapsed > duration) {
-        canvas.style.transform = 'translate(0, 0)';
-        return;
-      }
-
-      const x = (Math.random() - 0.5) * shakeAmount;
-      const y = (Math.random() - 0.5) * shakeAmount;
-      canvas.style.transform = `translate(${x}px, ${y}px)`;
-      
-      requestAnimationFrame(shake);
-    };
-    shake();
   };
 
   const restartGame = () => {
@@ -369,12 +375,12 @@ export default function MergeGame() {
     setShowCardForm(false);
     setUserName('');
     setUserImage(null);
-    setCurrentBallLevel(1);
-    setNextBallLevel(2);
+    setCurrentBall(1);
+    setNextBall(getRandomBallLevel());
+    setCanDropBall(true);
     ballsRef.current = [];
     processingMergeRef.current.clear();
     ballIdCounter = 0;
-    canDropRef.current = true;
     
     if (engineRef.current && worldRef.current) {
       const bodies = Matter.Composite.allBodies(worldRef.current);
@@ -439,18 +445,18 @@ export default function MergeGame() {
               <div className="relative">
                 <div 
                   className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"
-                  style={{ backgroundColor: BALL_CONFIG[nextBallLevel - 1].color }}
+                  style={{ backgroundColor: BALL_CONFIG[nextBall - 1].color }}
                 >
-                  {imagesRef.current[nextBallLevel]?.complete && (
+                  {imagesRef.current[nextBall]?.complete && (
                     <img 
-                      src={BALL_CONFIG[nextBallLevel - 1].image}
+                      src={BALL_CONFIG[nextBall - 1].image}
                       alt="Next"
                       className="w-full h-full object-cover"
                     />
                   )}
                 </div>
                 <p className="text-center text-sm text-gray-300 mt-2">
-                  {BALL_CONFIG[nextBallLevel - 1].name}
+                  {BALL_CONFIG[nextBall - 1].name}
                 </p>
               </div>
             </div>
@@ -458,82 +464,74 @@ export default function MergeGame() {
 
           <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
             <h3 className="text-lg font-bold text-white mb-3 text-center">Merge Guide</h3>
-            <div className="relative w-full aspect-square max-w-[200px] mx-auto">
-              {BALL_CONFIG.map((config, index) => {
-                const angle = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                const radius = 70;
-                const x = 50 + radius * Math.cos(angle);
-                const y = 50 + radius * Math.sin(angle);
-                
-                return (
-                  <div
-                    key={config.level}
-                    className="absolute"
-                    style={{
-                      left: `${x}%`,
-                      top: `${y}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                  >
-                    <div 
-                      className="w-9 h-9 rounded-full overflow-hidden border border-white/30"
-                      style={{ backgroundColor: config.color }}
+            <div className="relative w-full max-w-[200px] mx-auto" style={{ paddingBottom: '100%' }}>
+              <div className="absolute inset-0">
+                {BALL_CONFIG.map((config, index) => {
+                  const angle = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                  const radius = 42;
+                  const x = 50 + radius * Math.cos(angle);
+                  const y = 50 + radius * Math.sin(angle);
+                  
+                  return (
+                    <div
+                      key={config.level}
+                      className="absolute"
+                      style={{
+                        left: `${x}%`,
+                        top: `${y}%`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
                     >
-                      {imagesRef.current[config.level]?.complete && (
-                        <img 
-                          src={config.image}
-                          alt={config.name}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <p className="text-[9px] text-gray-400 text-center mt-0.5 truncate w-10">
-                      {config.name}
-                    </p>
-                  </div>
-                );
-              })}
-              
-              {/* Arrows between levels */}
-              {BALL_CONFIG.map((_, index) => {
-                const angle1 = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                const angle2 = ((index + 1) / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                const radius = 70;
-                const x1 = 50 + radius * Math.cos(angle1);
-                const y1 = 50 + radius * Math.sin(angle1);
-                const x2 = 50 + radius * Math.cos(angle2);
-                const y2 = 50 + radius * Math.sin(angle2);
-                
-                return (
-                  <svg
-                    key={`arrow-${index}`}
-                    className="absolute inset-0 w-full h-full pointer-events-none"
-                    style={{ zIndex: 0 }}
-                  >
-                    <defs>
-                      <marker
-                        id={`arrowhead-${index}`}
-                        markerWidth="6"
-                        markerHeight="6"
-                        refX="5"
-                        refY="3"
-                        orient="auto"
+                      <div 
+                        className="w-8 h-8 rounded-full overflow-hidden border border-white/30"
+                        style={{ backgroundColor: config.color }}
                       >
-                        <polygon points="0 0, 6 3, 0 6" fill="rgba(139, 92, 246, 0.5)" />
-                      </marker>
-                    </defs>
-                    <line
-                      x1={`${x1}%`}
-                      y1={`${y1}%`}
-                      x2={`${x2}%`}
-                      y2={`${y2}%`}
-                      stroke="rgba(139, 92, 246, 0.5)"
-                      strokeWidth="1"
-                      markerEnd={`url(#arrowhead-${index})`}
-                    />
-                  </svg>
-                );
-              })}
+                        {imagesRef.current[config.level]?.complete && (
+                          <img 
+                            src={config.image}
+                            alt={config.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <p className="text-[8px] text-gray-400 text-center mt-0.5 truncate w-8">
+                        {config.name}
+                      </p>
+                    </div>
+                  );
+                })}
+                
+                {/* Arrows */}
+                <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+                  <defs>
+                    <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
+                      <polygon points="0 0, 4 2, 0 4" fill="rgba(139, 92, 246, 0.6)" />
+                    </marker>
+                  </defs>
+                  {BALL_CONFIG.map((_, index) => {
+                    const angle1 = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                    const angle2 = ((index + 1) / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                    const radius = 42;
+                    const x1 = 50 + radius * Math.cos(angle1);
+                    const y1 = 50 + radius * Math.sin(angle1);
+                    const x2 = 50 + radius * Math.cos(angle2);
+                    const y2 = 50 + radius * Math.sin(angle2);
+                    
+                    return (
+                      <line
+                        key={index}
+                        x1={`${x1}%`}
+                        y1={`${y1}%`}
+                        x2={`${x2}%`}
+                        y2={`${y2}%`}
+                        stroke="rgba(139, 92, 246, 0.6)"
+                        strokeWidth="1"
+                        markerEnd="url(#arrowhead)"
+                      />
+                    );
+                  })}
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -593,15 +591,82 @@ export default function MergeGame() {
             )}
 
             {gameOver && !showCardForm && (
-              <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <h2 className="text-3xl font-bold text-white">Final Score</h2>
-                  <p className="text-6xl font-black" style={{ color: '#A78BFA' }}>
-                    {score}
-                  </p>
+              <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center p-4">
+                <div 
+                  ref={cardRef}
+                  className="w-full max-w-md"
+                  style={{
+                    aspectRatio: '1080/1350',
+                  }}
+                >
+                  <div className="w-full h-full bg-gradient-to-br from-ritual-dark to-ritual-darker p-8 rounded-3xl border-4 border-ritual-purple relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-ritual-purple/20 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-ritual-blue/20 rounded-full blur-3xl"></div>
+
+                    <div className="relative z-10 h-full flex flex-col justify-between">
+                      <div className="text-center space-y-3">
+                        <h1 className="text-5xl font-black" style={{ color: '#A78BFA' }}>
+                          GAME CARD
+                        </h1>
+                        <div className="h-2 w-32 mx-auto rounded-full" style={{
+                          background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #EC4899)',
+                        }}></div>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-6 py-6">
+                        <div className="flex-shrink-0">
+                          {userImage ? (
+                            <img
+                              src={userImage}
+                              alt={userName}
+                              className="w-32 h-32 rounded-full border-4 object-cover"
+                              style={{ borderColor: '#8B5CF6' }}
+                            />
+                          ) : (
+                            <div 
+                              className="w-32 h-32 rounded-full border-4 flex items-center justify-center text-5xl font-black"
+                              style={{
+                                background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
+                                borderColor: '#8B5CF6',
+                              }}
+                            >
+                              {userName.charAt(0).toUpperCase() || 'G'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-center space-y-4 w-full px-6">
+                          <h2 className="text-3xl font-black text-white break-words">
+                            {userName || 'Player'}
+                          </h2>
+
+                          <div className="bg-black/20 rounded-2xl p-4 border-2 border-ritual-purple/30">
+                            <div className="flex items-center justify-center gap-3">
+                              <span className="text-lg text-gray-300 font-semibold">Score:</span>
+                              <span className="text-5xl font-black" style={{ color: '#A78BFA' }}>
+                                {score}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t-2 border-ritual-purple/40 pt-4">
+                        <div className="text-center space-y-1">
+                          <p className="text-sm text-gray-400 font-semibold">
+                            ritualfoundation.com
+                          </p>
+                          <p className="text-sm font-bold" style={{ color: '#A78BFA' }}>
+                            @ritualfnd
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <button
                     onClick={restartGame}
-                    className="px-8 py-3 bg-ritual-purple rounded-xl font-bold text-white hover:scale-105 transition-transform"
+                    className="w-full mt-4 px-8 py-3 bg-ritual-purple rounded-xl font-bold text-white hover:scale-105 transition-transform"
                   >
                     Play Again
                   </button>
