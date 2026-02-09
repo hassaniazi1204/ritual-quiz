@@ -1,3 +1,6 @@
+// redeploy
+
+
 # Ritual Quiz Platform 🔮
 
 A visually stunning, production-ready MCQ quiz website for the Ritual Foundation Web3 project, built with Next.js, React, and Tailwind CSS.
