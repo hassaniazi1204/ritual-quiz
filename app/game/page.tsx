@@ -90,69 +90,79 @@ useEffect(() => {
   Matter.Runner.run(runner, engine);
   Matter.Render.run(render);
 
-  // -----  NEW: walls are now inside the canvas  -----
-  const wallThickness = 5;          // 1/4 of the original 20
-  const wallOpts = { isStatic: true, render: { fillStyle: '#8B5CF6' } };
+  // ----------  NEW: physics walls (thicker) ----------
+  const visualThickness = 5;      // what you see on the screen
+  const physicsThickness = 20;    // actual static bodies for collisions
 
-  // ground – sits *inside* the bottom edge
+  const wallOpts = { isStatic: true, render: { visible: false } }; // invisible physics bodies
+
+  // Ground – placed *inside* the canvas, but 20 px thick for physics
   const ground = Matter.Bodies.rectangle(
     gameWidth / 2,
-    gameHeight - wallThickness / 2,   // <-- inside canvas
+    gameHeight - physicsThickness / 2,   // inside canvas
     gameWidth,
-    wallThickness,
+    physicsThickness,
     wallOpts
   );
 
-  // left wall – inside the left edge
+  // Left wall – 20 px thick for physics
   const leftWall = Matter.Bodies.rectangle(
-    wallThickness / 2,                // <-- inside canvas
+    physicsThickness / 2,
     gameHeight / 2,
-    wallThickness,
+    physicsThickness,
     gameHeight,
     wallOpts
   );
 
-  // right wall – inside the right edge
+  // Right wall – 20 px thick for physics
   const rightWall = Matter.Bodies.rectangle(
-    gameWidth - wallThickness / 2,    // <-- inside canvas
+    gameWidth - physicsThickness / 2,
     gameHeight / 2,
-    wallThickness,
+    physicsThickness,
     gameHeight,
     wallOpts
   );
 
   Matter.World.add(engine.world, [ground, leftWall, rightWall]);
 
-    // --------------------
-    //  Custom render loop (draw images, preview, etc.)
-    // --------------------
-    const customRender = () => {
-      const ctx = canvasRef.current?.getContext('2d');
-      if (!ctx) return;
+  // ----------------------------------------------------
+  //  Custom render loop – draw the *thin* visual walls
+  // ----------------------------------------------------
+  const customRender = () => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
 
-      ctx.clearRect(0, 0, gameWidth, gameHeight);
-      // inside customRender()
-ctx.fillStyle = '#8B5CF6';
-ctx.fillRect(0, gameHeight - wallThickness, gameWidth, wallThickness); // ground
-ctx.fillRect(0, 0, wallThickness, gameHeight);                         // left wall
-ctx.fillRect(gameWidth - wallThickness, 0, wallThickness, gameHeight); // right wall
+    ctx.clearRect(0, 0, gameWidth, gameHeight);
+    ctx.fillStyle = '#0F0F23';
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
 
+    // top danger line
+    ctx.strokeStyle = '#EF4444';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, topBoundary);
+    ctx.lineTo(gameWidth, topBoundary);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-      // top danger line
-      ctx.strokeStyle = '#EF4444';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([10, 5]);
-      ctx.beginPath();
-      ctx.moveTo(0, topBoundary);
-      ctx.lineTo(gameWidth, topBoundary);
-      ctx.stroke();
-      ctx.setLineDash([]);
+    // ----- draw the *visual* thin walls (5 px) -----
+    ctx.fillStyle = '#8B5CF6';
+    ctx.fillRect(0, gameHeight - visualThickness, gameWidth, visualThickness); // ground
+    ctx.fillRect(0, 0, visualThickness, gameHeight);                           // left wall
+    ctx.fillRect(gameWidth - visualThickness, 0, visualThickness, gameHeight); // right wall
 
-      // draw walls (thinner)
-      ctx.fillStyle = '#8B5CF6';
-      ctx.fillRect(0, gameHeight - wallThickness, gameWidth, wallThickness); // ground
-      ctx.fillRect(0, 0, wallThickness, gameHeight); // left
-      ctx.fillRect(gameWidth - wallThickness, 0, wallThickness, gameHeight); // right
+    // … (the rest of your custom rendering – balls, preview, etc.) …
+    requestAnimationFrame(customRender);
+  };
+  customRender();
+
+  // ----------------------------------------------------
+  //  Collision, game‑over, cleanup – unchanged
+  // ----------------------------------------------------
+  // … (your existing collisionStart, game‑over interval, etc.) …
+}, [gameOver]);
+
 
       // draw balls
       ballsRef.current.forEach((ball) => {
