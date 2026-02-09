@@ -285,7 +285,7 @@ export default function MergeGame() {
       processingMergeRef.current.clear();
       engineRef.current = null;
     };
-  }, [gameOver]);
+  }, []);
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
