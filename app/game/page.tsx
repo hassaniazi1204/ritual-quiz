@@ -273,7 +273,7 @@ export default function MergeGame() {
       engineRef.current = null;
       worldRef.current = null;
     };
-  }, [gameOver]);
+  }, []);
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
