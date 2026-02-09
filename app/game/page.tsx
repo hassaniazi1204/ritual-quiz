@@ -39,6 +39,7 @@ export default function MergeGame() {
   const gameHeight = 900;
   const topBoundary = 120;
 
+  // preload images
   useEffect(() => {
     BALL_CONFIG.forEach((config) => {
       const img = new Image();
@@ -80,9 +81,9 @@ export default function MergeGame() {
       ballsRef.current.forEach((ball) => {
         const config = BALL_CONFIG[ball.level - 1];
         const img = ball.image;
+
         ctx.save();
         ctx.translate(ball.body.position.x, ball.body.position.y);
-
         ctx.beginPath();
         ctx.arc(0, 0, config.radius, 0, Math.PI * 2);
         ctx.clip();
@@ -90,25 +91,29 @@ export default function MergeGame() {
         if (img.complete) {
           ctx.drawImage(img, -config.radius, -config.radius, config.radius * 2, config.radius * 2);
         }
-
         ctx.restore();
       });
 
       if (!gameOver) {
         const previewConfig = BALL_CONFIG[currentBallLevel - 1];
         const previewImage = imagesRef.current[currentBallLevel];
+
         ctx.save();
         ctx.translate(dropPosition, 60);
         ctx.globalAlpha = 0.7;
-
         ctx.beginPath();
         ctx.arc(0, 0, previewConfig.radius, 0, Math.PI * 2);
         ctx.clip();
 
         if (previewImage?.complete) {
-          ctx.drawImage(previewImage, -previewConfig.radius, -previewConfig.radius, previewConfig.radius * 2, previewConfig.radius * 2);
+          ctx.drawImage(
+            previewImage,
+            -previewConfig.radius,
+            -previewConfig.radius,
+            previewConfig.radius * 2,
+            previewConfig.radius * 2
+          );
         }
-
         ctx.restore();
       }
 
@@ -117,7 +122,7 @@ export default function MergeGame() {
 
     renderLoop();
 
-    Matter.Events.on(engine, 'collisionStart', (event) => {
+    const collisionHandler = (event: Matter.IEventCollision<Matter.Engine>) => {
       event.pairs.forEach((pair) => {
         const ballA = ballsRef.current.find(b => b.body === pair.bodyA);
         const ballB = ballsRef.current.find(b => b.body === pair.bodyB);
@@ -125,36 +130,46 @@ export default function MergeGame() {
         if (ballA && ballB && ballA.level === ballB.level) {
           const mergeLevel = ballA.level;
           const newLevel = mergeLevel === 10 ? 1 : mergeLevel + 1;
+
           const x = (pair.bodyA.position.x + pair.bodyB.position.x) / 2;
           const y = (pair.bodyA.position.y + pair.bodyB.position.y) / 2;
 
           Matter.World.remove(engine.world, pair.bodyA);
           Matter.World.remove(engine.world, pair.bodyB);
+
           ballsRef.current = ballsRef.current.filter(b => b !== ballA && b !== ballB);
 
           createBall(x, y, newLevel);
           setScore(s => s + BALL_CONFIG[mergeLevel - 1].score);
         }
       });
-    });
+    };
 
-    const gameOverCheck = setInterval(() => {
-  const hitTop = ballsRef.current.some(
-    ball => ball.body.position.y - BALL_CONFIG[ball.level - 1].radius < topBoundary
-  );
-  if (hitTop) setGameOver(true);
-}, 500);
+    Matter.Events.on(engine, 'collisionStart', collisionHandler);
 
+    const gameOverInterval = setInterval(() => {
+      const hitTop = ballsRef.current.some(
+        ball => ball.body.position.y - BALL_CONFIG[ball.level - 1].radius < topBoundary
+      );
+      if (hitTop) setGameOver(true);
+    }, 500);
 
     return () => {
-  clearInterval(gameOverCheck);
-};
-
+      clearInterval(gameOverInterval);
+      Matter.Events.off(engine, 'collisionStart', collisionHandler);
+      Matter.World.clear(engine.world, false);
+      Matter.Engine.clear(engine);
+    };
+  }, [gameOver, currentBallLevel, dropPosition]);
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
     const config = BALL_CONFIG[level - 1];
-    const body = Matter.Bodies.circle(x, y, config.radius, { restitution: 0.2, friction: 0.3 });
+    const body = Matter.Bodies.circle(x, y, config.radius, {
+      restitution: 0.2,
+      friction: 0.3,
+    });
+
     Matter.World.add(worldRef.current, body);
     ballsRef.current.push({ body, level, image: imagesRef.current[level] });
   };
