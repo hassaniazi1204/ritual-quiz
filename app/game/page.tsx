@@ -139,14 +139,17 @@ export default function MergeGame() {
     });
 
     const gameOverCheck = setInterval(() => {
-      const hitTop = ballsRef.current.some(
-        ball => ball.body.position.y - BALL_CONFIG[ball.level - 1].radius < topBoundary
-      );
-      if (hitTop) setGameOver(true);
-    }, 500);
+  const hitTop = ballsRef.current.some(
+    ball => ball.body.position.y - BALL_CONFIG[ball.level - 1].radius < topBoundary
+  );
+  if (hitTop) setGameOver(true);
+}, 500);
 
-    return () => clearInterval(gameOverCheck);
-  }, [gameOver]);
+
+    return () => {
+  clearInterval(gameOverCheck);
+};
+
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
