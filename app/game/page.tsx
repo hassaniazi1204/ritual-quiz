@@ -180,9 +180,7 @@ export default function MergeGame() {
       // Draw CURRENT ball preview (the one about to drop)
 if (!gameOver) {
   const previewConfig = BALL_CONFIG[currentBallLevel - 1];
-  const previewImage = imagesRef.current[currentBallLevel];
-
-        
+  const previewImage = imagesRef.current[currentBallLevel];       
         ctx.save();
         ctx.globalAlpha = 0.5;
         ctx.translate(dropPosition, 50);
