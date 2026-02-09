@@ -63,59 +63,65 @@ export default function MergeGame() {
     });
   }, []);
 
-  // ----------------------------------------------------
-  //  Initialise Matter.js
-  // ----------------------------------------------------
-  useEffect(() => {
-    if (!canvasRef.current) return;
+// ----------------------------------------------------
+//  Initialise Matter.js (only the wall section changed)
+// ----------------------------------------------------
+useEffect(() => {
+  if (!canvasRef.current) return;
 
-    const engine = Matter.Engine.create({ gravity: { x: 0, y: 1 } });
-    engineRef.current = engine;
-    worldRef.current = engine.world;
+  const engine = Matter.Engine.create({ gravity: { x: 0, y: 1 } });
+  engineRef.current = engine;
+  worldRef.current = engine.world;
 
-    const render = Matter.Render.create({
-      canvas: canvasRef.current,
-      engine,
-      options: {
-        width: gameWidth,
-        height: gameHeight,
-        wireframes: false,
-        background: '#0F0F23',
-      },
-    });
-    renderRef.current = render;
+  const render = Matter.Render.create({
+    canvas: canvasRef.current,
+    engine,
+    options: {
+      width: gameWidth,
+      height: gameHeight,
+      wireframes: false,
+      background: '#0F0F23',
+    },
+  });
+  renderRef.current = render;
 
-    const runner = Matter.Runner.create();
-    runnerRef.current = runner;
-    Matter.Runner.run(runner, engine);
-    Matter.Render.run(render);
+  const runner = Matter.Runner.create();
+  runnerRef.current = runner;
+  Matter.Runner.run(runner, engine);
+  Matter.Render.run(render);
 
-    // --------------------
-    //  Walls (1/4th thickness)
-    // --------------------
-    const wallOpts = { isStatic: true, render: { fillStyle: '#8B5CF6' } };
-    const ground = Matter.Bodies.rectangle(
-      gameWidth / 2,
-      gameHeight + wallThickness / 2,
-      gameWidth,
-      wallThickness,
-      wallOpts
-    );
-    const leftWall = Matter.Bodies.rectangle(
-      -wallThickness / 2,
-      gameHeight / 2,
-      wallThickness,
-      gameHeight,
-      wallOpts
-    );
-    const rightWall = Matter.Bodies.rectangle(
-      gameWidth + wallThickness / 2,
-      gameHeight / 2,
-      wallThickness,
-      gameHeight,
-      wallOpts
-    );
-    Matter.World.add(engine.world, [ground, leftWall, rightWall]);
+  // -----  NEW: walls are now inside the canvas  -----
+  const wallThickness = 5;          // 1/4 of the original 20
+  const wallOpts = { isStatic: true, render: { fillStyle: '#8B5CF6' } };
+
+  // ground – sits *inside* the bottom edge
+  const ground = Matter.Bodies.rectangle(
+    gameWidth / 2,
+    gameHeight - wallThickness / 2,   // <-- inside canvas
+    gameWidth,
+    wallThickness,
+    wallOpts
+  );
+
+  // left wall – inside the left edge
+  const leftWall = Matter.Bodies.rectangle(
+    wallThickness / 2,                // <-- inside canvas
+    gameHeight / 2,
+    wallThickness,
+    gameHeight,
+    wallOpts
+  );
+
+  // right wall – inside the right edge
+  const rightWall = Matter.Bodies.rectangle(
+    gameWidth - wallThickness / 2,    // <-- inside canvas
+    gameHeight / 2,
+    wallThickness,
+    gameHeight,
+    wallOpts
+  );
+
+  Matter.World.add(engine.world, [ground, leftWall, rightWall]);
 
     // --------------------
     //  Custom render loop (draw images, preview, etc.)
@@ -125,8 +131,12 @@ export default function MergeGame() {
       if (!ctx) return;
 
       ctx.clearRect(0, 0, gameWidth, gameHeight);
-      ctx.fillStyle = '#0F0F23';
-      ctx.fillRect(0, 0, gameWidth, gameHeight);
+      // inside customRender()
+ctx.fillStyle = '#8B5CF6';
+ctx.fillRect(0, gameHeight - wallThickness, gameWidth, wallThickness); // ground
+ctx.fillRect(0, 0, wallThickness, gameHeight);                         // left wall
+ctx.fillRect(gameWidth - wallThickness, 0, wallThickness, gameHeight); // right wall
+
 
       // top danger line
       ctx.strokeStyle = '#EF4444';
