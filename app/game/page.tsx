@@ -34,7 +34,7 @@ export default function MergeGame() {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [currentBallLevel, setCurrentBallLevel] = useState(1);
-  const [currentBallLevel, setCurrentBallLevel] = useState(1);
+  const [nextBallLevel, setNextBallLevel] = useState(1);
   const [dropPosition, setDropPosition] = useState(400);
   const [isGeneratingCard, setIsGeneratingCard] = useState(false);
   const [userName, setUserName] = useState('');
