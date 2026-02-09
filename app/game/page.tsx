@@ -29,11 +29,11 @@ let ballIdCounter = 0;
 export default function MergeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
-  const renderRef = useRef<Matter.Render | null>(null);
   const worldRef = useRef<Matter.World | null>(null);
   const ballsRef = useRef<Ball[]>([]);
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
+  const canDropRef = useRef(true);
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -46,7 +46,7 @@ export default function MergeGame() {
   
   const gameWidth = 360;
   const gameHeight = 800;
-  const topBoundary = 120;
+  const topBoundary = 150;
   const wallThickness = 5;
 
   // Load all avatar images
@@ -63,27 +63,12 @@ export default function MergeGame() {
   useEffect(() => {
     if (!canvasRef.current || engineRef.current) return;
 
-    // Create engine
     const engine = Matter.Engine.create({
       gravity: { x: 0, y: 1 },
     });
     engineRef.current = engine;
     worldRef.current = engine.world;
 
-    // Create renderer
-    const render = Matter.Render.create({
-      canvas: canvasRef.current,
-      engine: engine,
-      options: {
-        width: gameWidth,
-        height: gameHeight,
-        wireframes: false,
-        background: '#0F0F23',
-      },
-    });
-    renderRef.current = render;
-
-    // Create boundaries
     const wallOptions = { isStatic: true, render: { fillStyle: '#8B5CF6' } };
     
     const ground = Matter.Bodies.rectangle(gameWidth / 2, gameHeight - wallThickness / 2, gameWidth, wallThickness, wallOptions);
@@ -92,9 +77,7 @@ export default function MergeGame() {
     
     Matter.World.add(engine.world, [ground, leftWall, rightWall]);
 
-    // Start engine and renderer
     Matter.Engine.run(engine);
-    Matter.Render.run(render);
 
     // Custom render loop
     const customRender = () => {
@@ -110,8 +93,8 @@ export default function MergeGame() {
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 4]);
       ctx.beginPath();
-      ctx.moveTo(0, topBoundary);
-      ctx.lineTo(gameWidth, topBoundary);
+      ctx.moveTo(wallThickness, topBoundary);
+      ctx.lineTo(gameWidth - wallThickness, topBoundary);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -143,14 +126,12 @@ export default function MergeGame() {
         ctx.arc(vibrationX, vibrationY, config.radius + 3, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ball background
         ctx.fillStyle = config.color;
         ctx.beginPath();
         ctx.arc(vibrationX, vibrationY, config.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Avatar image
-        if (image.complete) {
+        if (image && image.complete) {
           ctx.save();
           ctx.beginPath();
           ctx.arc(vibrationX, vibrationY, config.radius - 1, 0, Math.PI * 2);
@@ -165,7 +146,6 @@ export default function MergeGame() {
           ctx.restore();
         }
 
-        // Border
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -175,21 +155,21 @@ export default function MergeGame() {
         ctx.restore();
       });
 
-      // Draw preview ball (cursor following)
-      if (!gameOver) {
+      // Draw preview ball following cursor
+      if (!gameOver && canDropRef.current) {
         const previewConfig = BALL_CONFIG[currentBallLevel - 1];
         const previewImage = imagesRef.current[currentBallLevel];
         
         ctx.save();
-        ctx.globalAlpha = 0.6;
-        ctx.translate(dropPosition, 60);
+        ctx.globalAlpha = 0.7;
+        ctx.translate(dropPosition, 80);
 
         ctx.fillStyle = previewConfig.color;
         ctx.beginPath();
         ctx.arc(0, 0, previewConfig.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        if (previewImage?.complete) {
+        if (previewImage && previewImage.complete) {
           ctx.save();
           ctx.beginPath();
           ctx.arc(0, 0, previewConfig.radius - 1, 0, Math.PI * 2);
@@ -210,6 +190,16 @@ export default function MergeGame() {
         ctx.arc(0, 0, previewConfig.radius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
+
+        // Draw drop line
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(dropPosition, 80 + previewConfig.radius);
+        ctx.lineTo(dropPosition, gameHeight - wallThickness);
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
 
       requestAnimationFrame(customRender);
@@ -230,7 +220,6 @@ export default function MergeGame() {
         if (!ballA || !ballB) return;
         if (ballA.level !== ballB.level) return;
 
-        // Prevent duplicate merges
         const mergeKey = [ballA.id, ballB.id].sort().join('-');
         if (processingMergeRef.current.has(mergeKey)) return;
         processingMergeRef.current.add(mergeKey);
@@ -241,11 +230,8 @@ export default function MergeGame() {
         const mergeX = (bodyA.position.x + bodyB.position.x) / 2;
         const mergeY = (bodyA.position.y + bodyB.position.y) / 2;
 
-        // Remove from world and refs
         Matter.World.remove(engine.world, bodyA);
         Matter.World.remove(engine.world, bodyB);
-        Matter.Body.setStatic(bodyA, true);
-        Matter.Body.setStatic(bodyB, true);
         
         ballsRef.current = ballsRef.current.filter(b => b.id !== ballA.id && b.id !== ballB.id);
 
@@ -265,8 +251,10 @@ export default function MergeGame() {
       if (gameOver) return;
       
       const anyBallAbove = ballsRef.current.some(ball => {
-        const isAboveLine = ball.body.position.y - BALL_CONFIG[ball.level - 1].radius < topBoundary;
-        const isSettled = Math.abs(ball.body.velocity.y) < 0.5;
+        const config = BALL_CONFIG[ball.level - 1];
+        const topOfBall = ball.body.position.y - config.radius;
+        const isAboveLine = topOfBall < topBoundary;
+        const isSettled = Math.abs(ball.body.velocity.y) < 0.5 && Math.abs(ball.body.velocity.x) < 0.5;
         return isAboveLine && isSettled;
       });
       
@@ -274,27 +262,27 @@ export default function MergeGame() {
         setGameOver(true);
         setShowCardForm(true);
       }
-    }, 300);
+    }, 500);
 
     return () => {
       clearInterval(checkGameOver);
-      Matter.Render.stop(render);
       Matter.World.clear(engine.world, false);
       Matter.Engine.clear(engine);
       ballsRef.current = [];
       processingMergeRef.current.clear();
       engineRef.current = null;
+      worldRef.current = null;
     };
-  }, []);
+  }, [gameOver]);
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
 
     const config = BALL_CONFIG[level - 1];
     const body = Matter.Bodies.circle(x, y, config.radius, {
-      restitution: 0.3,
-      friction: 0.5,
-      render: { fillStyle: config.color },
+      restitution: 0.2,
+      friction: 0.3,
+      density: 0.001,
     });
 
     Matter.World.add(worldRef.current, body);
@@ -308,35 +296,46 @@ export default function MergeGame() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver) return;
+    if (gameOver || !canDropRef.current) return;
 
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
 
     const x = e.clientX - rect.left;
+    const scaleX = gameWidth / rect.width;
+    const actualX = x * scaleX;
+    
     const config = BALL_CONFIG[currentBallLevel - 1];
-    const clampedX = Math.max(wallThickness + config.radius, Math.min(gameWidth - wallThickness - config.radius, x));
+    const clampedX = Math.max(wallThickness + config.radius + 2, Math.min(gameWidth - wallThickness - config.radius - 2, actualX));
     
-    createBall(clampedX, 60, currentBallLevel);
+    createBall(clampedX, 80, currentBallLevel);
     
-    // Update current and next balls
+    canDropRef.current = false;
+    
+    setTimeout(() => {
+      canDropRef.current = true;
+    }, 800);
+    
     setCurrentBallLevel(nextBallLevel);
     
     const random = Math.random();
     if (random < 0.4) setNextBallLevel(1);
     else if (random < 0.7) setNextBallLevel(2);
-    else if (random < 0.9) setNextBallLevel(3);
+    else if (random < 0.85) setNextBallLevel(3);
     else setNextBallLevel(4);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver) return;
+    if (gameOver || !canDropRef.current) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     const x = e.clientX - rect.left;
+    const scaleX = gameWidth / rect.width;
+    const actualX = x * scaleX;
+    
     const config = BALL_CONFIG[currentBallLevel - 1];
-    const clampedX = Math.max(wallThickness + config.radius, Math.min(gameWidth - wallThickness - config.radius, x));
+    const clampedX = Math.max(wallThickness + config.radius + 2, Math.min(gameWidth - wallThickness - config.radius - 2, actualX));
     setDropPosition(clampedX);
   };
 
@@ -375,6 +374,7 @@ export default function MergeGame() {
     ballsRef.current = [];
     processingMergeRef.current.clear();
     ballIdCounter = 0;
+    canDropRef.current = true;
     
     if (engineRef.current && worldRef.current) {
       const bodies = Matter.Composite.allBodies(worldRef.current);
@@ -415,9 +415,7 @@ export default function MergeGame() {
       </div>
 
       <div className="max-w-6xl mx-auto mb-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-black mb-2" style={{
-          color: '#A78BFA',
-        }}>
+        <h1 className="text-4xl md:text-5xl font-black mb-2" style={{ color: '#A78BFA' }}>
           Ritual Merge Game
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
@@ -440,14 +438,16 @@ export default function MergeGame() {
             <div className="flex items-center justify-center">
               <div className="relative">
                 <div 
-                  className="w-20 h-20 rounded-full flex items-center justify-center"
+                  className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"
                   style={{ backgroundColor: BALL_CONFIG[nextBallLevel - 1].color }}
                 >
-                  <img 
-                    src={BALL_CONFIG[nextBallLevel - 1].image}
-                    alt="Next"
-                    className="w-full h-full rounded-full object-cover"
-                  />
+                  {imagesRef.current[nextBallLevel]?.complete && (
+                    <img 
+                      src={BALL_CONFIG[nextBallLevel - 1].image}
+                      alt="Next"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
                 <p className="text-center text-sm text-gray-300 mt-2">
                   {BALL_CONFIG[nextBallLevel - 1].name}
@@ -457,23 +457,83 @@ export default function MergeGame() {
           </div>
 
           <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
-            <h3 className="text-lg font-bold text-white mb-3">Merge Guide</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {BALL_CONFIG.map((config) => (
-                <div key={config.level} className="text-center">
-                  <div 
-                    className="w-10 h-10 rounded-full mx-auto mb-1 overflow-hidden border border-white/20"
-                    style={{ backgroundColor: config.color }}
+            <h3 className="text-lg font-bold text-white mb-3 text-center">Merge Guide</h3>
+            <div className="relative w-full aspect-square max-w-[200px] mx-auto">
+              {BALL_CONFIG.map((config, index) => {
+                const angle = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                const radius = 70;
+                const x = 50 + radius * Math.cos(angle);
+                const y = 50 + radius * Math.sin(angle);
+                
+                return (
+                  <div
+                    key={config.level}
+                    className="absolute"
+                    style={{
+                      left: `${x}%`,
+                      top: `${y}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
                   >
-                    <img 
-                      src={config.image}
-                      alt={config.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <div 
+                      className="w-9 h-9 rounded-full overflow-hidden border border-white/30"
+                      style={{ backgroundColor: config.color }}
+                    >
+                      {imagesRef.current[config.level]?.complete && (
+                        <img 
+                          src={config.image}
+                          alt={config.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <p className="text-[9px] text-gray-400 text-center mt-0.5 truncate w-10">
+                      {config.name}
+                    </p>
                   </div>
-                  <p className="text-[8px] text-gray-400 truncate">{config.name}</p>
-                </div>
-              ))}
+                );
+              })}
+              
+              {/* Arrows between levels */}
+              {BALL_CONFIG.map((_, index) => {
+                const angle1 = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                const angle2 = ((index + 1) / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                const radius = 70;
+                const x1 = 50 + radius * Math.cos(angle1);
+                const y1 = 50 + radius * Math.sin(angle1);
+                const x2 = 50 + radius * Math.cos(angle2);
+                const y2 = 50 + radius * Math.sin(angle2);
+                
+                return (
+                  <svg
+                    key={`arrow-${index}`}
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{ zIndex: 0 }}
+                  >
+                    <defs>
+                      <marker
+                        id={`arrowhead-${index}`}
+                        markerWidth="6"
+                        markerHeight="6"
+                        refX="5"
+                        refY="3"
+                        orient="auto"
+                      >
+                        <polygon points="0 0, 6 3, 0 6" fill="rgba(139, 92, 246, 0.5)" />
+                      </marker>
+                    </defs>
+                    <line
+                      x1={`${x1}%`}
+                      y1={`${y1}%`}
+                      x2={`${x2}%`}
+                      y2={`${y2}%`}
+                      stroke="rgba(139, 92, 246, 0.5)"
+                      strokeWidth="1"
+                      markerEnd={`url(#arrowhead-${index})`}
+                    />
+                  </svg>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -561,6 +621,7 @@ export default function MergeGame() {
               <li>⬆️ Level up to score</li>
               <li>🔁 Lv10 + Lv10 = Lv1</li>
               <li>❌ Don't cross red line!</li>
+              <li>⏳ Wait for ball to settle</li>
             </ul>
           </div>
 
@@ -575,4 +636,3 @@ export default function MergeGame() {
     </main>
   );
 }
-
