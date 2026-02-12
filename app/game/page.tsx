@@ -79,7 +79,7 @@ export default function MergeGame() {
     if (!canvasRef.current || engineRef.current) return;
 
     const engine = Matter.Engine.create({
-      gravity: { x: 0, y: 1 },
+      gravity: { x: 0, y: 1.2 },  // Increased gravity for faster falling
     });
     engineRef.current = engine;
     worldRef.current = engine.world;
@@ -267,7 +267,15 @@ export default function MergeGame() {
         const config = BALL_CONFIG[ball.level - 1];
         const topOfBall = ball.body.position.y - config.radius;
         const isAboveLine = topOfBall < topBoundary;
-        const isSettled = Math.abs(ball.body.velocity.y) < 0.3 && Math.abs(ball.body.velocity.x) < 0.3;
+        
+        // Ball must be significantly below spawn point to count as "settled"
+        const hasMovedFromSpawn = ball.body.position.y > spawnY + 50;
+        
+        // Ball must have very low velocity AND be below spawn area
+        const isSettled = Math.abs(ball.body.velocity.y) < 0.2 && 
+                         Math.abs(ball.body.velocity.x) < 0.2 &&
+                         hasMovedFromSpawn;
+        
         return isAboveLine && isSettled;
       });
       
@@ -294,11 +302,14 @@ export default function MergeGame() {
     const config = BALL_CONFIG[level - 1];
 
     const body = Matter.Bodies.circle(x, y, config.radius, {
-      restitution: 0.2,
-      friction: 0.3,
-      density: 0.001,
-      frictionAir: 0.001,
+      restitution: 0.3,     // Slight bounce
+      friction: 0.5,        // More friction
+      density: 0.002,       // Slightly heavier
+      frictionAir: 0.002,   // Air resistance
     });
+
+    // Give ball initial downward velocity so it starts falling immediately
+    Matter.Body.setVelocity(body, { x: 0, y: 2 });
 
     Matter.World.add(worldRef.current, body);
     
@@ -308,6 +319,8 @@ export default function MergeGame() {
       image: imagesRef.current[level],
       id: ballIdCounter++,
     });
+    
+    console.log(`✅ Ball created: Level ${level}, ID ${ballIdCounter - 1}, Position (${x}, ${y}), Total balls: ${ballsRef.current.length}`);
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
