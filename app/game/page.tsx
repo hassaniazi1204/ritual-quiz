@@ -286,23 +286,12 @@ export default function MergeGame() {
       engineRef.current = null;
       worldRef.current = null;
     };
-  }, [gameOver, currentBall, canDropBall]);
+  }, [gameOver]);
 
   const createBall = (x: number, y: number, level: number) => {
     if (!worldRef.current) return;
 
     const config = BALL_CONFIG[level - 1];
-    
-    // Check if spawn area is clear
-    const tooClose = ballsRef.current.some(ball => {
-      const distance = Math.sqrt(
-        Math.pow(ball.body.position.x - x, 2) + 
-        Math.pow(ball.body.position.y - y, 2)
-      );
-      return distance < config.radius + BALL_CONFIG[ball.level - 1].radius + 5;
-    });
-    
-    if (tooClose && y < 100) return;
 
     const body = Matter.Bodies.circle(x, y, config.radius, {
       restitution: 0.2,
