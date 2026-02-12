@@ -86,12 +86,29 @@ export default function MergeGame() {
 
     const wallOptions = { isStatic: true, render: { fillStyle: '#8B5CF6' } };
     
-    const ground = Matter.Bodies.rectangle(gameWidth / 2, gameHeight - wallThickness / 2, gameWidth, wallThickness, wallOptions);
+    // Create thicker, more solid ground
+    const groundHeight = 20;
+    const ground = Matter.Bodies.rectangle(
+      gameWidth / 2, 
+      gameHeight - groundHeight / 2, 
+      gameWidth, 
+      groundHeight, 
+      wallOptions
+    );
+    
     const leftWall = Matter.Bodies.rectangle(wallThickness / 2, gameHeight / 2, wallThickness, gameHeight, wallOptions);
     const rightWall = Matter.Bodies.rectangle(gameWidth - wallThickness / 2, gameHeight / 2, wallThickness, gameHeight, wallOptions);
     
     Matter.World.add(engine.world, [ground, leftWall, rightWall]);
-    Matter.Engine.run(engine);
+    
+    console.log('✅ Physics initialized - Ground at y:', gameHeight - groundHeight / 2);
+    
+    // Run physics engine with proper timing
+    const runner = Matter.Runner.create({
+      delta: 1000 / 60,  // 60 FPS
+      isFixed: true,
+    });
+    Matter.Runner.run(runner, engine);
 
     // Custom render loop
     const customRender = () => {
@@ -112,16 +129,32 @@ export default function MergeGame() {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Draw walls
+      // Draw walls (visual representation)
+      const groundHeight = 20;
       ctx.fillStyle = '#8B5CF6';
-      ctx.fillRect(0, gameHeight - wallThickness, gameWidth, wallThickness);
+      ctx.fillRect(0, gameHeight - groundHeight, gameWidth, groundHeight);
       ctx.fillRect(0, 0, wallThickness, gameHeight);
       ctx.fillRect(gameWidth - wallThickness, 0, wallThickness, gameHeight);
+
+      // Remove balls that fell out of bounds
+      ballsRef.current = ballsRef.current.filter(ball => {
+        const inBounds = ball.body.position.y < gameHeight + 100; // Add buffer
+        if (!inBounds && worldRef.current) {
+          console.log(`❌ Ball ${ball.id} fell out of bounds at y=${ball.body.position.y}`);
+          Matter.World.remove(worldRef.current, ball.body);
+        }
+        return inBounds;
+      });
 
       // Draw all balls
       ballsRef.current.forEach((ball) => {
         const { body, level, image } = ball;
         const config = BALL_CONFIG[level - 1];
+        
+        // Debug: Log if ball position seems wrong
+        if (body.position.y > gameHeight - 50 && body.position.y < gameHeight + 50) {
+          console.log(`⚠️ Ball ${ball.id} near ground: y=${body.position.y.toFixed(1)}, velocity=${body.velocity.y.toFixed(2)}`);
+        }
         
         ctx.save();
         ctx.translate(body.position.x, body.position.y);
