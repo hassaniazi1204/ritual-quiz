@@ -5,16 +5,16 @@ import Matter from 'matter-js';
 
 // Ball level configuration
 const BALL_CONFIG = [
-  { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
-  { level: 2, radius: 18, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
-  { level: 3, radius: 22, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
-  { level: 4, radius: 26, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata' },
-  { level: 5, radius: 30, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
-  { level: 6, radius: 34, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz' },
-  { level: 7, radius: 38, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
-  { level: 8, radius: 42, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh' },
-  { level: 9, radius: 46, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj' },
-  { level: 10, radius: 52, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual' },
+  { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
+  { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
+  { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
+  { level: 4, radius: 52, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata' },
+  { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
+  { level: 6, radius: 68, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz' },
+  { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
+  { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh' },
+  { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj' },
+  { level: 10, radius: 104, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual' },
 ];
 
 interface Ball {
@@ -44,6 +44,12 @@ export default function MergeGame() {
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Refs for render loop to access latest values
+  const currentBallRef = useRef(1);
+  const dropPositionRef = useRef(180);
+  const canDropBallRef = useRef(true);
+  const gameOverRef = useRef(false);
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -203,13 +209,13 @@ export default function MergeGame() {
       });
 
       // Draw preview ball following cursor
-      if (!gameOver && canDropBall) {
-        const previewConfig = BALL_CONFIG[currentBall - 1];
-        const previewImage = imagesRef.current[currentBall];
+      if (!gameOverRef.current && canDropBallRef.current) {
+        const previewConfig = BALL_CONFIG[currentBallRef.current - 1];
+        const previewImage = imagesRef.current[currentBallRef.current];
         
         ctx.save();
         ctx.globalAlpha = 0.7;
-        ctx.translate(dropPosition, spawnY);
+        ctx.translate(dropPositionRef.current, spawnY);
 
         ctx.fillStyle = previewConfig.color;
         ctx.beginPath();
@@ -243,8 +249,8 @@ export default function MergeGame() {
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        ctx.moveTo(dropPosition, spawnY + previewConfig.radius);
-        ctx.lineTo(dropPosition, gameHeight - wallThickness);
+        ctx.moveTo(dropPositionRef.current, spawnY + previewConfig.radius);
+        ctx.lineTo(dropPositionRef.current, gameHeight - wallThickness);
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -314,6 +320,7 @@ export default function MergeGame() {
       
       if (anyBallAbove) {
         setGameOver(true);
+        gameOverRef.current = true;
         setShowCardForm(true);
       }
     }, 500);
@@ -374,16 +381,19 @@ export default function MergeGame() {
     
     // Prevent multiple drops
     setCanDropBall(false);
+    canDropBallRef.current = false;
     
     createBall(clampedX, spawnY, currentBall);
     
     // Update ball queue
     setCurrentBall(nextBall);
+    currentBallRef.current = nextBall;
     setNextBall(getRandomBallLevel());
     
     // Re-enable dropping after delay
     setTimeout(() => {
       setCanDropBall(true);
+      canDropBallRef.current = true;
     }, 500);
   };
 
@@ -402,17 +412,21 @@ export default function MergeGame() {
       Math.min(gameWidth - wallThickness - config.radius - 2, actualX)
     );
     setDropPosition(clampedX);
+    dropPositionRef.current = clampedX;
   };
 
   const restartGame = () => {
     setScore(0);
     setGameOver(false);
+    gameOverRef.current = false;
     setShowCardForm(false);
     setUserName('');
     setUserImage(null);
     setCurrentBall(1);
+    currentBallRef.current = 1;
     setNextBall(getRandomBallLevel());
     setCanDropBall(true);
+    canDropBallRef.current = true;
     ballsRef.current = [];
     processingMergeRef.current.clear();
     ballIdCounter = 0;
