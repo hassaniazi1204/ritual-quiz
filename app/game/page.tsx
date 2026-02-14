@@ -8,7 +8,7 @@ const BALL_CONFIG = [
   { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
   { level: 2, radius: 34, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
   { level: 3, radius: 38, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
-  { level: 4, radius: 42, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata' },
+  { level: 4, radius: 42, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata' },
   { level: 5, radius: 46, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
   { level: 6, radius: 50, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz' },
   { level: 7, radius: 54, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
