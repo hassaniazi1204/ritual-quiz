@@ -68,7 +68,7 @@ export default function MergeGame() {
   const gameHeight = 800;
   const topBoundary = 310;  // Lowered by 20% of gameHeight (160px) from 150 to 310
   const wallThickness = 5;
-  const spawnY = 190;  // At bottom of Siggy (Siggy: y=100, height=80, so bottom=180, +10px spacing)
+  const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
   // Load all avatar images
   useEffect(() => {
@@ -293,7 +293,7 @@ export default function MergeGame() {
 
       // 3. Draw Siggy mascot - follows cursor horizontally, below Score/Next Ball
       if (siggyImageRef.current && siggyImageRef.current.complete) {
-        const siggySize = 80;
+        const siggySize = 200; // Increased to 2.5x (was 80)
         const siggyY = 100; // Below Score/Next Ball boxes (which end at ~90px)
         
         ctx.save();
