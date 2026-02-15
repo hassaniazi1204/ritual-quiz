@@ -8,9 +8,9 @@ const BALL_CONFIG = [
   { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
   { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
   { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
-  { level: 4, radius: 52, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata' },
+  { level: 4, radius: 52, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata' },
   { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
-  { level: 6, radius: 68, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz' },
+  { level: 6, radius: 68, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz' },
   { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
   { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh' },
   { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj' },
@@ -44,7 +44,6 @@ export default function MergeGame() {
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
   const cardRef = useRef<HTMLDivElement>(null);
-  const siggyImageRef = useRef<HTMLImageElement | null>(null);
   
   // Refs for render loop to access latest values
   const currentBallRef = useRef(1);
@@ -66,7 +65,7 @@ export default function MergeGame() {
   const gameHeight = 800;
   const topBoundary = 310;  // Lowered by 20% of gameHeight (160px) from 150 to 310
   const wallThickness = 5;
-  const spawnY = 230;  // Below Siggy (which is at 110-210px) and Score/Next Ball UI
+  const spawnY = 120;  // Below Score/Next Ball UI (which ends at ~90px)
 
   // Load all avatar images
   useEffect(() => {
@@ -76,12 +75,6 @@ export default function MergeGame() {
       img.crossOrigin = 'anonymous';
       imagesRef.current[config.level] = img;
     });
-    
-    // Load Siggy mascot image
-    const siggyImg = new Image();
-    siggyImg.src = '/avatars/siggy.png';
-    siggyImg.crossOrigin = 'anonymous';
-    siggyImageRef.current = siggyImg;
     
     // Initialize next ball
     setNextBall(getRandomBallLevel());
@@ -287,24 +280,6 @@ export default function MergeGame() {
       ctx.arc(gameWidth - 60, 60, 20, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
-
-      // 3. Draw Siggy mascot BELOW Score/Next Ball row
-      if (siggyImageRef.current && siggyImageRef.current.complete) {
-        const siggySize = 100;
-        const siggyY = 110; // Below the Score/Next Ball UI (which ends at ~90px)
-        const siggyX = gameWidth / 2;
-        
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        ctx.drawImage(
-          siggyImageRef.current,
-          siggyX - siggySize / 2,
-          siggyY,
-          siggySize,
-          siggySize
-        );
-        ctx.restore();
-      }
 
       // Draw preview ball following cursor
       if (!gameOverRef.current && canDropBallRef.current) {
