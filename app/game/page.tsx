@@ -50,6 +50,8 @@ export default function MergeGame() {
   const dropPositionRef = useRef(180);
   const canDropBallRef = useRef(true);
   const gameOverRef = useRef(false);
+  const scoreRef = useRef(0);
+  const nextBallRef = useRef(2);
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -213,59 +215,60 @@ export default function MergeGame() {
       // 1. Draw Score - Top Left
       ctx.save();
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(10, 10, 140, 60);
+      ctx.fillRect(10, 10, 140, 80);
       
       // Score border
       ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
       ctx.lineWidth = 2;
-      ctx.strokeRect(10, 10, 140, 60);
+      ctx.strokeRect(10, 10, 140, 80);
       
       // Score label
       ctx.fillStyle = '#9CA3AF';
       ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'left';
       ctx.fillText('SCORE', 20, 30);
       
-      // Score value
+      // Score value (using ref for live updates)
       ctx.fillStyle = '#A78BFA';
       ctx.font = 'bold 32px sans-serif';
-      ctx.fillText(score.toString(), 20, 60);
+      ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
       
-      // 2. Draw Next Ball - Top Right
-      const nextBallConfig = BALL_CONFIG[nextBall - 1];
-      const nextBallImage = imagesRef.current[nextBall];
+      // 2. Draw Next Ball - Top Right (using ref for live updates)
+      const nextBallConfig = BALL_CONFIG[nextBallRef.current - 1];
+      const nextBallImage = imagesRef.current[nextBallRef.current];
       
       ctx.save();
-      // Background panel
+      // Background panel - same height as score box
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(gameWidth - 110, 10, 100, 80);
+      ctx.fillRect(gameWidth - 150, 10, 140, 80);
       
       // Border
       ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
       ctx.lineWidth = 2;
-      ctx.strokeRect(gameWidth - 110, 10, 100, 80);
+      ctx.strokeRect(gameWidth - 150, 10, 140, 80);
       
       // Label
       ctx.fillStyle = '#9CA3AF';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('NEXT', gameWidth - 60, 30);
+      ctx.fillText('NEXT', gameWidth - 80, 30);
       
       // Next ball circle
       ctx.fillStyle = nextBallConfig.color;
       ctx.beginPath();
-      ctx.arc(gameWidth - 60, 60, 20, 0, Math.PI * 2);
+      ctx.arc(gameWidth - 80, 60, 20, 0, Math.PI * 2);
       ctx.fill();
       
       // Next ball image
       if (nextBallImage && nextBallImage.complete) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(gameWidth - 60, 60, 19, 0, Math.PI * 2);
+        ctx.arc(gameWidth - 80, 60, 19, 0, Math.PI * 2);
         ctx.clip();
         ctx.drawImage(
           nextBallImage,
-          gameWidth - 60 - 20,
+          gameWidth - 80 - 20,
           60 - 20,
           40,
           40
@@ -277,7 +280,7 @@ export default function MergeGame() {
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(gameWidth - 60, 60, 20, 0, Math.PI * 2);
+      ctx.arc(gameWidth - 80, 60, 20, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
@@ -365,7 +368,11 @@ export default function MergeGame() {
         
         setTimeout(() => {
           createBall(mergeX, mergeY, newLevel);
-          setScore(prev => prev + mergeScore);
+          setScore(prev => {
+            const newScore = prev + mergeScore;
+            scoreRef.current = newScore;
+            return newScore;
+          });
           processingMergeRef.current.delete(mergeKey);
         }, 50);
       });
@@ -461,7 +468,9 @@ export default function MergeGame() {
     // Update ball queue
     setCurrentBall(nextBall);
     currentBallRef.current = nextBall;
-    setNextBall(getRandomBallLevel());
+    const newNextBall = getRandomBallLevel();
+    setNextBall(newNextBall);
+    nextBallRef.current = newNextBall;
     
     // Re-enable dropping after delay
     setTimeout(() => {
@@ -490,6 +499,7 @@ export default function MergeGame() {
 
   const restartGame = () => {
     setScore(0);
+    scoreRef.current = 0;
     setGameOver(false);
     gameOverRef.current = false;
     setShowCardForm(false);
@@ -497,7 +507,9 @@ export default function MergeGame() {
     setUserImage(null);
     setCurrentBall(1);
     currentBallRef.current = 1;
-    setNextBall(getRandomBallLevel());
+    const newNextBall = getRandomBallLevel();
+    setNextBall(newNextBall);
+    nextBallRef.current = newNextBall;
     setCanDropBall(true);
     canDropBallRef.current = true;
     ballsRef.current = [];
@@ -704,6 +716,79 @@ export default function MergeGame() {
               <li>❌ Don't cross red line!</li>
               <li>⏳ Wait for ball to settle</li>
             </ul>
+          </div>
+
+          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
+            <h3 className="text-lg font-bold text-white mb-3 text-center">Merge Guide</h3>
+            <div className="relative w-full max-w-[200px] mx-auto" style={{ paddingBottom: '100%' }}>
+              <div className="absolute inset-0">
+                {BALL_CONFIG.map((config, index) => {
+                  const angle = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                  const radius = 42;
+                  const x = 50 + radius * Math.cos(angle);
+                  const y = 50 + radius * Math.sin(angle);
+                  
+                  return (
+                    <div
+                      key={config.level}
+                      className="absolute"
+                      style={{
+                        left: `${x}%`,
+                        top: `${y}%`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    >
+                      <div 
+                        className="w-8 h-8 rounded-full overflow-hidden border border-white/30"
+                        style={{ backgroundColor: config.color }}
+                      >
+                        {imagesRef.current[config.level]?.complete && (
+                          <img 
+                            src={config.image}
+                            alt={config.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <p className="text-[8px] text-gray-400 text-center mt-0.5 truncate w-8">
+                        {config.name}
+                      </p>
+                    </div>
+                  );
+                })}
+                
+                {/* Arrows forming loop */}
+                <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+                  <defs>
+                    <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
+                      <polygon points="0 0, 4 2, 0 4" fill="rgba(139, 92, 246, 0.6)" />
+                    </marker>
+                  </defs>
+                  {BALL_CONFIG.map((_, index) => {
+                    const angle1 = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                    const angle2 = ((index + 1) / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
+                    const radius = 42;
+                    const x1 = 50 + radius * Math.cos(angle1);
+                    const y1 = 50 + radius * Math.sin(angle1);
+                    const x2 = 50 + radius * Math.cos(angle2);
+                    const y2 = 50 + radius * Math.sin(angle2);
+                    
+                    return (
+                      <line
+                        key={index}
+                        x1={`${x1}%`}
+                        y1={`${y1}%`}
+                        x2={`${x2}%`}
+                        y2={`${y2}%`}
+                        stroke="rgba(139, 92, 246, 0.6)"
+                        strokeWidth="1"
+                        markerEnd="url(#arrowhead)"
+                      />
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
           </div>
 
           <button
