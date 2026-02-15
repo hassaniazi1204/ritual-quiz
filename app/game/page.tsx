@@ -44,6 +44,7 @@ export default function MergeGame() {
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
   const cardRef = useRef<HTMLDivElement>(null);
+  const siggyImageRef = useRef<HTMLImageElement | null>(null);
   
   // Refs for render loop to access latest values
   const currentBallRef = useRef(1);
@@ -75,6 +76,12 @@ export default function MergeGame() {
       img.crossOrigin = 'anonymous';
       imagesRef.current[config.level] = img;
     });
+    
+    // Load Siggy mascot image
+    const siggyImg = new Image();
+    siggyImg.src = '/avatars/siggy.png';
+    siggyImg.crossOrigin = 'anonymous';
+    siggyImageRef.current = siggyImg;
     
     // Initialize next ball
     setNextBall(getRandomBallLevel());
@@ -207,6 +214,24 @@ export default function MergeGame() {
 
         ctx.restore();
       });
+
+      // Draw Siggy mascot at ball drop origin
+      if (siggyImageRef.current && siggyImageRef.current.complete) {
+        const siggySize = 120; // Size of Siggy image
+        const siggyY = spawnY - 40; // Position above spawn point
+        const siggyX = gameWidth / 2; // Centered horizontally
+        
+        ctx.save();
+        ctx.globalAlpha = 0.95; // Slightly transparent
+        ctx.drawImage(
+          siggyImageRef.current,
+          siggyX - siggySize / 2,  // Center horizontally
+          siggyY - siggySize / 2,  // Position above spawn
+          siggySize,
+          siggySize
+        );
+        ctx.restore();
+      }
 
       // Draw preview ball following cursor
       if (!gameOverRef.current && canDropBallRef.current) {
