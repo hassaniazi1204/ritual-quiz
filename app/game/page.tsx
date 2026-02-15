@@ -8,9 +8,9 @@ const BALL_CONFIG = [
   { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
   { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
   { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
-  { level: 4, radius: 52, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata' },
+  { level: 4, radius: 52, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata' },
   { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
-  { level: 6, radius: 68, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz' },
+  { level: 6, radius: 68, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz' },
   { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
   { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh' },
   { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj' },
@@ -66,7 +66,7 @@ export default function MergeGame() {
   const gameHeight = 800;
   const topBoundary = 310;  // Lowered by 20% of gameHeight (160px) from 150 to 310
   const wallThickness = 5;
-  const spawnY = 80;
+  const spawnY = 230;  // Below Siggy (which is at 110-210px) and Score/Next Ball UI
 
   // Load all avatar images
   useEffect(() => {
@@ -215,18 +215,91 @@ export default function MergeGame() {
         ctx.restore();
       });
 
-      // Draw Siggy mascot at ball drop origin
+      // ============ TOP OVERLAY UI - INSIDE CANVAS ============
+      
+      // 1. Draw Score - Top Left
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(10, 10, 140, 60);
+      
+      // Score border
+      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, 140, 60);
+      
+      // Score label
+      ctx.fillStyle = '#9CA3AF';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('SCORE', 20, 30);
+      
+      // Score value
+      ctx.fillStyle = '#A78BFA';
+      ctx.font = 'bold 32px sans-serif';
+      ctx.fillText(score.toString(), 20, 60);
+      ctx.restore();
+      
+      // 2. Draw Next Ball - Top Right
+      const nextBallConfig = BALL_CONFIG[nextBall - 1];
+      const nextBallImage = imagesRef.current[nextBall];
+      
+      ctx.save();
+      // Background panel
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(gameWidth - 110, 10, 100, 80);
+      
+      // Border
+      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(gameWidth - 110, 10, 100, 80);
+      
+      // Label
+      ctx.fillStyle = '#9CA3AF';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('NEXT', gameWidth - 60, 30);
+      
+      // Next ball circle
+      ctx.fillStyle = nextBallConfig.color;
+      ctx.beginPath();
+      ctx.arc(gameWidth - 60, 60, 20, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Next ball image
+      if (nextBallImage && nextBallImage.complete) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(gameWidth - 60, 60, 19, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(
+          nextBallImage,
+          gameWidth - 60 - 20,
+          60 - 20,
+          40,
+          40
+        );
+        ctx.restore();
+      }
+      
+      // Border around ball
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(gameWidth - 60, 60, 20, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Draw Siggy mascot BELOW Score/Next Ball row
       if (siggyImageRef.current && siggyImageRef.current.complete) {
-        const siggySize = 120; // Size of Siggy image
-        const siggyY = spawnY - 40; // Position above spawn point
-        const siggyX = gameWidth / 2; // Centered horizontally
+        const siggySize = 100;
+        const siggyY = 110; // Below the Score/Next Ball UI (which ends at ~90px)
+        const siggyX = gameWidth / 2;
         
         ctx.save();
-        ctx.globalAlpha = 0.95; // Slightly transparent
+        ctx.globalAlpha = 0.95;
         ctx.drawImage(
           siggyImageRef.current,
-          siggyX - siggySize / 2,  // Center horizontally
-          siggyY - siggySize / 2,  // Position above spawn
+          siggyX - siggySize / 2,
+          siggyY,
           siggySize,
           siggySize
         );
@@ -504,114 +577,8 @@ export default function MergeGame() {
       </div>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Sidebar */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
-            <h3 className="text-xl font-bold text-white mb-3">Score</h3>
-            <p className="text-5xl font-black" style={{ color: '#A78BFA' }}>
-              {score}
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
-            <h3 className="text-lg font-bold text-white mb-3">Next Ball</h3>
-            <div className="flex items-center justify-center">
-              <div className="relative">
-                <div 
-                  className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"
-                  style={{ backgroundColor: BALL_CONFIG[nextBall - 1].color }}
-                >
-                  {imagesRef.current[nextBall]?.complete && (
-                    <img 
-                      src={BALL_CONFIG[nextBall - 1].image}
-                      alt="Next"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-                <p className="text-center text-sm text-gray-300 mt-2">
-                  {BALL_CONFIG[nextBall - 1].name}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
-            <h3 className="text-lg font-bold text-white mb-3 text-center">Merge Guide</h3>
-            <div className="relative w-full max-w-[200px] mx-auto" style={{ paddingBottom: '100%' }}>
-              <div className="absolute inset-0">
-                {BALL_CONFIG.map((config, index) => {
-                  const angle = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                  const radius = 42;
-                  const x = 50 + radius * Math.cos(angle);
-                  const y = 50 + radius * Math.sin(angle);
-                  
-                  return (
-                    <div
-                      key={config.level}
-                      className="absolute"
-                      style={{
-                        left: `${x}%`,
-                        top: `${y}%`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                    >
-                      <div 
-                        className="w-8 h-8 rounded-full overflow-hidden border border-white/30"
-                        style={{ backgroundColor: config.color }}
-                      >
-                        {imagesRef.current[config.level]?.complete && (
-                          <img 
-                            src={config.image}
-                            alt={config.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <p className="text-[8px] text-gray-400 text-center mt-0.5 truncate w-8">
-                        {config.name}
-                      </p>
-                    </div>
-                  );
-                })}
-                
-                {/* Arrows */}
-                <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
-                  <defs>
-                    <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
-                      <polygon points="0 0, 4 2, 0 4" fill="rgba(139, 92, 246, 0.6)" />
-                    </marker>
-                  </defs>
-                  {BALL_CONFIG.map((_, index) => {
-                    const angle1 = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                    const angle2 = ((index + 1) / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                    const radius = 42;
-                    const x1 = 50 + radius * Math.cos(angle1);
-                    const y1 = 50 + radius * Math.sin(angle1);
-                    const x2 = 50 + radius * Math.cos(angle2);
-                    const y2 = 50 + radius * Math.sin(angle2);
-                    
-                    return (
-                      <line
-                        key={index}
-                        x1={`${x1}%`}
-                        y1={`${y1}%`}
-                        x2={`${x2}%`}
-                        y2={`${y2}%`}
-                        stroke="rgba(139, 92, 246, 0.6)"
-                        strokeWidth="1"
-                        markerEnd="url(#arrowhead)"
-                      />
-                    );
-                  })}
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Game Canvas */}
-        <div className="lg:col-span-6">
+        {/* Game Canvas - Now taking more space since Score/Next Ball moved inside */}
+        <div className="lg:col-span-9">
           <div className="relative">
             <canvas
               ref={canvasRef}
@@ -622,33 +589,6 @@ export default function MergeGame() {
               className="border border-ritual-purple rounded-2xl shadow-2xl cursor-crosshair mx-auto bg-[#0F0F23]"
               style={{ maxWidth: '100%', height: 'auto' }}
             />
-            
-            {/* Score Overlay - Top Left */}
-            <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-ritual-purple/50 pointer-events-none">
-              <div className="text-xs text-gray-400 font-semibold">SCORE</div>
-              <div className="text-2xl font-black" style={{ color: '#A78BFA' }}>
-                {score}
-              </div>
-            </div>
-
-            {/* Next Ball Overlay - Top Right */}
-            <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm rounded-xl px-3 py-2 border border-ritual-purple/50 pointer-events-none">
-              <div className="text-xs text-gray-400 font-semibold mb-1 text-center">NEXT</div>
-              <div className="flex items-center justify-center">
-                <div 
-                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-white/30"
-                  style={{ backgroundColor: BALL_CONFIG[nextBall - 1].color }}
-                >
-                  {imagesRef.current[nextBall]?.complete && (
-                    <img 
-                      src={BALL_CONFIG[nextBall - 1].image}
-                      alt="Next"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
             
             {gameOver && showCardForm && (
               <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center p-4">
