@@ -8,9 +8,9 @@ const BALL_CONFIG = [
   { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
   { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
   { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
-  { level: 4, radius: 52, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata' },
+  { level: 4, radius: 52, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata' },
   { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
-  { level: 6, radius: 68, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz' },
+  { level: 6, radius: 68, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz' },
   { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
   { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh' },
   { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj' },
@@ -66,7 +66,7 @@ export default function MergeGame() {
   
   const gameWidth = 360;
   const gameHeight = 800;
-  const topBoundary = 310;  // Lowered by 20% of gameHeight (160px) from 150 to 310
+  const topBoundary = 450;  // Game over line - below spawn point to allow stacking (was 310)
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
