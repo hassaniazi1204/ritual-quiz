@@ -5,16 +5,16 @@ import Matter from 'matter-js';
 
 // Ball level configuration
 const BALL_CONFIG = [
-  { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan' },
-  { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro' },
-  { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi' },
-  { level: 4, radius: 52, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata' },
-  { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject' },
-  { level: 6, radius: 68, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz' },
-  { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken' },
-  { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh' },
-  { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj' },
-  { level: 10, radius: 104, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual' },
+  { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
+  { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
+  { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
+  { level: 4, radius: 52, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
+  { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
+  { level: 6, radius: 68, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
+  { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
+  { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
+  { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
+  { level: 10, radius: 104, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
 ];
 
 interface Ball {
@@ -175,44 +175,150 @@ export default function MergeGame() {
         ctx.translate(body.position.x, body.position.y);
         ctx.rotate(body.angle);
 
-        const vibrationIntensity = level * 0.3;
+        // Vibration based on shape and level
+        let vibrationIntensity = 0;
+        if (config.shape === 'square') {
+          vibrationIntensity = 0; // No vibration for Level 1
+        } else if (config.shape === 'cylinder') {
+          vibrationIntensity = 0.2; // Minimal vibration for Level 2
+        } else {
+          vibrationIntensity = level * 0.3; // Normal vibration for circles
+        }
+        
         const vibrationX = (Math.random() - 0.5) * vibrationIntensity;
         const vibrationY = (Math.random() - 0.5) * vibrationIntensity;
 
-        // Glow
-        const gradient = ctx.createRadialGradient(vibrationX, vibrationY, 0, vibrationX, vibrationY, config.radius);
-        gradient.addColorStop(0, config.color + '66');
-        gradient.addColorStop(1, config.color + '00');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(vibrationX, vibrationY, config.radius + 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = config.color;
-        ctx.beginPath();
-        ctx.arc(vibrationX, vibrationY, config.radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (image && image.complete) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(vibrationX, vibrationY, config.radius - 1, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(
-            image,
+        // Draw based on shape
+        if (config.shape === 'square') {
+          // Square shape for Level 1 - no glow, minimal vibration
+          const size = config.radius * 2;
+          
+          ctx.fillStyle = config.color;
+          ctx.fillRect(
             vibrationX - config.radius,
             vibrationY - config.radius,
-            config.radius * 2,
-            config.radius * 2
+            size,
+            size
           );
-          ctx.restore();
-        }
 
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(vibrationX, vibrationY, config.radius, 0, Math.PI * 2);
-        ctx.stroke();
+          if (image && image.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(vibrationX - config.radius, vibrationY - config.radius, size, size);
+            ctx.clip();
+            ctx.drawImage(
+              image,
+              vibrationX - config.radius,
+              vibrationY - config.radius,
+              size,
+              size
+            );
+            ctx.restore();
+          }
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(
+            vibrationX - config.radius,
+            vibrationY - config.radius,
+            size,
+            size
+          );
+        } else if (config.shape === 'cylinder') {
+          // Cylinder shape for Level 2 - rounded rectangle
+          const width = config.radius * 1.8;
+          const height = config.radius * 2.2;
+          const cornerRadius = config.radius * 0.4;
+          
+          // Small glow for cylinder
+          const gradient = ctx.createRadialGradient(vibrationX, vibrationY, 0, vibrationX, vibrationY, config.radius);
+          gradient.addColorStop(0, config.color + '44');
+          gradient.addColorStop(1, config.color + '00');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(vibrationX, vibrationY, config.radius + 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Rounded rectangle
+          ctx.fillStyle = config.color;
+          ctx.beginPath();
+          ctx.roundRect(
+            vibrationX - width / 2,
+            vibrationY - height / 2,
+            width,
+            height,
+            cornerRadius
+          );
+          ctx.fill();
+
+          if (image && image.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(
+              vibrationX - width / 2,
+              vibrationY - height / 2,
+              width,
+              height,
+              cornerRadius
+            );
+            ctx.clip();
+            ctx.drawImage(
+              image,
+              vibrationX - width / 2,
+              vibrationY - height / 2,
+              width,
+              height
+            );
+            ctx.restore();
+          }
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(
+            vibrationX - width / 2,
+            vibrationY - height / 2,
+            width,
+            height,
+            cornerRadius
+          );
+          ctx.stroke();
+        } else {
+          // Circle shape for Levels 3-10 - normal rendering with glow
+          const gradient = ctx.createRadialGradient(vibrationX, vibrationY, 0, vibrationX, vibrationY, config.radius);
+          gradient.addColorStop(0, config.color + '66');
+          gradient.addColorStop(1, config.color + '00');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(vibrationX, vibrationY, config.radius + 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = config.color;
+          ctx.beginPath();
+          ctx.arc(vibrationX, vibrationY, config.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (image && image.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(vibrationX, vibrationY, config.radius - 1, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(
+              image,
+              vibrationX - config.radius,
+              vibrationY - config.radius,
+              config.radius * 2,
+              config.radius * 2
+            );
+            ctx.restore();
+          }
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(vibrationX, vibrationY, config.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
 
         ctx.restore();
       });
@@ -319,19 +425,77 @@ export default function MergeGame() {
         ctx.globalAlpha = 0.7;
         ctx.translate(dropPositionRef.current, spawnY);
 
-        ctx.fillStyle = previewConfig.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, previewConfig.radius, 0, Math.PI * 2);
-        ctx.fill();
+        // Draw based on shape
+        if (previewConfig.shape === 'square') {
+          // Square preview
+          const size = previewConfig.radius * 2;
+          ctx.fillStyle = previewConfig.color;
+          ctx.fillRect(-previewConfig.radius, -previewConfig.radius, size, size);
 
-        if (previewImage && previewImage.complete) {
-          ctx.save();
+          if (previewImage && previewImage.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(-previewConfig.radius, -previewConfig.radius, size, size);
+            ctx.clip();
+            ctx.drawImage(
+              previewImage,
+              -previewConfig.radius,
+              -previewConfig.radius,
+              size,
+              size
+            );
+            ctx.restore();
+          }
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-previewConfig.radius, -previewConfig.radius, size, size);
+        } else if (previewConfig.shape === 'cylinder') {
+          // Cylinder preview (rounded rectangle)
+          const width = previewConfig.radius * 1.8;
+          const height = previewConfig.radius * 2.2;
+          const cornerRadius = previewConfig.radius * 0.4;
+
+          ctx.fillStyle = previewConfig.color;
           ctx.beginPath();
-          ctx.arc(0, 0, previewConfig.radius - 1, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(
-            previewImage,
-            -previewConfig.radius,
+          ctx.roundRect(-width / 2, -height / 2, width, height, cornerRadius);
+          ctx.fill();
+
+          if (previewImage && previewImage.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(-width / 2, -height / 2, width, height, cornerRadius);
+            ctx.clip();
+            ctx.drawImage(
+              previewImage,
+              -width / 2,
+              -height / 2,
+              width,
+              height
+            );
+            ctx.restore();
+          }
+
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(-width / 2, -height / 2, width, height, cornerRadius);
+          ctx.stroke();
+        } else {
+          // Circle preview (normal)
+          ctx.fillStyle = previewConfig.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, previewConfig.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (previewImage && previewImage.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(0, 0, previewConfig.radius - 1, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(
+              previewImage,
+              -previewConfig.radius,
             -previewConfig.radius,
             previewConfig.radius * 2,
             previewConfig.radius * 2
@@ -344,6 +508,8 @@ export default function MergeGame() {
         ctx.beginPath();
         ctx.arc(0, 0, previewConfig.radius, 0, Math.PI * 2);
         ctx.stroke();
+        }
+        
         ctx.restore();
 
         // Draw drop guide line
@@ -446,13 +612,38 @@ export default function MergeGame() {
     if (!worldRef.current) return;
 
     const config = BALL_CONFIG[level - 1];
+    let body: Matter.Body;
 
-    const body = Matter.Bodies.circle(x, y, config.radius, {
-      restitution: 0.3,     // Slight bounce
-      friction: 0.5,        // More friction
-      density: 0.002,       // Slightly heavier
-      frictionAir: 0.002,   // Air resistance
-    });
+    // Create different shapes based on level
+    if (config.shape === 'square') {
+      // Level 1: Square - Heavy, stable, minimal bounce
+      const size = config.radius * 2; // Use radius as half-size
+      body = Matter.Bodies.rectangle(x, y, size, size, {
+        restitution: 0.1,     // Almost no bounce
+        friction: 0.8,        // High friction for stability
+        density: 0.005,       // Heaviest (2.5x normal)
+        frictionAir: 0.001,
+      });
+    } else if (config.shape === 'cylinder') {
+      // Level 2: Cylinder (rounded rectangle) - Medium-heavy
+      const width = config.radius * 1.8;
+      const height = config.radius * 2.2;
+      body = Matter.Bodies.rectangle(x, y, width, height, {
+        chamfer: { radius: config.radius * 0.4 }, // Rounded corners
+        restitution: 0.2,     // Low bounce
+        friction: 0.6,        // Medium-high friction
+        density: 0.003,       // Heavy (1.5x normal)
+        frictionAir: 0.002,
+      });
+    } else {
+      // Levels 3-10: Circle - Normal physics
+      body = Matter.Bodies.circle(x, y, config.radius, {
+        restitution: 0.3,     // Slight bounce
+        friction: 0.5,        // More friction
+        density: 0.002,       // Normal
+        frictionAir: 0.002,
+      });
+    }
 
     // Give ball initial downward velocity so it starts falling immediately
     Matter.Body.setVelocity(body, { x: 0, y: 2 });
