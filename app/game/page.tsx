@@ -5,16 +5,16 @@ import Matter from 'matter-js';
 
 // Ball level configuration
 const BALL_CONFIG = [
-  { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
-  { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
-  { level: 3, radius: 40, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
-  { level: 4, radius: 45, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
-  { level: 5, radius: 50, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
-  { level: 6, radius: 55, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
-  { level: 7, radius: 60, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
-  { level: 8, radius: 65, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
-  { level: 9, radius: 70, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
-  { level: 10, radius: 80, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
+  { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
+  { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
+  { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
+  { level: 4, radius: 52, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
+  { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
+  { level: 6, radius: 68, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
+  { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
+  { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
+  { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
+  { level: 10, radius: 104, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
 ];
 
 interface Ball {
@@ -229,6 +229,7 @@ export default function MergeGame() {
           const width = config.radius * 1.6;
           const height = config.radius * 2.4;
           const capRadius = width / 2; // Radius for rounded caps
+          const rectHeight = height - width; // Height of middle section - DECLARE ONCE
           
           // Small glow for cylinder
           const gradient = ctx.createRadialGradient(vibrationX, vibrationY, 0, vibrationX, vibrationY, config.radius);
@@ -244,7 +245,6 @@ export default function MergeGame() {
           ctx.beginPath();
           
           // Center rectangle part
-          const rectHeight = height - width; // Height of middle section
           ctx.rect(
             vibrationX - width / 2,
             vibrationY - rectHeight / 2,
@@ -279,8 +279,7 @@ export default function MergeGame() {
             ctx.save();
             ctx.beginPath();
             
-            // Clip to capsule shape
-            const rectHeight = height - width;
+            // Clip to capsule shape - reuse rectHeight
             ctx.rect(
               vibrationX - width / 2,
               vibrationY - rectHeight / 2,
@@ -321,7 +320,7 @@ export default function MergeGame() {
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           
-          const rectHeight = height - width;
+          // Reuse rectHeight
           ctx.rect(
             vibrationX - width / 2,
             vibrationY - rectHeight / 2,
