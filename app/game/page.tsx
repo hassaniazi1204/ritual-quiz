@@ -5,16 +5,16 @@ import Matter from 'matter-js';
 
 // Ball level configuration
 const BALL_CONFIG = [
-  { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
-  { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
-  { level: 3, radius: 40, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
-  { level: 4, radius: 45, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
-  { level: 5, radius: 50, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
-  { level: 6, radius: 55, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
-  { level: 7, radius: 60, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
-  { level: 8, radius: 65, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
-  { level: 9, radius: 70, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
-  { level: 10, radius: 80, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
+  { level: 1, radius: 30, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
+  { level: 2, radius: 36, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
+  { level: 3, radius: 44, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
+  { level: 4, radius: 52, image: '/avatars/hinata1.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
+  { level: 5, radius: 60, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
+  { level: 6, radius: 68, image: '/avatars/jezz1.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
+  { level: 7, radius: 76, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
+  { level: 8, radius: 84, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
+  { level: 9, radius: 92, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
+  { level: 10, radius: 104, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
 ];
 
 interface Ball {
@@ -240,54 +240,68 @@ export default function MergeGame() {
           ctx.arc(vibrationX, vibrationY, config.radius + 2, 0, Math.PI * 2);
           ctx.fill();
 
-          // Draw capsule as ONE continuous path (no seams)
+          // Draw capsule as ONE path: rectangle + top semicircle + bottom semicircle
           ctx.fillStyle = config.color;
           ctx.beginPath();
           
-          // Start from top-left of rectangle
-          ctx.moveTo(vibrationX - width / 2, vibrationY - rectHeight / 2);
-          
-          // Left edge down
-          ctx.lineTo(vibrationX - width / 2, vibrationY + rectHeight / 2);
-          
-          // Bottom rounded cap (semicircle going left to right)
-          ctx.arc(
-            vibrationX,
-            vibrationY + rectHeight / 2,
-            capRadius,
-            Math.PI,
-            0,
-            false
+          // Center rectangle
+          ctx.rect(
+            vibrationX - width / 2,
+            vibrationY - rectHeight / 2,
+            width,
+            rectHeight
           );
           
-          // Right edge up
-          ctx.lineTo(vibrationX + width / 2, vibrationY - rectHeight / 2);
-          
-          // Top rounded cap (semicircle going right to left)
+          // Top semicircle (from Math.PI to 0, going clockwise)
           ctx.arc(
             vibrationX,
             vibrationY - rectHeight / 2,
             capRadius,
+            Math.PI,
+            0,
+            false
+          );
+          
+          // Bottom semicircle (from 0 to Math.PI, going clockwise)
+          ctx.arc(
+            vibrationX,
+            vibrationY + rectHeight / 2,
+            capRadius,
             0,
             Math.PI,
             false
           );
           
-          ctx.closePath();
           ctx.fill();
 
-          // Clip and draw image
+          // Clip and draw image using same path
           if (image && image.complete) {
             ctx.save();
             ctx.beginPath();
             
-            // Same continuous path for clipping
-            ctx.moveTo(vibrationX - width / 2, vibrationY - rectHeight / 2);
-            ctx.lineTo(vibrationX - width / 2, vibrationY + rectHeight / 2);
-            ctx.arc(vibrationX, vibrationY + rectHeight / 2, capRadius, Math.PI, 0, false);
-            ctx.lineTo(vibrationX + width / 2, vibrationY - rectHeight / 2);
-            ctx.arc(vibrationX, vibrationY - rectHeight / 2, capRadius, 0, Math.PI, false);
-            ctx.closePath();
+            // Same path: rectangle + semicircles
+            ctx.rect(
+              vibrationX - width / 2,
+              vibrationY - rectHeight / 2,
+              width,
+              rectHeight
+            );
+            ctx.arc(
+              vibrationX,
+              vibrationY - rectHeight / 2,
+              capRadius,
+              Math.PI,
+              0,
+              false
+            );
+            ctx.arc(
+              vibrationX,
+              vibrationY + rectHeight / 2,
+              capRadius,
+              0,
+              Math.PI,
+              false
+            );
             ctx.clip();
             
             ctx.drawImage(
@@ -300,16 +314,33 @@ export default function MergeGame() {
             ctx.restore();
           }
 
-          // Draw border as ONE continuous stroke (no seams)
+          // Draw border using same path (no seams)
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           
-          ctx.moveTo(vibrationX - width / 2, vibrationY - rectHeight / 2);
-          ctx.lineTo(vibrationX - width / 2, vibrationY + rectHeight / 2);
-          ctx.arc(vibrationX, vibrationY + rectHeight / 2, capRadius, Math.PI, 0, false);
-          ctx.lineTo(vibrationX + width / 2, vibrationY - rectHeight / 2);
-          ctx.arc(vibrationX, vibrationY - rectHeight / 2, capRadius, 0, Math.PI, false);
+          ctx.rect(
+            vibrationX - width / 2,
+            vibrationY - rectHeight / 2,
+            width,
+            rectHeight
+          );
+          ctx.arc(
+            vibrationX,
+            vibrationY - rectHeight / 2,
+            capRadius,
+            Math.PI,
+            0,
+            false
+          );
+          ctx.arc(
+            vibrationX,
+            vibrationY + rectHeight / 2,
+            capRadius,
+            0,
+            Math.PI,
+            false
+          );
           ctx.closePath();
           ctx.stroke();
         } else {
@@ -480,36 +511,28 @@ export default function MergeGame() {
           ctx.lineWidth = 2;
           ctx.strokeRect(-previewConfig.radius, -previewConfig.radius, size, size);
         } else if (previewConfig.shape === 'cylinder') {
-          // Capsule preview (pill shape with rounded top/bottom)
-          // Capsule preview (pill shape with rounded top/bottom) - ONE continuous path
+          // Capsule preview (pill shape) - rect + semicircles
           const width = previewConfig.radius * 1.6;
           const height = previewConfig.radius * 2.4;
           const capRadius = width / 2;
           const rectHeight = height - width;
 
-          // Draw as ONE continuous path (no seams)
+          // Draw as ONE path: rectangle + semicircles
           ctx.fillStyle = previewConfig.color;
           ctx.beginPath();
           
-          ctx.moveTo(-width / 2, -rectHeight / 2);
-          ctx.lineTo(-width / 2, rectHeight / 2);
-          ctx.arc(0, rectHeight / 2, capRadius, Math.PI, 0, false);
-          ctx.lineTo(width / 2, -rectHeight / 2);
-          ctx.arc(0, -rectHeight / 2, capRadius, 0, Math.PI, false);
-          ctx.closePath();
+          ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
+          ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
+          ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
           ctx.fill();
 
           if (previewImage && previewImage.complete) {
             ctx.save();
             ctx.beginPath();
             
-            // Same continuous path for clipping
-            ctx.moveTo(-width / 2, -rectHeight / 2);
-            ctx.lineTo(-width / 2, rectHeight / 2);
-            ctx.arc(0, rectHeight / 2, capRadius, Math.PI, 0, false);
-            ctx.lineTo(width / 2, -rectHeight / 2);
-            ctx.arc(0, -rectHeight / 2, capRadius, 0, Math.PI, false);
-            ctx.closePath();
+            ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
+            ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
+            ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
             ctx.clip();
             
             ctx.drawImage(
@@ -522,16 +545,14 @@ export default function MergeGame() {
             ctx.restore();
           }
 
-          // Border as ONE continuous stroke (no seams)
+          // Border using same path
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           
-          ctx.moveTo(-width / 2, -rectHeight / 2);
-          ctx.lineTo(-width / 2, rectHeight / 2);
-          ctx.arc(0, rectHeight / 2, capRadius, Math.PI, 0, false);
-          ctx.lineTo(width / 2, -rectHeight / 2);
-          ctx.arc(0, -rectHeight / 2, capRadius, 0, Math.PI, false);
+          ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
+          ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
+          ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
           ctx.closePath();
           ctx.stroke();
         } else {
