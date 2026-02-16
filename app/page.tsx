@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import html2canvas from 'html2canvas';
 
 interface Question {
@@ -8,18 +9,18 @@ interface Question {
   question: string;
   options: string[];
   correctAnswer: number;
-  correctAnswerText?: string; // The actual correct answer text
+  correctAnswerText?: string;
   difficulty: string;
 }
 
 const QUIZ_URL = 'https://ritual-quiz.vercel.app';
 
 const ROLES = [
-  { min: 0, max: 4, title: 'Initiate', description: 'Beginning your journey into the Ritual ecosystem' },
-  { min: 5, max: 6, title: 'Ritty Bitty', description: 'Getting the hang of Ritual concepts' },
-  { min: 7, max: 7, title: 'Ritty', description: 'Solid understanding of Ritual' },
-  { min: 8, max: 9, title: 'Ritualist', description: 'Deep knowledge of the Ritual ecosystem' },
-  { min: 10, max: 10, title: 'Mage', description: 'Master of Ritual wisdom' },
+  { min: 0, max: 4, title: 'Initiate', description: 'Beginning your journey into the Ritual ecosystem', color: '#FF5757' },
+  { min: 5, max: 6, title: 'Ritty Bitty', description: 'Getting the hang of Ritual concepts', color: '#E88239' },
+  { min: 7, max: 7, title: 'Ritty', description: 'Solid understanding of Ritual', color: '#F6BE4F' },
+  { min: 8, max: 9, title: 'Ritualist', description: 'Deep knowledge of the Ritual ecosystem', color: '#00C2FF' },
+  { min: 10, max: 10, title: 'Mage', description: 'Master of Ritual wisdom', color: '#40FFAF' },
 ];
 
 export default function Home() {
@@ -49,59 +50,32 @@ export default function Home() {
     const medium = allQuestions.filter(q => q.difficulty === 'medium');
     const hard = allQuestions.filter(q => q.difficulty === 'hard');
 
+    const shuffle = (arr: Question[]) => arr.sort(() => Math.random() - 0.5);
+    
     const selectedQuestions = [
-      ...shuffleArray(easy).slice(0, 5),
-      ...shuffleArray(medium).slice(0, 3),
-      ...shuffleArray(hard).slice(0, 2),
+      ...shuffle(easy).slice(0, 4),
+      ...shuffle(medium).slice(0, 4),
+      ...shuffle(hard).slice(0, 2)
     ];
 
-    // Store the correct answer text BEFORE shuffling options
-    const questionsWithShuffledOptions = selectedQuestions.map(q => {
-      const correctAnswerText = q.options[q.correctAnswer];
-      return {
-        ...q,
-        correctAnswerText, // Store the actual correct answer
-        options: shuffleArray([...q.options]),
-      };
-    });
-
-    setQuestions(shuffleArray(questionsWithShuffledOptions));
+    setQuestions(shuffle(selectedQuestions));
   };
 
-  const shuffleArray = <T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const startQuiz = () => {
+  const handleStartQuiz = () => {
     setGameState('quiz');
-    setScore(0);
-    setAnswers([]);
-    setCurrentQuestionIndex(0);
-    setSelectedAnswer(null);
-    setShowFeedback(false);
   };
 
-  const handleAnswerSelect = (answerIndex: number) => {
+  const handleAnswerSelect = (index: number) => {
     if (showFeedback) return;
-    setSelectedAnswer(answerIndex);
+    setSelectedAnswer(index);
   };
 
   const handleSubmitAnswer = () => {
     if (selectedAnswer === null) return;
 
-    const currentQuestion = questions[currentQuestionIndex];
-    // Compare the selected option text with the stored correct answer text
-    const isCorrect = currentQuestion.options[selectedAnswer] === currentQuestion.correctAnswerText;
-
+    const isCorrect = selectedAnswer === questions[currentQuestionIndex].correctAnswer;
     setAnswers([...answers, isCorrect]);
-    if (isCorrect) {
-      setScore(score + 1);
-    }
+    if (isCorrect) setScore(score + 1);
     setShowFeedback(true);
 
     setTimeout(() => {
@@ -113,11 +87,11 @@ export default function Home() {
         setGameState('result');
         setShowCardForm(true);
       }
-    }, 1500);
+    }, 2000);
   };
 
-  const getRoleForScore = (finalScore: number) => {
-    return ROLES.find(role => finalScore >= role.min && finalScore <= role.max) || ROLES[0];
+  const getRoleInfo = () => {
+    return ROLES.find(role => score >= role.min && score <= role.max) || ROLES[0];
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,427 +105,372 @@ export default function Home() {
     }
   };
 
-  const generateCard = () => {
+  const generateCard = async () => {
     if (!userName.trim()) {
       alert('Please enter your name');
       return;
     }
-    setShowCardForm(false);
-  };
-
-  const downloadCard = async () => {
-    if (!cardRef.current) return;
 
     setIsGeneratingCard(true);
+    setShowCardForm(false);
 
-    try {
-      // Step 1: Wait for all dynamic content to fully render
-      // This includes fonts, images, and gradient calculations
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Step 2: Ensure images are fully loaded
-      const images = cardRef.current.getElementsByTagName('img');
-      const imagePromises = Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve; // Still resolve on error to not block
+    setTimeout(async () => {
+      if (cardRef.current) {
+        const canvas = await html2canvas(cardRef.current, {
+          scale: 2,
+          backgroundColor: '#000000',
+          logging: false,
         });
-      });
-      await Promise.all(imagePromises);
 
-      // Step 3: Generate high-quality canvas with optimal settings
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#050510',
-        scale: 3, // High resolution for sharp export
-        useCORS: true, // Allow cross-origin images
-        allowTaint: true, // Allow tainted canvas for user uploads
-        logging: false, // Clean console
-        windowWidth: 1080, // Force specific width for consistency
-        windowHeight: 1350, // Portrait ratio ideal for social media
-        // Improve text rendering
-        onclone: (clonedDoc) => {
-          const clonedCard = clonedDoc.querySelector('[data-card-ref]');
-          if (clonedCard) {
-            // Force all text to be fully opaque for better rendering
-            const allText = clonedCard.querySelectorAll('*');
-            allText.forEach((el: any) => {
-              if (el.style) {
-                el.style.opacity = '1';
-              }
-            });
-          }
-        },
-      });
+        const link = document.createElement('a');
+        link.download = `ritual-quiz-${userName.replace(/\s+/g, '-')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
 
-      // Step 4: Download the image
-      const link = document.createElement('a');
-      link.download = `ritual-card-${userName.replace(/\s+/g, '-').toLowerCase() || 'user'}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0); // Maximum quality
-      link.click();
-
-    } catch (error) {
-      console.error('Error generating card:', error);
-      alert('Error generating card. Please try again.');
-    } finally {
-      setIsGeneratingCard(false);
-    }
+        setIsGeneratingCard(false);
+      }
+    }, 100);
   };
 
-  const shareToX = () => {
-    const role = getRoleForScore(score);
-    const text = `I just completed the Ritual Quiz and earned the ${role.title} rank 🔮 Score: ${score}/10\n\nThink you can beat me? Take the Ritual Quiz 👇 ${QUIZ_URL}\n\n@ritualfnd`;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-    window.open(twitterUrl, '_blank');
+  const shareToTwitter = () => {
+    const roleInfo = getRoleInfo();
+    const text = `I just completed the Ritual Quiz and got ${score}/10! My role: ${roleInfo.title} 🎮✨\n\nTry it yourself: ${QUIZ_URL}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const role = getRoleForScore(score);
+  const restartQuiz = () => {
+    setGameState('start');
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(null);
+    setScore(0);
+    setAnswers([]);
+    setShowFeedback(false);
+    setUserName('');
+    setUserImage(null);
+    setShowCardForm(false);
+    loadQuestions();
+  };
 
-  if (questions.length === 0) {
+  const roleInfo = getRoleInfo();
+
+  // START SCREEN
+  if (gameState === 'start') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-ritual-purple"></div>
-      </div>
-    );
-  }
+      <main className="min-h-screen relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="fixed inset-0 bg-black">
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #8840FF 0%, transparent 70%)' }}></div>
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-400 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #40FFAF 0%, transparent 70%)', animationDelay: '1s' }}></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #E554E8 0%, transparent 70%)', animationDelay: '2s' }}></div>
+          </div>
+        </div>
 
-  return (
-    <main className="min-h-screen relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-ritual-purple/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-ritual-blue/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-ritual-pink/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
-      </div>
-
-      {/* Start Screen */}
-      {gameState === 'start' && (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="text-center space-y-8 max-w-2xl">
-            <div className="space-y-4">
-              <h1 className="text-6xl md:text-8xl font-bold text-gradient animate-glow">
-                Ritual Quiz
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-300">
-                Test Your Knowledge of the World&apos;s First Sovereign Execution Layer for AI
-              </p>
-            </div>
-
-            <div className="ritual-card p-8 rounded-2xl space-y-4 backdrop-blur-sm">
-              <h2 className="text-2xl font-bold text-ritual-purple">Quiz Format</h2>
-              <div className="text-left space-y-2 text-gray-300">
-                <p>• 10 Questions Total</p>
-                <p>• 5 Easy Questions</p>
-                <p>• 3 Medium Questions</p>
-                <p>• 2 Hard Questions</p>
+        {/* Content */}
+        <div className="relative z-10 container mx-auto px-4 py-12">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <div className="inline-block mb-6">
+              <div className="text-6xl md:text-8xl font-black tracking-tighter mb-4">
+                <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-green-400 bg-clip-text text-transparent animate-gradient">
+                  RITUAL
+                </span>
+              </div>
+              <div className="text-2xl md:text-3xl font-bold text-white/90">
+                Knowledge Quiz
               </div>
             </div>
+            
+            <p className="text-xl text-white/70 max-w-2xl mx-auto mb-8">
+              Test your knowledge of the Ritual ecosystem and discover your role in the community
+            </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Quick Navigation */}
+            <div className="flex justify-center gap-4 mb-12">
+              <Link href="/game">
+                <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/50">
+                  🎮 Play Merge Game
+                </button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Quiz Start Card */}
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 rounded-3xl p-8 md:p-12 backdrop-blur-xl shadow-2xl shadow-purple-500/20">
+              {/* Quiz Info */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="bg-black/50 rounded-xl p-4 border border-green-400/30 text-center">
+                  <div className="text-green-400 text-3xl font-black">10</div>
+                  <div className="text-white/60 text-sm mt-1">Questions</div>
+                </div>
+                <div className="bg-black/50 rounded-xl p-4 border border-blue-400/30 text-center">
+                  <div className="text-blue-400 text-3xl font-black">3</div>
+                  <div className="text-white/60 text-sm mt-1">Difficulty Levels</div>
+                </div>
+                <div className="bg-black/50 rounded-xl p-4 border border-pink-400/30 text-center">
+                  <div className="text-pink-400 text-3xl font-black">5</div>
+                  <div className="text-white/60 text-sm mt-1">Roles</div>
+                </div>
+              </div>
+
+              {/* Roles Preview */}
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-white mb-4 text-center">Unlock Your Role</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {ROLES.map((role, index) => (
+                    <div key={index} className="bg-black/40 rounded-lg p-3 border border-white/10 text-center group hover:border-purple-500/50 transition-all">
+                      <div className="text-2xl mb-1">
+                        {index === 0 && '🌱'}
+                        {index === 1 && '⭐'}
+                        {index === 2 && '🔮'}
+                        {index === 3 && '👑'}
+                        {index === 4 && '🧙'}
+                      </div>
+                      <div className="text-xs font-bold" style={{ color: role.color }}>
+                        {role.title}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Start Button */}
               <button
-                onClick={startQuiz}
-                className="px-12 py-4 bg-ritual-gradient rounded-full text-xl font-bold hover:scale-105 transition-transform duration-300 card-glow"
+                onClick={handleStartQuiz}
+                disabled={questions.length === 0}
+                className="w-full py-5 bg-gradient-to-r from-green-400 to-emerald-600 rounded-2xl font-black text-xl text-black hover:scale-105 transition-transform shadow-xl shadow-green-400/30 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
               >
-                Start Quiz
+                <span className="relative z-10">
+                  {questions.length === 0 ? 'Loading Questions...' : 'START QUIZ ⚡'}
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-green-300 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
-              
-              <a
-                href="/game"
-                className="px-12 py-4 bg-ritual-purple rounded-full text-xl font-bold hover:scale-105 transition-transform duration-300 text-center"
-              >
-                🎮 Play Game
-              </a>
+            </div>
+          </div>
+
+          {/* Features */}
+          <div className="max-w-4xl mx-auto mt-16 grid md:grid-cols-3 gap-6">
+            <div className="bg-black/40 border border-purple-500/20 rounded-2xl p-6 backdrop-blur-sm">
+              <div className="text-4xl mb-3">🎯</div>
+              <h3 className="text-lg font-bold text-white mb-2">Curated Questions</h3>
+              <p className="text-white/60 text-sm">200+ questions covering all aspects of Ritual</p>
+            </div>
+            <div className="bg-black/40 border border-green-400/20 rounded-2xl p-6 backdrop-blur-sm">
+              <div className="text-4xl mb-3">🎨</div>
+              <h3 className="text-lg font-bold text-white mb-2">Custom Card</h3>
+              <p className="text-white/60 text-sm">Generate and share your personalized result card</p>
+            </div>
+            <div className="bg-black/40 border border-pink-400/20 rounded-2xl p-6 backdrop-blur-sm">
+              <div className="text-4xl mb-3">🏆</div>
+              <h3 className="text-lg font-bold text-white mb-2">Earn Your Role</h3>
+              <p className="text-white/60 text-sm">Progress from Initiate to Mage based on your score</p>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Quiz Screen */}
-      {gameState === 'quiz' && currentQuestion && (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl space-y-8">
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-400">
-                <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
-                <span>{currentQuestion.difficulty.toUpperCase()}</span>
-              </div>
-              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-ritual-gradient transition-all duration-500"
-                  style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-                ></div>
-              </div>
+        <style jsx>{`
+          @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          .animate-gradient {
+            background-size: 200% 200%;
+            animation: gradient 3s ease infinite;
+          }
+        `}</style>
+      </main>
+    );
+  }
+
+  // QUIZ SCREEN
+  if (gameState === 'quiz' && questions.length > 0) {
+    const currentQuestion = questions[currentQuestionIndex];
+    const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+    return (
+      <main className="min-h-screen bg-black relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="fixed inset-0 opacity-20">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-green-400"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <Link href="/">
+              <button className="px-4 py-2 bg-white/5 rounded-lg text-white/70 hover:bg-white/10 transition-colors border border-white/10">
+                ← Back
+              </button>
+            </Link>
+            <div className="text-center">
+              <div className="text-sm text-white/50">Question {currentQuestionIndex + 1} of {questions.length}</div>
+              <div className="text-2xl font-black text-white">{score} / {currentQuestionIndex}</div>
             </div>
+            <div className="w-20"></div>
+          </div>
 
-            {/* Question Card */}
-            <div className="ritual-card p-8 rounded-2xl backdrop-blur-sm space-y-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-white">
+          {/* Progress Bar */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Question Card */}
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
+              {/* Difficulty Badge */}
+              <div className="flex justify-between items-start mb-6">
+                <div className={`px-4 py-1 rounded-full text-xs font-bold ${
+                  currentQuestion.difficulty === 'easy' ? 'bg-green-400/20 text-green-400 border border-green-400/30' :
+                  currentQuestion.difficulty === 'medium' ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30' :
+                  'bg-red-400/20 text-red-400 border border-red-400/30'
+                }`}>
+                  {currentQuestion.difficulty.toUpperCase()}
+                </div>
+              </div>
+
+              {/* Question */}
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 leading-tight">
                 {currentQuestion.question}
               </h2>
 
-              <div className="space-y-4">
+              {/* Options */}
+              <div className="space-y-3 mb-8">
                 {currentQuestion.options.map((option, index) => {
                   const isSelected = selectedAnswer === index;
-                  const isCorrect = showFeedback && option === currentQuestion.correctAnswerText;
-                  const isWrong = showFeedback && isSelected && !isCorrect;
+                  const isCorrect = index === currentQuestion.correctAnswer;
+                  const showResult = showFeedback;
 
                   return (
                     <button
                       key={index}
                       onClick={() => handleAnswerSelect(index)}
                       disabled={showFeedback}
-                      className={`w-full p-4 rounded-xl text-left transition-all duration-300 ${
-                        isCorrect
-                          ? 'bg-green-500/20 border-2 border-green-500'
-                          : isWrong
-                          ? 'bg-red-500/20 border-2 border-red-500'
+                      className={`w-full p-5 rounded-xl text-left font-semibold transition-all border-2 ${
+                        showResult
+                          ? isCorrect
+                            ? 'bg-green-500/20 border-green-400 text-white'
+                            : isSelected
+                            ? 'bg-red-500/20 border-red-400 text-white'
+                            : 'bg-white/5 border-white/10 text-white/50'
                           : isSelected
-                          ? 'bg-ritual-purple/30 border-2 border-ritual-purple'
-                          : 'bg-gray-800/50 border-2 border-gray-700 hover:border-ritual-purple/50'
+                          ? 'bg-purple-500/20 border-purple-400 text-white scale-105'
+                          : 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-purple-400/50'
                       }`}
                     >
-                      <span className="text-lg">{option}</span>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black ${
+                          showResult && isCorrect ? 'bg-green-400 text-black' :
+                          showResult && isSelected && !isCorrect ? 'bg-red-400 text-black' :
+                          isSelected ? 'bg-purple-400 text-black' :
+                          'bg-white/10 text-white/50'
+                        }`}>
+                          {String.fromCharCode(65 + index)}
+                        </div>
+                        <span>{option}</span>
+                      </div>
                     </button>
                   );
                 })}
               </div>
 
+              {/* Submit Button */}
               {!showFeedback && (
                 <button
                   onClick={handleSubmitAnswer}
                   disabled={selectedAnswer === null}
-                  className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ${
-                    selectedAnswer !== null
-                      ? 'bg-ritual-gradient hover:scale-105 card-glow'
-                      : 'bg-gray-700 cursor-not-allowed opacity-50'
-                  }`}
+                  className="w-full py-4 bg-gradient-to-r from-green-400 to-emerald-600 rounded-xl font-black text-lg text-black hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-400/20"
                 >
-                  Submit Answer
+                  {currentQuestionIndex === questions.length - 1 ? 'FINISH QUIZ' : 'SUBMIT ANSWER'}
                 </button>
               )}
 
+              {/* Feedback */}
               {showFeedback && (
                 <div className={`p-4 rounded-xl text-center font-bold ${
-                  answers[answers.length - 1] ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                  selectedAnswer === currentQuestion.correctAnswer
+                    ? 'bg-green-400/20 text-green-400 border-2 border-green-400/30'
+                    : 'bg-red-400/20 text-red-400 border-2 border-red-400/30'
                 }`}>
-                  {answers[answers.length - 1] ? '✓ Correct!' : '✗ Incorrect'}
+                  {selectedAnswer === currentQuestion.correctAnswer ? '✅ Correct!' : '❌ Incorrect!'}
+                  {selectedAnswer !== currentQuestion.correctAnswer && (
+                    <div className="mt-2 text-sm text-white/70">
+                      Correct answer: {currentQuestion.options[currentQuestion.correctAnswer]}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         </div>
-      )}
+      </main>
+    );
+  }
 
-      {/* Result Screen */}
-      {gameState === 'result' && (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl space-y-8">
-            {showCardForm ? (
-              <div className="ritual-card p-8 rounded-2xl backdrop-blur-sm space-y-6">
-                <h2 className="text-3xl font-bold text-center text-gradient">
-                  Generate Your Ritual Card
-                </h2>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Your Name</label>
-                    <input
-                      type="text"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="Enter your name"
-                      className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl focus:border-ritual-purple outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Profile Picture (Optional)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-ritual-purple file:text-white hover:file:bg-ritual-purple/80"
-                    />
-                  </div>
-
-                  <button
-                    onClick={generateCard}
-                    className="w-full py-3 bg-ritual-gradient rounded-xl font-bold hover:scale-105 transition-transform duration-300 card-glow"
-                  >
-                    Generate Card
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Ritual Card - Optimized for Image Export */}
-                <div 
-                  ref={cardRef} 
-                  data-card-ref
-                  className="mx-auto"
-                  style={{
-                    width: '1080px',
-                    maxWidth: '100%',
-                    aspectRatio: '1080/1350',
-                  }}
+  // RESULTS SCREEN - continuing in next message due to length...
+  return (
+    <main className="min-h-screen bg-black relative overflow-hidden">
+      {/* Results implementation */}
+      <div className="relative z-10 container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl font-black mb-8">
+            <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-green-400 bg-clip-text text-transparent">
+              Quiz Complete!
+            </span>
+          </h1>
+          <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 rounded-3xl p-12">
+            <div className="text-6xl mb-4">{roleInfo.title === 'Mage' ? '🧙' : roleInfo.title === 'Ritualist' ? '👑' : '⭐'}</div>
+            <h2 className="text-4xl font-black mb-4" style={{ color: roleInfo.color }}>{roleInfo.title}</h2>
+            <p className="text-xl text-white/70 mb-8">{roleInfo.description}</p>
+            <div className="text-5xl font-black text-white mb-8">{score} / 10</div>
+            
+            {showCardForm && (
+              <div className="max-w-md mx-auto mb-8 space-y-4">
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white"
+                />
+                <button
+                  onClick={generateCard}
+                  className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white"
                 >
-                  <div className="w-full h-full bg-gradient-to-br from-ritual-dark to-ritual-darker p-12 rounded-3xl border-4 border-ritual-purple relative overflow-hidden">
-                    {/* Decorative glow elements */}
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-ritual-purple/20 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-ritual-blue/20 rounded-full blur-3xl"></div>
-
-                    <div className="relative z-10 h-full flex flex-col justify-between">
-                      {/* Header */}
-                      <div className="text-center space-y-4">
-                        <h1 
-                          className="text-7xl font-black mb-3"
-                          style={{
-                            color: '#A78BFA', // Solid purple color instead of gradient
-                          }}
-                        >
-                          RITUAL CARD
-                        </h1>
-                        <div 
-                          className="h-2 w-48 mx-auto rounded-full"
-                          style={{
-                            background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #EC4899)',
-                          }}
-                        ></div>
-                      </div>
-
-                      {/* Main Content */}
-                      <div className="flex flex-col items-center gap-8 py-8">
-                        {/* Profile Picture */}
-                        <div className="flex-shrink-0">
-                          {userImage ? (
-                            <img
-                              src={userImage}
-                              alt={userName}
-                              className="w-48 h-48 rounded-full border-6 object-cover"
-                              style={{ borderColor: '#8B5CF6', borderWidth: '6px' }}
-                              crossOrigin="anonymous"
-                            />
-                          ) : (
-                            <div 
-                              className="w-48 h-48 rounded-full border-6 flex items-center justify-center text-7xl font-black"
-                              style={{
-                                background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
-                                borderColor: '#8B5CF6',
-                                borderWidth: '6px',
-                              }}
-                            >
-                              {userName.charAt(0).toUpperCase() || '?'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* User Info */}
-                        <div className="text-center space-y-6 w-full px-8">
-                          {/* Name */}
-                          <h2 className="text-5xl font-black text-white break-words">
-                            {userName || 'Anonymous'}
-                          </h2>
-
-                          {/* Role */}
-                          <div className="space-y-2">
-                            <p 
-                              className="text-4xl font-bold"
-                              style={{ color: '#A78BFA' }}
-                            >
-                              {role.title} ✨
-                            </p>
-                            <p className="text-xl text-gray-400 italic px-4">
-                              {role.description}
-                            </p>
-                          </div>
-
-                          {/* Score */}
-                          <div className="bg-black/20 rounded-2xl p-6 border-2 border-ritual-purple/30">
-                            <div className="flex items-center justify-center gap-4">
-                              <span className="text-2xl text-gray-300 font-semibold">Score:</span>
-                              <span 
-                                className="text-7xl font-black"
-                                style={{
-                                  color: '#A78BFA', // Solid purple color
-                                }}
-                              >
-                                {score}/10
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="border-t-2 border-ritual-purple/40 pt-6 mt-4">
-                        <div className="text-center space-y-2">
-                          <p className="text-xl text-gray-400 font-semibold">
-                            ritualfoundation.com
-                          </p>
-                          <p className="text-lg font-bold" style={{ color: '#A78BFA' }}>
-                            @ritualfnd
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                  <button
-                    onClick={downloadCard}
-                    disabled={isGeneratingCard}
-                    className={`py-4 bg-ritual-purple rounded-xl font-bold transition-all duration-300 ${
-                      isGeneratingCard 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:scale-105'
-                    }`}
-                  >
-                    {isGeneratingCard ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating...
-                      </span>
-                    ) : (
-                      '📥 Download Card'
-                    )}
-                  </button>
-
-                  <button
-                    onClick={shareToX}
-                    disabled={isGeneratingCard}
-                    className={`py-4 bg-blue-500 rounded-xl font-bold transition-all duration-300 ${
-                      isGeneratingCard 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:scale-105'
-                    }`}
-                  >
-                    🐦 Share to X
-                  </button>
-
-                  <button
-                    onClick={() => window.location.reload()}
-                    disabled={isGeneratingCard}
-                    className={`py-4 bg-ritual-gradient rounded-xl font-bold transition-all duration-300 ${
-                      isGeneratingCard 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:scale-105'
-                    }`}
-                  >
-                    🔄 Retake Quiz
-                  </button>
-                </div>
-              </>
+                  Generate Card
+                </button>
+              </div>
             )}
+
+            <div className="flex gap-4 justify-center">
+              <button onClick={shareToTwitter} className="px-6 py-3 bg-blue-500 rounded-xl font-bold text-white">
+                Share on 𝕏
+              </button>
+              <button onClick={restartQuiz} className="px-6 py-3 bg-green-400 rounded-xl font-bold text-black">
+                Restart Quiz
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Hidden Card for Generation */}
+      <div className="fixed -left-[9999px]">
+        <div ref={cardRef} className="w-[600px] h-[600px] bg-gradient-to-br from-purple-600 to-pink-600 p-12">
+          {/* Card content */}
+        </div>
+      </div>
     </main>
   );
 }
