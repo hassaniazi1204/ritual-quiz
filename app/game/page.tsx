@@ -1153,6 +1153,7 @@ export default function MergeGame() {
           </button>
         </div>
       </div>
+      </div> {/* Close div from line 862 */}
     </main>
   );
 }
