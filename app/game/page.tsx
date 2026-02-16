@@ -849,75 +849,97 @@ export default function MergeGame() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-ritual-dark to-ritual-darker p-4 md:p-8">
-      <div className="max-w-6xl mx-auto mb-4">
-        <a
-          href="/"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-ritual-purple/20 border-2 border-ritual-purple rounded-xl font-bold hover:scale-105 transition-transform"
-        >
-          ← Back to Quiz
-        </a>
+    <main className="min-h-screen bg-black relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-20 left-20 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #8840FF 0%, transparent 70%)' }}></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-green-400 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #40FFAF 0%, transparent 70%)', animationDelay: '1s' }}></div>
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto mb-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-black mb-2" style={{ color: '#A78BFA' }}>
-          Ritual Merge Game
-        </h1>
-        <p className="text-gray-400 text-sm md:text-base">
-          Drop and merge balls to score points!
-        </p>
-      </div>
+      {/* Content */}
+      <div className="relative z-10 p-4 md:p-8">
+        {/* Header */}
+        <div className="max-w-7xl mx-auto mb-8">
+          <div className="flex justify-between items-center">
+            <a
+              href="/"
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
+            >
+              ← Back to Quiz
+            </a>
+            <div className="text-center">
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight">
+                <span className="bg-gradient-to-r from-green-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                  RITUAL MERGE
+                </span>
+              </h1>
+              <p className="text-white/60 text-sm md:text-base mt-1">
+                Drop and merge to score! 🎮
+              </p>
+            </div>
+            <div className="w-32"></div>
+          </div>
+        </div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Game Canvas - Now taking more space since Score/Next Ball moved inside */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6"
+        {/* Game Canvas */}
         <div className="lg:col-span-9">
-          <div className="relative">
+          <div className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 rounded-3xl p-4 shadow-2xl shadow-purple-500/20">
             <canvas
               ref={canvasRef}
               width={gameWidth}
               height={gameHeight}
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
-              className="border border-ritual-purple rounded-2xl shadow-2xl cursor-crosshair mx-auto bg-[#0F0F23]"
+              className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner"
               style={{ maxWidth: '100%', height: 'auto' }}
             />
             
             {gameOver && showCardForm && (
-              <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center p-4">
-                <div className="text-center space-y-4 max-w-sm w-full">
-                  <h2 className="text-3xl font-bold text-white">Game Over!</h2>
-                  <p className="text-5xl font-black" style={{ color: '#A78BFA' }}>
-                    {score}
-                  </p>
-                  <p className="text-xl text-gray-300">Points</p>
+              <div className="absolute inset-0 bg-black/95 backdrop-blur-md rounded-2xl flex items-center justify-center p-4">
+                <div className="text-center space-y-6 max-w-sm w-full bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/50 rounded-2xl p-8 shadow-2xl">
+                  <div className="text-5xl mb-2">🎮</div>
+                  <h2 className="text-4xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    Game Over!
+                  </h2>
+                  <div className="bg-black/50 rounded-xl p-6 border border-green-400/30">
+                    <div className="text-sm text-white/50 mb-2">Final Score</div>
+                    <p className="text-6xl font-black bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
+                      {score}
+                    </p>
+                    <p className="text-lg text-white/70 mt-2">Points</p>
+                  </div>
                   
-                  <div className="bg-ritual-dark p-4 rounded-xl space-y-3">
+                  <div className="bg-black/30 p-6 rounded-xl space-y-4 border border-white/10">
+                    <div className="text-sm text-white/70 mb-3">Save Your Score</div>
                     <input
                       type="text"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
                       placeholder="Enter your name"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm focus:border-ritual-purple outline-none"
+                      className="w-full px-4 py-3 bg-black/50 border-2 border-purple-400/30 rounded-xl text-white text-sm focus:border-purple-400 outline-none transition-colors"
                     />
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-xs file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-ritual-purple file:text-white file:text-xs"
+                      className="w-full px-4 py-3 bg-black/50 border-2 border-purple-400/30 rounded-xl text-white text-xs file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-purple-500 file:to-pink-500 file:text-white file:font-bold file:text-xs cursor-pointer"
                     />
                     <button
                       onClick={generateCard}
-                      className="w-full py-2 bg-ritual-gradient rounded-xl font-bold text-sm hover:scale-105 transition-transform"
+                      className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
                     >
-                      Generate Card
+                      🎨 Generate Card
                     </button>
                   </div>
                   
                   <button
                     onClick={restartGame}
-                    className="px-6 py-2 bg-ritual-purple rounded-xl font-bold text-white hover:scale-105 transition-transform"
+                    className="w-full px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-600 rounded-xl font-black text-black hover:scale-105 transition-transform shadow-lg shadow-green-400/30"
                   >
-                    Play Again
+                    🔄 Play Again
                   </button>
                 </div>
               </div>
@@ -1010,21 +1032,47 @@ export default function MergeGame() {
         </div>
 
         {/* Right Sidebar */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
-            <h3 className="text-lg font-bold text-white mb-3">How to Play</h3>
-            <ul className="space-y-2 text-gray-300 text-xs">
-              <li>🎯 Click to drop balls</li>
-              <li>🔄 Merge same levels</li>
-              <li>⬆️ Level up to score</li>
-              <li>🔁 Lv10 + Lv10 = Lv1</li>
-              <li>❌ Don't cross red line!</li>
-              <li>⏳ Wait for ball to settle</li>
+        <div className="lg:col-span-3 space-y-6">
+          {/* How to Play */}
+          <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 p-6 rounded-2xl backdrop-blur-xl shadow-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">🎮</span>
+              <h3 className="text-xl font-black text-white">How to Play</h3>
+            </div>
+            <ul className="space-y-3 text-white/80 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 font-bold mt-0.5">►</span>
+                <span>Click to drop balls</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400 font-bold mt-0.5">►</span>
+                <span>Merge same levels</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-pink-400 font-bold mt-0.5">►</span>
+                <span>Level up to score</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold mt-0.5">►</span>
+                <span>Lv10 + Lv10 = Lv1</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 font-bold mt-0.5">►</span>
+                <span>Don't cross red line!</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-400 font-bold mt-0.5">►</span>
+                <span>Wait for ball to settle</span>
+              </li>
             </ul>
           </div>
 
-          <div className="bg-gradient-to-br from-ritual-purple/20 to-ritual-blue/20 p-4 rounded-2xl border border-ritual-purple/50">
-            <h3 className="text-lg font-bold text-white mb-3 text-center">Merge Guide</h3>
+          {/* Merge Guide */}
+          <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-green-400/30 p-6 rounded-2xl backdrop-blur-xl shadow-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">🔄</span>
+              <h3 className="text-xl font-black text-white">Merge Guide</h3>
+            </div>
             <div className="relative w-full max-w-[200px] mx-auto" style={{ paddingBottom: '100%' }}>
               <div className="absolute inset-0">
                 {BALL_CONFIG.map((config, index) => {
@@ -1096,11 +1144,12 @@ export default function MergeGame() {
             </div>
           </div>
 
+          {/* Restart Button */}
           <button
             onClick={restartGame}
-            className="w-full py-3 bg-red-500 rounded-xl font-bold text-white hover:scale-105 transition-transform"
+            className="w-full py-4 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl font-black text-white hover:scale-105 transition-transform shadow-lg shadow-red-500/30 border-2 border-red-400/30"
           >
-            🔄 Restart
+            🔄 Restart Game
           </button>
         </div>
       </div>
