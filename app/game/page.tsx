@@ -240,32 +240,33 @@ export default function MergeGame() {
           ctx.arc(vibrationX, vibrationY, config.radius + 2, 0, Math.PI * 2);
           ctx.fill();
 
-          // Draw capsule shape (pill/rounded cylinder)
+          // Draw capsule as ONE continuous path (no seams)
           ctx.fillStyle = config.color;
           ctx.beginPath();
           
-          // Center rectangle part
-          ctx.rect(
-            vibrationX - width / 2,
-            vibrationY - rectHeight / 2,
-            width,
-            rectHeight
-          );
+          // Start from top-left of rectangle
+          ctx.moveTo(vibrationX - width / 2, vibrationY - rectHeight / 2);
           
-          // Top rounded cap (semicircle)
+          // Left edge down
+          ctx.lineTo(vibrationX - width / 2, vibrationY + rectHeight / 2);
+          
+          // Bottom rounded cap (semicircle going left to right)
           ctx.arc(
             vibrationX,
-            vibrationY - rectHeight / 2,
+            vibrationY + rectHeight / 2,
             capRadius,
             Math.PI,
             0,
             false
           );
           
-          // Bottom rounded cap (semicircle)
+          // Right edge up
+          ctx.lineTo(vibrationX + width / 2, vibrationY - rectHeight / 2);
+          
+          // Top rounded cap (semicircle going right to left)
           ctx.arc(
             vibrationX,
-            vibrationY + rectHeight / 2,
+            vibrationY - rectHeight / 2,
             capRadius,
             0,
             Math.PI,
@@ -275,33 +276,17 @@ export default function MergeGame() {
           ctx.closePath();
           ctx.fill();
 
+          // Clip and draw image
           if (image && image.complete) {
             ctx.save();
             ctx.beginPath();
             
-            // Clip to capsule shape - reuse rectHeight
-            ctx.rect(
-              vibrationX - width / 2,
-              vibrationY - rectHeight / 2,
-              width,
-              rectHeight
-            );
-            ctx.arc(
-              vibrationX,
-              vibrationY - rectHeight / 2,
-              capRadius,
-              Math.PI,
-              0,
-              false
-            );
-            ctx.arc(
-              vibrationX,
-              vibrationY + rectHeight / 2,
-              capRadius,
-              0,
-              Math.PI,
-              false
-            );
+            // Same continuous path for clipping
+            ctx.moveTo(vibrationX - width / 2, vibrationY - rectHeight / 2);
+            ctx.lineTo(vibrationX - width / 2, vibrationY + rectHeight / 2);
+            ctx.arc(vibrationX, vibrationY + rectHeight / 2, capRadius, Math.PI, 0, false);
+            ctx.lineTo(vibrationX + width / 2, vibrationY - rectHeight / 2);
+            ctx.arc(vibrationX, vibrationY - rectHeight / 2, capRadius, 0, Math.PI, false);
             ctx.closePath();
             ctx.clip();
             
@@ -315,34 +300,16 @@ export default function MergeGame() {
             ctx.restore();
           }
 
-          // Border for capsule
+          // Draw border as ONE continuous stroke (no seams)
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           
-          // Reuse rectHeight
-          ctx.rect(
-            vibrationX - width / 2,
-            vibrationY - rectHeight / 2,
-            width,
-            rectHeight
-          );
-          ctx.arc(
-            vibrationX,
-            vibrationY - rectHeight / 2,
-            capRadius,
-            Math.PI,
-            0,
-            false
-          );
-          ctx.arc(
-            vibrationX,
-            vibrationY + rectHeight / 2,
-            capRadius,
-            0,
-            Math.PI,
-            false
-          );
+          ctx.moveTo(vibrationX - width / 2, vibrationY - rectHeight / 2);
+          ctx.lineTo(vibrationX - width / 2, vibrationY + rectHeight / 2);
+          ctx.arc(vibrationX, vibrationY + rectHeight / 2, capRadius, Math.PI, 0, false);
+          ctx.lineTo(vibrationX + width / 2, vibrationY - rectHeight / 2);
+          ctx.arc(vibrationX, vibrationY - rectHeight / 2, capRadius, 0, Math.PI, false);
           ctx.closePath();
           ctx.stroke();
         } else {
@@ -514,23 +481,21 @@ export default function MergeGame() {
           ctx.strokeRect(-previewConfig.radius, -previewConfig.radius, size, size);
         } else if (previewConfig.shape === 'cylinder') {
           // Capsule preview (pill shape with rounded top/bottom)
+          // Capsule preview (pill shape with rounded top/bottom) - ONE continuous path
           const width = previewConfig.radius * 1.6;
           const height = previewConfig.radius * 2.4;
           const capRadius = width / 2;
+          const rectHeight = height - width;
 
+          // Draw as ONE continuous path (no seams)
           ctx.fillStyle = previewConfig.color;
           ctx.beginPath();
           
-          // Center rectangle
-          const rectHeight = height - width;
-          ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
-          
-          // Top rounded cap
-          ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
-          
-          // Bottom rounded cap
-          ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
-          
+          ctx.moveTo(-width / 2, -rectHeight / 2);
+          ctx.lineTo(-width / 2, rectHeight / 2);
+          ctx.arc(0, rectHeight / 2, capRadius, Math.PI, 0, false);
+          ctx.lineTo(width / 2, -rectHeight / 2);
+          ctx.arc(0, -rectHeight / 2, capRadius, 0, Math.PI, false);
           ctx.closePath();
           ctx.fill();
 
@@ -538,10 +503,12 @@ export default function MergeGame() {
             ctx.save();
             ctx.beginPath();
             
-            // Clip to capsule shape
-            ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
-            ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
-            ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
+            // Same continuous path for clipping
+            ctx.moveTo(-width / 2, -rectHeight / 2);
+            ctx.lineTo(-width / 2, rectHeight / 2);
+            ctx.arc(0, rectHeight / 2, capRadius, Math.PI, 0, false);
+            ctx.lineTo(width / 2, -rectHeight / 2);
+            ctx.arc(0, -rectHeight / 2, capRadius, 0, Math.PI, false);
             ctx.closePath();
             ctx.clip();
             
@@ -555,13 +522,16 @@ export default function MergeGame() {
             ctx.restore();
           }
 
+          // Border as ONE continuous stroke (no seams)
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           
-          ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
-          ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
-          ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
+          ctx.moveTo(-width / 2, -rectHeight / 2);
+          ctx.lineTo(-width / 2, rectHeight / 2);
+          ctx.arc(0, rectHeight / 2, capRadius, Math.PI, 0, false);
+          ctx.lineTo(width / 2, -rectHeight / 2);
+          ctx.arc(0, -rectHeight / 2, capRadius, 0, Math.PI, false);
           ctx.closePath();
           ctx.stroke();
         } else {
@@ -618,12 +588,17 @@ export default function MergeGame() {
 
         if (bodyA.isStatic || bodyB.isStatic) return;
 
-        const ballA = ballsRef.current.find(b => b.body.id === bodyA.id);
-        const ballB = ballsRef.current.find(b => b.body.id === bodyB.id);
+        // Use parent body for compound bodies (Level 2 cylinders)
+        const parentA = bodyA.parent || bodyA;
+        const parentB = bodyB.parent || bodyB;
+
+        const ballA = ballsRef.current.find(b => b.body.id === parentA.id);
+        const ballB = ballsRef.current.find(b => b.body.id === parentB.id);
 
         if (!ballA || !ballB) return;
         if (ballA.level !== ballB.level) return;
 
+        // Use parent body IDs for merge key to prevent duplicates
         const mergeKey = [ballA.id, ballB.id].sort().join('-');
         if (processingMergeRef.current.has(mergeKey)) return;
         processingMergeRef.current.add(mergeKey);
@@ -631,11 +606,11 @@ export default function MergeGame() {
         const mergeLevel = ballA.level;
         const mergeScore = BALL_CONFIG[mergeLevel - 1].score;
         
-        const mergeX = (bodyA.position.x + bodyB.position.x) / 2;
-        const mergeY = (bodyA.position.y + bodyB.position.y) / 2;
+        const mergeX = (parentA.position.x + parentB.position.x) / 2;
+        const mergeY = (parentA.position.y + parentB.position.y) / 2;
 
-        Matter.World.remove(engine.world, bodyA);
-        Matter.World.remove(engine.world, bodyB);
+        Matter.World.remove(engine.world, parentA);
+        Matter.World.remove(engine.world, parentB);
         
         ballsRef.current = ballsRef.current.filter(b => b.id !== ballA.id && b.id !== ballB.id);
 
