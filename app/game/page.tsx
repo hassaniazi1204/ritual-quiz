@@ -883,7 +883,7 @@ export default function MergeGame() {
           </div>
         </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6"
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Game Canvas */}
         <div className="lg:col-span-9">
           <div className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 rounded-3xl p-4 shadow-2xl shadow-purple-500/20">
