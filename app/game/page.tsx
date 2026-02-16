@@ -225,10 +225,10 @@ export default function MergeGame() {
             size
           );
         } else if (config.shape === 'cylinder') {
-          // Cylinder shape for Level 2 - rounded rectangle
-          const width = config.radius * 1.8;
-          const height = config.radius * 2.2;
-          const cornerRadius = config.radius * 0.4;
+          // Capsule/Pill shape for Level 2 - rounded top and bottom
+          const width = config.radius * 1.6;
+          const height = config.radius * 2.4;
+          const capRadius = width / 2; // Radius for rounded caps
           
           // Small glow for cylinder
           const gradient = ctx.createRadialGradient(vibrationX, vibrationY, 0, vibrationX, vibrationY, config.radius);
@@ -239,29 +239,73 @@ export default function MergeGame() {
           ctx.arc(vibrationX, vibrationY, config.radius + 2, 0, Math.PI * 2);
           ctx.fill();
 
-          // Rounded rectangle
+          // Draw capsule shape (pill/rounded cylinder)
           ctx.fillStyle = config.color;
           ctx.beginPath();
-          ctx.roundRect(
+          
+          // Center rectangle part
+          const rectHeight = height - width; // Height of middle section
+          ctx.rect(
             vibrationX - width / 2,
-            vibrationY - height / 2,
+            vibrationY - rectHeight / 2,
             width,
-            height,
-            cornerRadius
+            rectHeight
           );
+          
+          // Top rounded cap (semicircle)
+          ctx.arc(
+            vibrationX,
+            vibrationY - rectHeight / 2,
+            capRadius,
+            Math.PI,
+            0,
+            false
+          );
+          
+          // Bottom rounded cap (semicircle)
+          ctx.arc(
+            vibrationX,
+            vibrationY + rectHeight / 2,
+            capRadius,
+            0,
+            Math.PI,
+            false
+          );
+          
+          ctx.closePath();
           ctx.fill();
 
           if (image && image.complete) {
             ctx.save();
             ctx.beginPath();
-            ctx.roundRect(
+            
+            // Clip to capsule shape
+            const rectHeight = height - width;
+            ctx.rect(
               vibrationX - width / 2,
-              vibrationY - height / 2,
+              vibrationY - rectHeight / 2,
               width,
-              height,
-              cornerRadius
+              rectHeight
             );
+            ctx.arc(
+              vibrationX,
+              vibrationY - rectHeight / 2,
+              capRadius,
+              Math.PI,
+              0,
+              false
+            );
+            ctx.arc(
+              vibrationX,
+              vibrationY + rectHeight / 2,
+              capRadius,
+              0,
+              Math.PI,
+              false
+            );
+            ctx.closePath();
             ctx.clip();
+            
             ctx.drawImage(
               image,
               vibrationX - width / 2,
@@ -272,16 +316,35 @@ export default function MergeGame() {
             ctx.restore();
           }
 
+          // Border for capsule
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.roundRect(
+          
+          const rectHeight = height - width;
+          ctx.rect(
             vibrationX - width / 2,
-            vibrationY - height / 2,
+            vibrationY - rectHeight / 2,
             width,
-            height,
-            cornerRadius
+            rectHeight
           );
+          ctx.arc(
+            vibrationX,
+            vibrationY - rectHeight / 2,
+            capRadius,
+            Math.PI,
+            0,
+            false
+          );
+          ctx.arc(
+            vibrationX,
+            vibrationY + rectHeight / 2,
+            capRadius,
+            0,
+            Math.PI,
+            false
+          );
+          ctx.closePath();
           ctx.stroke();
         } else {
           // Circle shape for Levels 3-10 - normal rendering with glow
@@ -451,21 +514,38 @@ export default function MergeGame() {
           ctx.lineWidth = 2;
           ctx.strokeRect(-previewConfig.radius, -previewConfig.radius, size, size);
         } else if (previewConfig.shape === 'cylinder') {
-          // Cylinder preview (rounded rectangle)
-          const width = previewConfig.radius * 1.8;
-          const height = previewConfig.radius * 2.2;
-          const cornerRadius = previewConfig.radius * 0.4;
+          // Capsule preview (pill shape with rounded top/bottom)
+          const width = previewConfig.radius * 1.6;
+          const height = previewConfig.radius * 2.4;
+          const capRadius = width / 2;
 
           ctx.fillStyle = previewConfig.color;
           ctx.beginPath();
-          ctx.roundRect(-width / 2, -height / 2, width, height, cornerRadius);
+          
+          // Center rectangle
+          const rectHeight = height - width;
+          ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
+          
+          // Top rounded cap
+          ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
+          
+          // Bottom rounded cap
+          ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
+          
+          ctx.closePath();
           ctx.fill();
 
           if (previewImage && previewImage.complete) {
             ctx.save();
             ctx.beginPath();
-            ctx.roundRect(-width / 2, -height / 2, width, height, cornerRadius);
+            
+            // Clip to capsule shape
+            ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
+            ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
+            ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
+            ctx.closePath();
             ctx.clip();
+            
             ctx.drawImage(
               previewImage,
               -width / 2,
@@ -479,7 +559,11 @@ export default function MergeGame() {
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.roundRect(-width / 2, -height / 2, width, height, cornerRadius);
+          
+          ctx.rect(-width / 2, -rectHeight / 2, width, rectHeight);
+          ctx.arc(0, -rectHeight / 2, capRadius, Math.PI, 0, false);
+          ctx.arc(0, rectHeight / 2, capRadius, 0, Math.PI, false);
+          ctx.closePath();
           ctx.stroke();
         } else {
           // Circle preview (normal)
@@ -625,11 +709,20 @@ export default function MergeGame() {
         frictionAir: 0.001,
       });
     } else if (config.shape === 'cylinder') {
-      // Level 2: Cylinder (rounded rectangle) - Medium-heavy
-      const width = config.radius * 1.8;
-      const height = config.radius * 2.2;
-      body = Matter.Bodies.rectangle(x, y, width, height, {
-        chamfer: { radius: config.radius * 0.4 }, // Rounded corners
+      // Level 2: Capsule (rounded top and bottom) - Medium-heavy
+      const width = config.radius * 1.6;
+      const height = config.radius * 2.4;
+      
+      // Create compound body: top circle + middle rectangle + bottom circle
+      const capRadius = width / 2;
+      const rectHeight = height - width;
+      
+      const topCircle = Matter.Bodies.circle(x, y - rectHeight / 2, capRadius, { label: 'top' });
+      const middleRect = Matter.Bodies.rectangle(x, y, width, rectHeight, { label: 'middle' });
+      const bottomCircle = Matter.Bodies.circle(x, y + rectHeight / 2, capRadius, { label: 'bottom' });
+      
+      body = Matter.Body.create({
+        parts: [middleRect, topCircle, bottomCircle],
         restitution: 0.2,     // Low bounce
         friction: 0.6,        // Medium-high friction
         density: 0.003,       // Heavy (1.5x normal)
