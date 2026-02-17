@@ -118,8 +118,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
             margin: 0,
             textShadow: '0 0 40px rgba(64,255,175,0.35)',
           }}>
-            Take the Challenge and <br />
-            Conquer the World’s First AI Execution Layer
+            Conquer the World's First AI Execution Layer
           </h1>
         </div>
 
@@ -132,7 +131,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
             lineHeight: 1.6,
             margin: 0,
           }}>
-            Answer 10 questions and get your personalized Ritual Card
+            Only the Sharpest Minds Can Master
           </p>
         </div>
 
@@ -163,7 +162,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
               (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 40px rgba(64,255,175,0.5), 0 8px 24px rgba(0,0,0,0.4)';
             }}
           >
-            {loading ? 'Loading…' : 'Start Quiz'}
+            {loading ? 'Loading…' : 'Take the Challenge'}
           </button>
         </div>
       </div>
