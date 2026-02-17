@@ -40,7 +40,8 @@ const OVERLAY: React.CSSProperties = {
   zIndex: 0,
 };
 
-const NEON_LOGO_SRC = '/brand-assets/Lockup/Neon on Grey.png';
+const NEON_LOGO_SRC        = '/brand-assets/Lockup/Neon on Grey.png';   // kept for quiz/result screens
+const TRANSLUCENT_LOGO_SRC = '/brand-assets/Lockup/Translucent.png';     // used on start screen
 
 /* ═══════════════════════════════════════════════════
    START SCREEN
@@ -63,19 +64,40 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
 
       <div style={OVERLAY} />
 
+      {/* ── Back button — top-left ── */}
+      <div style={{ position: 'relative', zIndex: 1, width: '100%',
+        padding: '24px 32px 0', display: 'flex', alignItems: 'center' }}>
+        <Link href="/">
+          <span
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              color: 'rgba(255,255,255,0.55)',
+              fontFamily: "'Barlow', sans-serif",
+              fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer',
+              textDecoration: 'none',
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#40FFAF'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.55)'}
+          >
+            ← Back
+          </span>
+        </Link>
+      </div>
+
       {/* ── center column ── */}
       <div style={{
         position: 'relative', zIndex: 1,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         flexGrow: 1, width: '100%',
-        padding: '56px 24px 0', textAlign: 'center',
+        padding: '20px 24px 0', textAlign: 'center',
       }}>
 
-        {/* Logo */}
+        {/* Logo — Translucent.png */}
         <div style={{ ...fade('0s'), marginBottom: '52px' }}>
           <img
-            src={NEON_LOGO_SRC}
+            src={TRANSLUCENT_LOGO_SRC}
             alt="Ritual"
             style={{
               width: 'clamp(180px, 28vw, 380px)', height: 'auto',
@@ -85,25 +107,31 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
           />
         </div>
 
-        {/* Main heading */}
-        <div style={{ ...fade('0.15s'), marginBottom: '24px', maxWidth: '780px' }}>
+        {/* Main heading — 3 lines, #40FFAF */}
+        <div style={{ ...fade('0.15s'), marginBottom: '24px', maxWidth: '820px' }}>
           <h1 style={{
             fontSize: 'clamp(1.6rem, 4vw, 3.2rem)',
-            fontWeight: 900, color: '#FFFFFF',
-            letterSpacing: '-0.02em', lineHeight: 1.15,
+            fontWeight: 900,
+            color: '#40FFAF',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.25,
             margin: 0,
-            textShadow: '0 2px 40px rgba(0,0,0,0.9)',
+            textShadow: '0 0 40px rgba(64,255,175,0.35)',
           }}>
-            Test Your Knowledge of the World's First Sovereign Execution Layer for AI
+            Test Your Knowledge of the<br />
+            World's First Sovereign Execution Layer<br />
+            for AI
           </h1>
         </div>
 
-        {/* Sub-heading */}
+        {/* Sub-heading — #E7E7E7, no neon glow */}
         <div style={{ ...fade('0.28s'), marginBottom: '64px', maxWidth: '560px' }}>
           <p style={{
-            fontSize: 'clamp(1rem, 2vw, 1.3rem)',
-            fontWeight: 500, color: '#40FFAF', lineHeight: 1.6, margin: 0,
-            textShadow: '0 0 28px rgba(64,255,175,0.45)',
+            fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+            fontWeight: 400,
+            color: '#E7E7E7',
+            lineHeight: 1.6,
+            margin: 0,
           }}>
             Answer 10 questions and get your personalized Ritual Card
           </p>
@@ -141,7 +169,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
         </div>
       </div>
 
-      {/* spacer so footer sits at bottom */}
+      {/* spacer */}
       <div style={{ position: 'relative', zIndex: 1, height: '80px' }} />
     </main>
   );
