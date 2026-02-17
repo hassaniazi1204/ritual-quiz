@@ -135,8 +135,19 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
           </p>
         </div>
 
+        {/* Extra line above button */}
+        <div style={{ ...fade('0.38s'), marginBottom: '28px' }}>
+          <p style={{
+            fontSize: 'clamp(0.9rem, 1.6vw, 1.05rem)',
+            fontWeight: 400, color: '#E7E7E7',
+            lineHeight: 1.5, margin: 0,
+          }}>
+            Answer 10 questions and get your personalized Ritual Card
+          </p>
+        </div>
+
         {/* Start Quiz button */}
-        <div style={fade('0.42s')}>
+        <div style={fade('0.52s')}>
           <button
             onClick={onStart}
             disabled={loading}
@@ -199,20 +210,25 @@ function QuizScreen({
     }, 1400);
   };
 
-  const diffColor: Record<string, string> = { easy: '#40FFAF', medium: '#F6BE4F', hard: '#FF5757' };
   const progress = ((index + 1) / total) * 100;
 
   return (
-    <main style={{ minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      fontFamily: "'Barlow', sans-serif", position: 'relative' }}>
+    /* Full-page Roundel background, vertically centered */
+    <main style={{
+      minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',   /* ← vertically centered */
+      fontFamily: "'Barlow', sans-serif", position: 'relative',
+    }}>
 
       <div style={OVERLAY} />
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '760px',
-        padding: '40px 24px 60px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      <div style={{
+        position: 'relative', zIndex: 1, width: '100%', maxWidth: '760px',
+        padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: '24px',
+      }}>
 
-        {/* top bar */}
+        {/* top bar — Mark logo replaces Neon logo */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/">
             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', cursor: 'pointer',
@@ -221,9 +237,17 @@ function QuizScreen({
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'}
             >← Home</span>
           </Link>
-          <img src={NEON_LOGO_SRC} alt="Ritual"
-            style={{ height: '36px', width: 'auto',
-              filter: 'drop-shadow(0 0 12px rgba(64,255,175,0.4))' }} />
+
+          {/* Mark/Translucent.png — small icon mark */}
+          <img
+            src="/brand-assets/Mark/Translucent.png"
+            alt="Ritual"
+            style={{
+              height: '40px', width: 'auto',
+              filter: 'drop-shadow(0 0 12px rgba(64,255,175,0.45))',
+            }}
+          />
+
           <span style={{ color: '#40FFAF', fontWeight: 700, fontSize: '0.95rem' }}>
             {score} / {index}
           </span>
@@ -236,117 +260,129 @@ function QuizScreen({
             transition: 'width 0.4s ease', borderRadius: '99px' }} />
         </div>
 
-        {/* question card */}
+        {/* question card — Outline.png background */}
         <div style={{
-          background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: '20px', padding: '36px 32px',
+          border: '1px solid rgba(7,115,69,0.4)',
+          position: 'relative', overflow: 'hidden',
         }}>
-          {/* meta */}
-          <div style={{ display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>
-              Question {index + 1} of {total}
-            </span>
-            <span style={{
-              padding: '4px 12px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700,
-              color: diffColor[question.difficulty] || '#fff',
-              border: `1px solid ${diffColor[question.difficulty] || '#fff'}`,
-              background: `${diffColor[question.difficulty] || '#fff'}18`,
-            }}>
-              {question.difficulty.toUpperCase()}
-            </span>
-          </div>
+          {/* Outline.png pattern inside card */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: 'url(/brand-assets/Patterns/Outline.png)',
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            opacity: 0.12, zIndex: 0,
+          }} />
+          {/* dark tint over pattern so text stays readable */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(0,0,0,0.82)',
+            zIndex: 1,
+          }} />
 
-          {/* question text */}
-          <h2 style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', fontWeight: 800,
-            color: '#FFFFFF', lineHeight: 1.4, margin: '0 0 28px' }}>
-            {question.question}
-          </h2>
+          {/* card content — above both layers */}
+          <div style={{ position: 'relative', zIndex: 2 }}>
 
-          {/* options */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
-            {question.options.map((opt, i) => {
-              const isSelected = selected === i;
-              const isCorrect  = i === question.correctAnswer;
-              const showResult = locked;
-
-              let bg     = 'rgba(255,255,255,0.05)';
-              let border = '1px solid rgba(255,255,255,0.12)';
-              let color  = '#E7E7E7';
-
-              if (showResult) {
-                if (isCorrect)                 { bg = 'rgba(64,255,175,0.18)'; border = '1px solid #40FFAF'; color = '#40FFAF'; }
-                else if (isSelected && !isCorrect) { bg = 'rgba(255,87,87,0.18)';  border = '1px solid #FF5757'; color = '#FF5757'; }
-                else                           { color = 'rgba(255,255,255,0.3)'; }
-              } else if (isSelected) {
-                bg = 'rgba(136,64,255,0.22)'; border = '1px solid #8840FF'; color = '#FFFFFF';
-              }
-
-              return (
-                <button key={i} onClick={() => { if (!locked) setSelected(i); }}
-                  style={{
-                    background: bg, border, borderRadius: '12px',
-                    padding: '14px 18px', textAlign: 'left', cursor: locked ? 'default' : 'pointer',
-                    color, fontFamily: "'Barlow', sans-serif",
-                    fontSize: '1rem', fontWeight: 600, lineHeight: 1.4,
-                    display: 'flex', alignItems: 'center', gap: '14px',
-                    transition: 'all 0.15s ease',
-                    transform: isSelected && !locked ? 'scale(1.01)' : 'scale(1)',
-                  }}>
-                  <span style={{
-                    width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 800, fontSize: '0.85rem',
-                    background: isSelected && !locked ? '#8840FF' :
-                                showResult && isCorrect ? '#40FFAF' :
-                                showResult && isSelected ? '#FF5757' : 'rgba(255,255,255,0.1)',
-                    color: (isSelected && !locked) || (showResult && (isCorrect || isSelected)) ? '#000' : '#fff',
-                  }}>
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* feedback banner */}
-          {locked && (
-            <div style={{
-              padding: '12px 18px', borderRadius: '10px', textAlign: 'center',
-              fontWeight: 700, fontSize: '0.95rem', marginBottom: '20px',
-              background: selected === question.correctAnswer
-                ? 'rgba(64,255,175,0.15)' : 'rgba(255,87,87,0.15)',
-              color: selected === question.correctAnswer ? '#40FFAF' : '#FF5757',
-              border: `1px solid ${selected === question.correctAnswer ? '#40FFAF' : '#FF5757'}`,
-            }}>
-              {selected === question.correctAnswer
-                ? '✅ Correct!'
-                : `❌ Incorrect — ${question.options[question.correctAnswer]}`}
+            {/* question counter only — no difficulty badge */}
+            <div style={{ marginBottom: '16px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>
+                Question {index + 1} of {total}
+              </span>
             </div>
-          )}
 
-          {/* submit */}
-          {!locked && (
-            <button onClick={submit} disabled={selected === null}
-              style={{
-                width: '100%', padding: '16px',
-                background: selected !== null
-                  ? 'linear-gradient(135deg, #40FFAF 0%, #077345 100%)'
-                  : 'rgba(255,255,255,0.07)',
-                border: 'none', borderRadius: '12px',
-                color: selected !== null ? '#000' : 'rgba(255,255,255,0.3)',
-                fontFamily: "'Barlow', sans-serif",
-                fontWeight: 800, fontSize: '1rem',
-                letterSpacing: '0.05em', textTransform: 'uppercase',
-                cursor: selected !== null ? 'pointer' : 'not-allowed',
-                transition: 'all 0.2s ease',
-                boxShadow: selected !== null ? '0 0 30px rgba(64,255,175,0.3)' : 'none',
+            {/* question text — #077345 */}
+            <h2 style={{
+              fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', fontWeight: 800,
+              color: '#077345', lineHeight: 1.4, margin: '0 0 28px',
+            }}>
+              {question.question}
+            </h2>
+
+            {/* options */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
+              {question.options.map((opt, i) => {
+                const isSelected = selected === i;
+                const isCorrect  = i === question.correctAnswer;
+                const showResult = locked;
+
+                let bg     = 'rgba(255,255,255,0.05)';
+                let border = '1px solid rgba(255,255,255,0.12)';
+                let color  = '#E7E7E7';
+
+                if (showResult) {
+                  if (isCorrect)                     { bg = 'rgba(64,255,175,0.18)'; border = '1px solid #40FFAF'; color = '#40FFAF'; }
+                  else if (isSelected && !isCorrect) { bg = 'rgba(255,87,87,0.18)';  border = '1px solid #FF5757'; color = '#FF5757'; }
+                  else                               { color = 'rgba(255,255,255,0.3)'; }
+                } else if (isSelected) {
+                  bg = 'rgba(7,115,69,0.25)'; border = '1px solid #077345'; color = '#FFFFFF';
+                }
+
+                return (
+                  <button key={i} onClick={() => { if (!locked) setSelected(i); }}
+                    style={{
+                      background: bg, border, borderRadius: '12px',
+                      padding: '14px 18px', textAlign: 'left',
+                      cursor: locked ? 'default' : 'pointer',
+                      color, fontFamily: "'Barlow', sans-serif",
+                      fontSize: '1rem', fontWeight: 600, lineHeight: 1.4,
+                      display: 'flex', alignItems: 'center', gap: '14px',
+                      transition: 'all 0.15s ease',
+                      transform: isSelected && !locked ? 'scale(1.01)' : 'scale(1)',
+                    }}>
+                    <span style={{
+                      width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: '0.85rem',
+                      background: isSelected && !locked ? '#077345' :
+                                  showResult && isCorrect ? '#40FFAF' :
+                                  showResult && isSelected ? '#FF5757' : 'rgba(255,255,255,0.1)',
+                      color: (isSelected && !locked) || (showResult && (isCorrect || isSelected)) ? '#fff' : '#fff',
+                    }}>
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* feedback banner */}
+            {locked && (
+              <div style={{
+                padding: '12px 18px', borderRadius: '10px', textAlign: 'center',
+                fontWeight: 700, fontSize: '0.95rem', marginBottom: '20px',
+                background: selected === question.correctAnswer
+                  ? 'rgba(64,255,175,0.15)' : 'rgba(255,87,87,0.15)',
+                color: selected === question.correctAnswer ? '#40FFAF' : '#FF5757',
+                border: `1px solid ${selected === question.correctAnswer ? '#40FFAF' : '#FF5757'}`,
               }}>
-              {index === total - 1 ? 'Finish Quiz' : 'Submit Answer'}
-            </button>
-          )}
+                {selected === question.correctAnswer
+                  ? '✅ Correct!'
+                  : `❌ Incorrect — ${question.options[question.correctAnswer]}`}
+              </div>
+            )}
+
+            {/* submit */}
+            {!locked && (
+              <button onClick={submit} disabled={selected === null}
+                style={{
+                  width: '100%', padding: '16px',
+                  background: selected !== null
+                    ? 'linear-gradient(135deg, #40FFAF 0%, #077345 100%)'
+                    : 'rgba(255,255,255,0.07)',
+                  border: 'none', borderRadius: '12px',
+                  color: selected !== null ? '#000' : 'rgba(255,255,255,0.3)',
+                  fontFamily: "'Barlow', sans-serif",
+                  fontWeight: 800, fontSize: '1rem',
+                  letterSpacing: '0.05em', textTransform: 'uppercase',
+                  cursor: selected !== null ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s ease',
+                  boxShadow: selected !== null ? '0 0 30px rgba(64,255,175,0.3)' : 'none',
+                }}>
+                {index === total - 1 ? 'Finish Quiz' : 'Submit Answer'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </main>
