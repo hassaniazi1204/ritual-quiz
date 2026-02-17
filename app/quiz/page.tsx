@@ -380,6 +380,126 @@ function QuizScreen({
 /* ═══════════════════════════════════════════════════
    RESULT SCREEN
 ═══════════════════════════════════════════════════ */
+
+/* Shared Card Component — used for both preview AND download */
+const RitualCard = ({
+  userName, userImage, role,
+}: {
+  userName: string;
+  userImage: string | null;
+  role: typeof ROLES[0];
+}) => (
+  <div style={{
+    width: '1200px',
+    height: '630px',
+    display: 'flex',
+    flexDirection: 'row',
+    fontFamily: "'Barlow', sans-serif",
+    position: 'relative',
+    overflow: 'visible',
+    background: '#FFFFFF',
+  }}>
+
+    {/* LEFT SECTION — 40% — #40FFAF green */}
+    <div style={{
+      width: '40%',
+      height: '100%',
+      background: '#40FFAF',
+      position: 'relative',
+    }} />
+
+    {/* CIRCLE DIVIDER — profile picture ONLY */}
+    <div style={{
+      position: 'absolute',
+      left: '40%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '315px',
+      height: '315px',
+      borderRadius: '50%',
+      overflow: 'hidden',
+      border: '8px solid #FFFFFF',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+      zIndex: 10,
+    }}>
+      <img
+        src={userImage!}
+        alt="user"
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      />
+    </div>
+
+    {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
+    <div style={{
+      width: '60%',
+      height: '100%',
+      background: '#E7E7E7',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '64px 80px 64px 200px',
+      position: 'relative',
+    }}>
+
+      {/* LOGO — 4x larger (240px height) */}
+      <img
+        src="/brand-assets/Lockup/Grey.png"
+        alt="Ritual"
+        style={{
+          width: 'auto',
+          height: '240px',
+        }}
+      />
+
+      {/* CONTENT — centered */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '24px',
+        flexGrow: 1,
+        justifyContent: 'center',
+      }}>
+        {/* USER NAME — 2x larger (6rem) */}
+        <div style={{
+          fontSize: '6rem',
+          fontWeight: 900,
+          color: '#000000',
+          letterSpacing: '-0.03em',
+          textAlign: 'center',
+          lineHeight: 0.95,
+        }}>
+          {userName}
+        </div>
+
+        {/* ROLE TITLE — 2x larger (4rem) */}
+        <div style={{
+          fontSize: '4rem',
+          fontWeight: 700,
+          color: '#000000',
+          textAlign: 'center',
+          letterSpacing: '0.02em',
+          textTransform: 'uppercase',
+        }}>
+          {role.title}
+        </div>
+      </div>
+
+      {/* FOOTER URL */}
+      <div style={{
+        fontSize: '1.2rem',
+        fontWeight: 500,
+        color: '#999999',
+        letterSpacing: '0.02em',
+        textAlign: 'center',
+      }}>
+        https://ritual.net/
+      </div>
+    </div>
+  </div>
+);
+
 function ResultScreen({
   score, total, onRestart,
 }: { score: number; total: number; onRestart: () => void }) {
@@ -387,6 +507,7 @@ function ResultScreen({
   const [userName, setUserName] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -398,12 +519,17 @@ function ResultScreen({
   };
 
   const downloadCard = async () => {
-    if (!userName.trim()) { alert('Enter your name first'); return; }
+    // VALIDATION — both name AND photo required
+    if (!userName.trim() || !userImage) {
+      setShowValidation(true);
+      return;
+    }
+    setShowValidation(false);
     setDownloading(true);
     await new Promise(r => setTimeout(r, 100));
     if (cardRef.current) {
-      const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: '#000' });
-      const link   = document.createElement('a');
+      const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: '#FFFFFF' });
+      const link = document.createElement('a');
       link.download = `ritual-card-${userName.replace(/\s+/g, '-')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
@@ -416,6 +542,8 @@ function ResultScreen({
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const canDownload = userName.trim() !== '' && userImage !== null;
+
   return (
     <main style={{ minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -423,264 +551,143 @@ function ResultScreen({
 
       <div style={OVERLAY} />
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '640px',
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '1280px',
         padding: '48px 24px 64px', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', gap: '32px' }}>
+        alignItems: 'center', gap: '40px' }}>
 
         {/* logo */}
         <img src="/brand-assets/Lockup/Translucent.png" alt="Ritual"
-          style={{ height: '44px', width: 'auto',
+          style={{ height: '48px', width: 'auto',
             filter: 'drop-shadow(0 0 16px rgba(64,255,175,0.4))' }} />
 
-        {/* result card */}
+        {/* score display */}
         <div style={{
-          width: '100%', background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(20px)',
-          border: `2px solid ${role.color}40`,
-          borderRadius: '24px', padding: '40px 32px',
-          textAlign: 'center',
-          boxShadow: `0 0 60px ${role.color}25`,
+          background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(20px)',
+          border: `2px solid ${role.color}40`, borderRadius: '20px',
+          padding: '32px 48px', textAlign: 'center',
         }}>
-          <div style={{ fontSize: '4rem', marginBottom: '12px' }}>{role.emoji}</div>
-          <h2 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 900,
-            color: role.color, margin: '0 0 8px',
-            textShadow: `0 0 30px ${role.color}80` }}>
+          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{role.emoji}</div>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: role.color, marginBottom: '8px' }}>
             {role.title}
-          </h2>
-          <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '28px', fontSize: '1rem' }}>
-            Your Ritual Role
-          </p>
-
-          <div style={{ fontSize: 'clamp(3rem, 8vw, 5rem)', fontWeight: 900,
-            color: '#FFFFFF', lineHeight: 1, marginBottom: '4px' }}>
-            {score}<span style={{ fontSize: '40%', color: 'rgba(255,255,255,0.4)' }}>/{total}</span>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginBottom: '32px' }}>
-            Questions correct
-          </p>
+          <div style={{ fontSize: '4rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
+            {score}<span style={{ fontSize: '60%', color: 'rgba(255,255,255,0.4)' }}>/{total}</span>
+          </div>
+        </div>
 
-          {/* name + photo for card */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-            <input
-              value={userName}
-              onChange={e => setUserName(e.target.value)}
-              placeholder="Your name (for card)"
-              style={{
-                padding: '13px 16px',
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: '10px', color: '#fff',
-                fontFamily: "'Barlow', sans-serif", fontSize: '1rem',
-                outline: 'none', width: '100%',
-              }}
-            />
-            <label style={{
-              padding: '12px 16px',
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '10px', color: 'rgba(255,255,255,0.5)',
-              fontFamily: "'Barlow', sans-serif", fontSize: '0.9rem',
-              cursor: 'pointer', textAlign: 'left',
+        {/* CARD PREVIEW — matches download exactly */}
+        {canDownload && (
+          <div style={{
+            transform: 'scale(0.7)',
+            transformOrigin: 'center top',
+            marginBottom: '-120px',
+          }}>
+            <RitualCard userName={userName} userImage={userImage} role={role} />
+          </div>
+        )}
+
+        {/* input form */}
+        <div style={{
+          width: '100%', maxWidth: '540px',
+          background: 'rgba(0,0,0,0.70)', backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '20px', padding: '32px',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#FFFFFF', marginBottom: '8px' }}>
+            Generate Your Ritual Card
+          </div>
+
+          {/* validation warning */}
+          {showValidation && (
+            <div style={{
+              padding: '12px 16px', borderRadius: '10px',
+              background: 'rgba(255,87,87,0.2)', border: '1px solid #FF5757',
+              color: '#FF5757', fontSize: '0.9rem', fontWeight: 600,
             }}>
-              {userImage ? '✅ Photo uploaded' : '📷 Upload photo (optional)'}
-              <input type="file" accept="image/*" onChange={handleImageUpload}
-                style={{ display: 'none' }} />
-            </label>
-          </div>
-
-          {/* action buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button onClick={downloadCard} disabled={downloading}
-              style={{
-                padding: '15px', borderRadius: '12px', border: 'none',
-                background: `linear-gradient(135deg, ${role.color} 0%, #077345 100%)`,
-                color: '#000', fontWeight: 800, fontSize: '1rem',
-                fontFamily: "'Barlow', sans-serif",
-                cursor: downloading ? 'not-allowed' : 'pointer',
-                opacity: downloading ? 0.7 : 1,
-                boxShadow: `0 0 30px ${role.color}40`,
-                transition: 'transform 0.2s ease',
-              }}>
-              {downloading ? 'Generating…' : '⬇ Download Ritual Card'}
-            </button>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={shareX}
-                style={{
-                  flex: 1, padding: '14px', borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-                  fontFamily: "'Barlow', sans-serif", cursor: 'pointer',
-                  transition: 'background 0.2s',
-                }}>
-                𝕏 Share
-              </button>
-              <button onClick={onRestart}
-                style={{
-                  flex: 1, padding: '14px', borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-                  fontFamily: "'Barlow', sans-serif", cursor: 'pointer',
-                  transition: 'background 0.2s',
-                }}>
-                🔄 Retry
-              </button>
+              ⚠️ Please enter your name and upload a profile picture to generate your Ritual Card.
             </div>
+          )}
+
+          <input
+            value={userName}
+            onChange={e => setUserName(e.target.value)}
+            placeholder="Your name *"
+            style={{
+              padding: '14px 16px',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '10px', color: '#fff',
+              fontFamily: "'Barlow', sans-serif", fontSize: '1rem',
+              outline: 'none',
+            }}
+          />
+
+          <label style={{
+            padding: '14px 16px',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '10px',
+            color: userImage ? '#40FFAF' : 'rgba(255,255,255,0.5)',
+            fontFamily: "'Barlow', sans-serif", fontSize: '0.95rem',
+            cursor: 'pointer', textAlign: 'center', fontWeight: 600,
+          }}>
+            {userImage ? '✅ Photo uploaded' : '📷 Upload profile picture *'}
+            <input type="file" accept="image/*" onChange={handleImageUpload}
+              style={{ display: 'none' }} />
+          </label>
+
+          <button onClick={downloadCard} disabled={!canDownload || downloading}
+            style={{
+              padding: '16px',
+              background: canDownload
+                ? `linear-gradient(135deg, ${role.color} 0%, #077345 100%)`
+                : 'rgba(255,255,255,0.1)',
+              border: 'none', borderRadius: '12px',
+              color: canDownload ? '#000' : 'rgba(255,255,255,0.3)',
+              fontWeight: 800, fontSize: '1rem',
+              fontFamily: "'Barlow', sans-serif",
+              cursor: canDownload && !downloading ? 'pointer' : 'not-allowed',
+              opacity: downloading ? 0.7 : 1,
+              boxShadow: canDownload ? `0 0 30px ${role.color}40` : 'none',
+            }}>
+            {downloading ? 'Generating…' : '⬇ Download Ritual Card'}
+          </button>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={shareX}
+              style={{
+                flex: 1, padding: '14px',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '12px', color: '#fff',
+                fontWeight: 700, fontSize: '0.95rem',
+                fontFamily: "'Barlow', sans-serif", cursor: 'pointer',
+              }}>
+              𝕏 Share
+            </button>
+            <button onClick={onRestart}
+              style={{
+                flex: 1, padding: '14px',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '12px', color: '#fff',
+                fontWeight: 700, fontSize: '0.95rem',
+                fontFamily: "'Barlow', sans-serif", cursor: 'pointer',
+              }}>
+              🔄 Retry
+            </button>
           </div>
         </div>
       </div>
 
-      {/* hidden download card — HORIZONTAL ID STYLE */}
+      {/* HIDDEN DOWNLOAD CARD — exact same component */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
-        <div ref={cardRef} style={{
-          width: '1200px',
-          height: '630px',
-          display: 'flex',
-          flexDirection: 'row',
-          fontFamily: "'Barlow', sans-serif",
-          position: 'relative',
-          overflow: 'visible',
-          background: '#FFFFFF',
-        }}>
-
-          {/* LEFT SECTION — 40% — #40FFAF green */}
-          <div style={{
-            width: '40%',
-            height: '100%',
-            background: '#40FFAF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-          }}>
-            {/* role emoji centered in green section */}
-            <div style={{
-              fontSize: '12rem',
-              lineHeight: 1,
-              color: 'rgba(0,0,0,0.15)',
-              position: 'absolute',
-            }}>
-              {role.emoji}
-            </div>
+        {canDownload && (
+          <div ref={cardRef}>
+            <RitualCard userName={userName} userImage={userImage} role={role} />
           </div>
-
-          {/* DIVIDER CIRCLE with profile picture — 50% of card height (315px) */}
-          <div style={{
-            position: 'absolute',
-            left: '40%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '315px',
-            height: '315px',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            border: '8px solid #FFFFFF',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            zIndex: 10,
-            background: userImage ? 'transparent' : '#E7E7E7',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            {userImage ? (
-              <img
-                src={userImage}
-                alt="user"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            ) : (
-              <div style={{
-                fontSize: '8rem',
-                fontWeight: 900,
-                color: '#40FFAF',
-                lineHeight: 1,
-              }}>
-                {(userName || 'R').charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
-          <div style={{
-            width: '60%',
-            height: '100%',
-            background: '#E7E7E7',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '48px 80px 48px 200px', // extra left padding for circle overlap
-            position: 'relative',
-          }}>
-
-            {/* LOGO — Grey.png at top center */}
-            <img
-              src="/brand-assets/Lockup/Grey.png"
-              alt="Ritual"
-              style={{
-                width: 'auto',
-                height: '60px',
-                marginBottom: '24px',
-              }}
-            />
-
-            {/* CONTENT — centered vertically */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '16px',
-              flexGrow: 1,
-              justifyContent: 'center',
-            }}>
-              {/* USER NAME — bold, large */}
-              <div style={{
-                fontSize: '3rem',
-                fontWeight: 900,
-                color: '#000000',
-                letterSpacing: '-0.02em',
-                textAlign: 'center',
-                lineHeight: 1.1,
-              }}>
-                {userName || 'Ritualist'}
-              </div>
-
-              {/* ROLE TITLE — medium size */}
-              <div style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                color: role.color,
-                textAlign: 'center',
-                letterSpacing: '0.03em',
-                textTransform: 'uppercase',
-              }}>
-                {role.title}
-              </div>
-
-              {/* SCORE — compact display */}
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 600,
-                color: '#666666',
-                textAlign: 'center',
-              }}>
-                Score: {score}/10
-              </div>
-            </div>
-
-            {/* FOOTER URL — bottom center */}
-            <div style={{
-              fontSize: '1rem',
-              fontWeight: 500,
-              color: '#999999',
-              letterSpacing: '0.02em',
-              textAlign: 'center',
-            }}>
-              https://ritual.net/
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </main>
   );
