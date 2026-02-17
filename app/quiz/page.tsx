@@ -260,23 +260,24 @@ function QuizScreen({
             transition: 'width 0.4s ease', borderRadius: '99px' }} />
         </div>
 
-        {/* question card — Outline.png background */}
+        {/* question card — transparent with Outline.png overlay */}
         <div style={{
           borderRadius: '20px', padding: '36px 32px',
           border: '1px solid rgba(7,115,69,0.4)',
           position: 'relative', overflow: 'hidden',
+          background: 'transparent',
         }}>
           {/* Outline.png pattern inside card */}
           <div style={{
             position: 'absolute', inset: 0,
             backgroundImage: 'url(/brand-assets/Patterns/Outline.png)',
             backgroundSize: 'cover', backgroundPosition: 'center',
-            opacity: 0.12, zIndex: 0,
+            opacity: 0.18, zIndex: 0,
           }} />
-          {/* dark tint over pattern so text stays readable */}
+          {/* very light tint — keeps text readable without hiding background */}
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'rgba(0,0,0,0.82)',
+            background: 'rgba(0,0,0,0.30)',
             zIndex: 1,
           }} />
 
@@ -440,7 +441,7 @@ function ResultScreen({
         alignItems: 'center', gap: '32px' }}>
 
         {/* logo */}
-        <img src={NEON_LOGO_SRC} alt="Ritual"
+        <img src="/brand-assets/Lockup/Translucent.png" alt="Ritual"
           style={{ height: '44px', width: 'auto',
             filter: 'drop-shadow(0 0 16px rgba(64,255,175,0.4))' }} />
 
