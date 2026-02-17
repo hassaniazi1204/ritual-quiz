@@ -118,7 +118,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
             margin: 0,
             textShadow: '0 0 40px rgba(64,255,175,0.35)',
           }}>
-            Take the Challenge <br />
+            Take the Challenge and <br />
             Conquer the World’s First AI Execution Layer
           </h1>
         </div>
