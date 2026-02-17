@@ -260,29 +260,16 @@ function QuizScreen({
             transition: 'width 0.4s ease', borderRadius: '99px' }} />
         </div>
 
-        {/* question card — transparent with Outline.png overlay */}
+        {/* question card — fully transparent */}
         <div style={{
           borderRadius: '20px', padding: '36px 32px',
           border: '1px solid rgba(7,115,69,0.4)',
           position: 'relative', overflow: 'hidden',
           background: 'transparent',
         }}>
-          {/* Outline.png pattern inside card */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: 'url(/brand-assets/Patterns/Outline.png)',
-            backgroundSize: 'cover', backgroundPosition: 'center',
-            opacity: 0.18, zIndex: 0,
-          }} />
-          {/* very light tint — keeps text readable without hiding background */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(0,0,0,0.30)',
-            zIndex: 1,
-          }} />
 
-          {/* card content — above both layers */}
-          <div style={{ position: 'relative', zIndex: 2 }}>
+          {/* card content */}
+          <div>
 
             {/* question counter only — no difficulty badge */}
             <div style={{ marginBottom: '16px' }}>
