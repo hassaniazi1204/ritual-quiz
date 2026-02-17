@@ -238,13 +238,13 @@ function QuizScreen({
             >← Home</span>
           </Link>
 
-          {/* Mark/Translucent.png — small icon mark */}
+          {/* Mark/Translucent.png — 5x larger */}
           <img
             src="/brand-assets/Mark/Translucent.png"
             alt="Ritual"
             style={{
-              height: '40px', width: 'auto',
-              filter: 'drop-shadow(0 0 12px rgba(64,255,175,0.45))',
+              height: '200px', width: 'auto',
+              filter: 'drop-shadow(0 0 24px rgba(64,255,175,0.5))',
             }}
           />
 
@@ -547,38 +547,100 @@ function ResultScreen({
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
         <div ref={cardRef} style={{
           width: '600px', height: '600px',
-          background: `linear-gradient(135deg, #000000 0%, #111111 100%)`,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           padding: '48px', fontFamily: "'Barlow', sans-serif",
-          border: `3px solid ${role.color}`,
           position: 'relative', overflow: 'hidden',
+          background: '#000000',
         }}>
+
+          {/* Outline.png — full card background */}
           <div style={{
-            position: 'absolute', inset: 0, opacity: 0.08,
-            backgroundImage: 'url(/brand-assets/Patterns/Roundel.png)',
-            backgroundSize: 'cover',
+            position: 'absolute', inset: 0,
+            backgroundImage: 'url(/brand-assets/Patterns/Outline.png)',
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            opacity: 0.25,
           }} />
-          {userImage && (
-            <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden',
-              border: `3px solid ${role.color}`, marginBottom: '20px', flexShrink: 0 }}>
-              <img src={userImage} alt="user"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+          {/* dark tint so content stays readable */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(0,0,0,0.70)',
+          }} />
+
+          {/* colored role border glow overlay */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            border: `3px solid ${role.color}`,
+            boxShadow: `inset 0 0 60px ${role.color}22`,
+            borderRadius: '0px',
+            pointerEvents: 'none',
+          }} />
+
+          {/* all card content above overlays */}
+          <div style={{
+            position: 'relative', zIndex: 2,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', width: '100%',
+          }}>
+
+            {/* Translucent.png logo at top */}
+            <img
+              src="/brand-assets/Lockup/Translucent.png"
+              alt="Ritual"
+              style={{
+                width: '200px', height: 'auto',
+                marginBottom: '20px',
+                filter: 'drop-shadow(0 0 20px rgba(64,255,175,0.45))',
+              }}
+            />
+
+            {/* user avatar */}
+            {userImage && (
+              <div style={{
+                width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden',
+                border: `2px solid ${role.color}`, marginBottom: '14px', flexShrink: 0,
+              }}>
+                <img src={userImage} alt="user"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            )}
+
+            {/* role emoji */}
+            <div style={{ fontSize: '3rem', lineHeight: 1, marginBottom: '8px' }}>
+              {role.emoji}
             </div>
-          )}
-          <div style={{ fontSize: '4rem', marginBottom: '8px' }}>{role.emoji}</div>
-          <div style={{ fontSize: '2.5rem', fontWeight: 900, color: role.color,
-            textShadow: `0 0 30px ${role.color}`, marginBottom: '4px' }}>
-            {userName || 'Ritualist'}
-          </div>
-          <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.6)',
-            marginBottom: '16px' }}>scored</div>
-          <div style={{ fontSize: '4.5rem', fontWeight: 900, color: '#fff',
-            lineHeight: 1, marginBottom: '4px' }}>{score}/10</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: role.color,
-            marginBottom: '24px' }}>{role.title}</div>
-          <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)' }}>
-            ritual-quiz.vercel.app
+
+            {/* user name */}
+            <div style={{
+              fontSize: '2rem', fontWeight: 900, color: role.color,
+              textShadow: `0 0 24px ${role.color}99`, marginBottom: '4px',
+              letterSpacing: '-0.02em',
+            }}>
+              {userName || 'Ritualist'}
+            </div>
+
+            {/* score */}
+            <div style={{
+              fontSize: '3.5rem', fontWeight: 900, color: '#FFFFFF',
+              lineHeight: 1, marginBottom: '4px',
+              textShadow: '0 0 20px rgba(255,255,255,0.3)',
+            }}>
+              {score}<span style={{ fontSize: '55%', color: 'rgba(255,255,255,0.4)' }}>/10</span>
+            </div>
+
+            {/* role title */}
+            <div style={{
+              fontSize: '1.1rem', fontWeight: 700, color: role.color,
+              marginBottom: '16px', letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
+              {role.title}
+            </div>
+
+            {/* url */}
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>
+              ritual-quiz.vercel.app
+            </div>
           </div>
         </div>
       </div>
