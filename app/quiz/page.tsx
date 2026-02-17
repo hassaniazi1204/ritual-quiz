@@ -531,103 +531,153 @@ function ResultScreen({
         </div>
       </div>
 
-      {/* hidden download card */}
+      {/* hidden download card — HORIZONTAL ID STYLE */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
         <div ref={cardRef} style={{
-          width: '600px', height: '600px',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: '48px', fontFamily: "'Barlow', sans-serif",
-          position: 'relative', overflow: 'hidden',
-          background: '#000000',
+          width: '1200px',
+          height: '630px',
+          display: 'flex',
+          flexDirection: 'row',
+          fontFamily: "'Barlow', sans-serif",
+          position: 'relative',
+          overflow: 'visible',
+          background: '#FFFFFF',
         }}>
 
-          {/* Outline.png — full card background */}
+          {/* LEFT SECTION — 40% — #40FFAF green */}
           <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: 'url(/brand-assets/Patterns/Outline.png)',
-            backgroundSize: 'cover', backgroundPosition: 'center',
-            opacity: 0.25,
-          }} />
+            width: '40%',
+            height: '100%',
+            background: '#40FFAF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+          }}>
+            {/* role emoji centered in green section */}
+            <div style={{
+              fontSize: '12rem',
+              lineHeight: 1,
+              color: 'rgba(0,0,0,0.15)',
+              position: 'absolute',
+            }}>
+              {role.emoji}
+            </div>
+          </div>
 
-          {/* dark tint so content stays readable */}
+          {/* DIVIDER CIRCLE with profile picture — 50% of card height (315px) */}
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(0,0,0,0.70)',
-          }} />
+            position: 'absolute',
+            left: '40%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '315px',
+            height: '315px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            border: '8px solid #FFFFFF',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            zIndex: 10,
+            background: userImage ? 'transparent' : '#E7E7E7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {userImage ? (
+              <img
+                src={userImage}
+                alt="user"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div style={{
+                fontSize: '8rem',
+                fontWeight: 900,
+                color: '#40FFAF',
+                lineHeight: 1,
+              }}>
+                {(userName || 'R').charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
 
-          {/* colored role border glow overlay */}
+          {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
           <div style={{
-            position: 'absolute', inset: 0,
-            border: `3px solid ${role.color}`,
-            boxShadow: `inset 0 0 60px ${role.color}22`,
-            borderRadius: '0px',
-            pointerEvents: 'none',
-          }} />
-
-          {/* all card content above overlays */}
-          <div style={{
-            position: 'relative', zIndex: 2,
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', width: '100%',
+            width: '60%',
+            height: '100%',
+            background: '#E7E7E7',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '48px 80px 48px 200px', // extra left padding for circle overlap
+            position: 'relative',
           }}>
 
-            {/* Translucent.png logo at top */}
+            {/* LOGO — Grey.png at top center */}
             <img
-              src="/brand-assets/Lockup/Translucent.png"
+              src="/brand-assets/Lockup/Grey.png"
               alt="Ritual"
               style={{
-                width: '200px', height: 'auto',
-                marginBottom: '20px',
-                filter: 'drop-shadow(0 0 20px rgba(64,255,175,0.45))',
+                width: 'auto',
+                height: '60px',
+                marginBottom: '24px',
               }}
             />
 
-            {/* user avatar */}
-            {userImage && (
+            {/* CONTENT — centered vertically */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              flexGrow: 1,
+              justifyContent: 'center',
+            }}>
+              {/* USER NAME — bold, large */}
               <div style={{
-                width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden',
-                border: `2px solid ${role.color}`, marginBottom: '14px', flexShrink: 0,
+                fontSize: '3rem',
+                fontWeight: 900,
+                color: '#000000',
+                letterSpacing: '-0.02em',
+                textAlign: 'center',
+                lineHeight: 1.1,
               }}>
-                <img src={userImage} alt="user"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {userName || 'Ritualist'}
               </div>
-            )}
 
-            {/* role emoji */}
-            <div style={{ fontSize: '3rem', lineHeight: 1, marginBottom: '8px' }}>
-              {role.emoji}
+              {/* ROLE TITLE — medium size */}
+              <div style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                color: role.color,
+                textAlign: 'center',
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}>
+                {role.title}
+              </div>
+
+              {/* SCORE — compact display */}
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                color: '#666666',
+                textAlign: 'center',
+              }}>
+                Score: {score}/10
+              </div>
             </div>
 
-            {/* user name */}
+            {/* FOOTER URL — bottom center */}
             <div style={{
-              fontSize: '2rem', fontWeight: 900, color: role.color,
-              textShadow: `0 0 24px ${role.color}99`, marginBottom: '4px',
-              letterSpacing: '-0.02em',
+              fontSize: '1rem',
+              fontWeight: 500,
+              color: '#999999',
+              letterSpacing: '0.02em',
+              textAlign: 'center',
             }}>
-              {userName || 'Ritualist'}
-            </div>
-
-            {/* score */}
-            <div style={{
-              fontSize: '3.5rem', fontWeight: 900, color: '#FFFFFF',
-              lineHeight: 1, marginBottom: '4px',
-              textShadow: '0 0 20px rgba(255,255,255,0.3)',
-            }}>
-              {score}<span style={{ fontSize: '55%', color: 'rgba(255,255,255,0.4)' }}>/10</span>
-            </div>
-
-            {/* role title */}
-            <div style={{
-              fontSize: '1.1rem', fontWeight: 700, color: role.color,
-              marginBottom: '16px', letterSpacing: '0.08em', textTransform: 'uppercase',
-            }}>
-              {role.title}
-            </div>
-
-            {/* url */}
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>
-              ritual-quiz.vercel.app
+              https://ritual.net/
             </div>
           </div>
         </div>
