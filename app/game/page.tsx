@@ -872,7 +872,7 @@ export default function MergeGame() {
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
               style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
             >
-              ← Back to Quiz
+              ← Back to Home
             </a>
             <div className="text-center">
               <h1 
