@@ -849,14 +849,18 @@ export default function MergeGame() {
   };
 
   return (
-    <main className="min-h-screen bg-black relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 left-20 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #8840FF 0%, transparent 70%)' }}></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-green-400 rounded-full filter blur-3xl animate-pulse" style={{ background: 'radial-gradient(circle, #40FFAF 0%, transparent 70%)', animationDelay: '1s' }}></div>
-        </div>
-      </div>
+    <main 
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        backgroundImage: 'url(/brand-assets/Patterns/Layers.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        fontFamily: "'Barlow', sans-serif",
+      }}
+    >
+      {/* Dark overlay for better contrast */}
+      <div className="fixed inset-0 bg-black/40" style={{ zIndex: 0 }}></div>
 
       {/* Content */}
       <div className="relative z-10 p-4 md:p-8">
@@ -866,16 +870,27 @@ export default function MergeGame() {
             <a
               href="/"
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
+              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
             >
               ← Back to Quiz
             </a>
             <div className="text-center">
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight">
-                <span className="bg-gradient-to-r from-green-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                  RITUAL MERGE
-                </span>
+              <h1 
+                className="text-3xl md:text-5xl font-black tracking-tight"
+                style={{ 
+                  color: '#E554E8',
+                  fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                }}
+              >
+                RITUAL MERGE
               </h1>
-              <p className="text-white/60 text-sm md:text-base mt-1">
+              <p 
+                className="text-sm md:text-base mt-1"
+                style={{ 
+                  color: '#8840FF',
+                  fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+                }}
+              >
                 Drop and merge to score! 🎮
               </p>
             </div>
@@ -1037,110 +1052,71 @@ export default function MergeGame() {
           <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 p-6 rounded-2xl backdrop-blur-xl shadow-xl">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">🎮</span>
-              <h3 className="text-xl font-black text-white">How to Play</h3>
+              <h3 
+                className="text-xl font-black"
+                style={{ 
+                  color: '#E554E8',
+                  fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                }}
+              >
+                How to Play
+              </h3>
             </div>
-            <ul className="space-y-3 text-white/80 text-sm">
+            <ul 
+              className="space-y-3 text-sm"
+              style={{ 
+                color: '#111111',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+              }}
+            >
               <li className="flex items-start gap-2">
-                <span className="text-green-400 font-bold mt-0.5">►</span>
-                <span>Click to drop balls</span>
+                <span style={{ color: '#8840FF' }} className="font-bold mt-0.5">►</span>
+                <span style={{ color: '#FFFFFF' }}>Click to drop balls</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-purple-400 font-bold mt-0.5">►</span>
-                <span>Merge same levels</span>
+                <span style={{ color: '#8840FF' }} className="font-bold mt-0.5">►</span>
+                <span style={{ color: '#FFFFFF' }}>Merge same levels</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-pink-400 font-bold mt-0.5">►</span>
-                <span>Level up to score</span>
+                <span style={{ color: '#8840FF' }} className="font-bold mt-0.5">►</span>
+                <span style={{ color: '#FFFFFF' }}>Level up to score</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-400 font-bold mt-0.5">►</span>
-                <span>Lv10 + Lv10 = Lv1</span>
+                <span style={{ color: '#8840FF' }} className="font-bold mt-0.5">►</span>
+                <span style={{ color: '#FFFFFF' }}>Lv10 + Lv10 = Lv1</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-red-400 font-bold mt-0.5">►</span>
-                <span>Don't cross red line!</span>
+                <span style={{ color: '#8840FF' }} className="font-bold mt-0.5">►</span>
+                <span style={{ color: '#FFFFFF' }}>Don't cross red line!</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-yellow-400 font-bold mt-0.5">►</span>
-                <span>Wait for ball to settle</span>
+                <span style={{ color: '#8840FF' }} className="font-bold mt-0.5">►</span>
+                <span style={{ color: '#FFFFFF' }}>Wait for ball to settle</span>
               </li>
             </ul>
           </div>
 
-          {/* Merge Guide */}
+          {/* Ritual Wheel */}
           <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-green-400/30 p-6 rounded-2xl backdrop-blur-xl shadow-xl">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">🔄</span>
-              <h3 className="text-xl font-black text-white">Merge Guide</h3>
+              <h3 
+                className="text-xl font-black"
+                style={{ 
+                  color: '#E554E8',
+                  fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                }}
+              >
+                Merge Guide
+              </h3>
             </div>
-            <div className="relative w-full max-w-[200px] mx-auto" style={{ paddingBottom: '100%' }}>
-              <div className="absolute inset-0">
-                {BALL_CONFIG.map((config, index) => {
-                  const angle = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                  const radius = 42;
-                  const x = 50 + radius * Math.cos(angle);
-                  const y = 50 + radius * Math.sin(angle);
-                  
-                  return (
-                    <div
-                      key={config.level}
-                      className="absolute"
-                      style={{
-                        left: `${x}%`,
-                        top: `${y}%`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                    >
-                      <div 
-                        className="w-8 h-8 rounded-full overflow-hidden border border-white/30"
-                        style={{ backgroundColor: config.color }}
-                      >
-                        {imagesRef.current[config.level]?.complete && (
-                          <img 
-                            src={config.image}
-                            alt={config.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <p className="text-[8px] text-gray-400 text-center mt-0.5 truncate w-8">
-                        {config.name}
-                      </p>
-                    </div>
-                  );
-                })}
-                
-                {/* Arrows forming loop */}
-                <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
-                  <defs>
-                    <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
-                      <polygon points="0 0, 4 2, 0 4" fill="rgba(139, 92, 246, 0.6)" />
-                    </marker>
-                  </defs>
-                  {BALL_CONFIG.map((_, index) => {
-                    const angle1 = (index / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                    const angle2 = ((index + 1) / BALL_CONFIG.length) * 2 * Math.PI - Math.PI / 2;
-                    const radius = 42;
-                    const x1 = 50 + radius * Math.cos(angle1);
-                    const y1 = 50 + radius * Math.sin(angle1);
-                    const x2 = 50 + radius * Math.cos(angle2);
-                    const y2 = 50 + radius * Math.sin(angle2);
-                    
-                    return (
-                      <line
-                        key={index}
-                        x1={`${x1}%`}
-                        y1={`${y1}%`}
-                        x2={`${x2}%`}
-                        y2={`${y2}%`}
-                        stroke="rgba(139, 92, 246, 0.6)"
-                        strokeWidth="1"
-                        markerEnd="url(#arrowhead)"
-                      />
-                    );
-                  })}
-                </svg>
-              </div>
+            <div className="flex justify-center">
+              <img 
+                src="/avatars/Ritual wheel.png"
+                alt="Ritual Wheel"
+                className="w-full max-w-[240px] h-auto"
+                style={{ filter: 'drop-shadow(0 0 20px rgba(64,255,175,0.3))' }}
+              />
             </div>
           </div>
 
