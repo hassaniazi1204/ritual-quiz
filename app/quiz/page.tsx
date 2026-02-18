@@ -381,7 +381,7 @@ function QuizScreen({
    RESULT SCREEN
 ═══════════════════════════════════════════════════ */
 
-/* Shared Card Component — used for both preview AND download */
+/* Ritual Card Component — displayed on screen for screenshot */
 const RitualCard = ({
   userName, userImage, role,
 }: {
@@ -390,14 +390,17 @@ const RitualCard = ({
   role: typeof ROLES[0];
 }) => (
   <div style={{
-    width: '1200px',
-    height: '630px',
+    width: '100%',
+    maxWidth: '1200px',
+    aspectRatio: '1200 / 630',
     display: 'flex',
     flexDirection: 'row',
     fontFamily: "'Barlow', sans-serif",
     position: 'relative',
     overflow: 'visible',
     background: '#FFFFFF',
+    borderRadius: '16px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
   }}>
 
     {/* LEFT SECTION — 40% — #40FFAF green */}
@@ -406,6 +409,7 @@ const RitualCard = ({
       height: '100%',
       background: '#40FFAF',
       position: 'relative',
+      borderRadius: '16px 0 0 16px',
     }} />
 
     {/* CIRCLE DIVIDER — profile picture ONLY */}
@@ -414,8 +418,8 @@ const RitualCard = ({
       left: '40%',
       top: '50%',
       transform: 'translate(-50%, -50%)',
-      width: '315px',
-      height: '315px',
+      width: '50%',
+      paddingBottom: '50%',
       borderRadius: '50%',
       overflow: 'hidden',
       border: '8px solid #FFFFFF',
@@ -425,7 +429,14 @@ const RitualCard = ({
       <img
         src={userImage!}
         alt="user"
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
       />
     </div>
 
@@ -438,8 +449,9 @@ const RitualCard = ({
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '64px 80px 64px 200px',
+      padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(80px, 16%, 200px)',
       position: 'relative',
+      borderRadius: '0 16px 16px 0',
     }}>
 
       {/* LOGO — 4x larger, proportional scaling */}
@@ -447,8 +459,9 @@ const RitualCard = ({
         src="/brand-assets/Lockup/Grey.png"
         alt="Ritual"
         style={{
-          height: '240px',
-          width: 'auto',
+          maxWidth: '90%',
+          height: 'auto',
+          maxHeight: '30%',
           objectFit: 'contain',
         }}
       />
@@ -458,13 +471,13 @@ const RitualCard = ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '24px',
+        gap: 'clamp(12px, 2.5%, 24px)',
         flexGrow: 1,
         justifyContent: 'center',
       }}>
-        {/* USER NAME — 2x larger (6rem) */}
+        {/* USER NAME — 2x larger */}
         <div style={{
-          fontSize: '6rem',
+          fontSize: 'clamp(2rem, 5vw, 6rem)',
           fontWeight: 900,
           color: '#000000',
           letterSpacing: '-0.03em',
@@ -474,9 +487,9 @@ const RitualCard = ({
           {userName}
         </div>
 
-        {/* ROLE TITLE — 2x larger (4rem) */}
+        {/* ROLE TITLE — 2x larger */}
         <div style={{
-          fontSize: '4rem',
+          fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
           fontWeight: 700,
           color: '#000000',
           textAlign: 'center',
@@ -489,7 +502,7 @@ const RitualCard = ({
 
       {/* FOOTER URL */}
       <div style={{
-        fontSize: '1.2rem',
+        fontSize: 'clamp(0.8rem, 1.2vw, 1.2rem)',
         fontWeight: 500,
         color: '#999999',
         letterSpacing: '0.02em',
@@ -507,9 +520,7 @@ function ResultScreen({
   const role = getRoleInfo(score);
   const [userName, setUserName] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -519,32 +530,17 @@ function ResultScreen({
     reader.readAsDataURL(file);
   };
 
-  const downloadCard = async () => {
+  const handleGenerate = () => {
     // VALIDATION — both name AND photo required
     if (!userName.trim() || !userImage) {
       setShowValidation(true);
       return;
     }
     setShowValidation(false);
-    setDownloading(true);
-    
-    // Wait longer for images to fully load in the hidden DOM
-    await new Promise(r => setTimeout(r, 300));
-    
-    if (cardRef.current) {
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        backgroundColor: '#FFFFFF',
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-      });
-      const link = document.createElement('a');
-      link.download = `ritual-card-${userName.replace(/\s+/g, '-')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-    setDownloading(false);
+    // Scroll to card
+    setTimeout(() => {
+      document.getElementById('ritual-card-display')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   };
 
   const shareX = () => {
@@ -552,7 +548,8 @@ function ResultScreen({
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const canDownload = userName.trim() !== '' && userImage !== null;
+  const canGenerate = userName.trim() !== '' && userImage !== null;
+  const cardGenerated = canGenerate && !showValidation;
 
   return (
     <main style={{ minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
@@ -584,17 +581,6 @@ function ResultScreen({
             {score}<span style={{ fontSize: '60%', color: 'rgba(255,255,255,0.4)' }}>/{total}</span>
           </div>
         </div>
-
-        {/* CARD PREVIEW — matches download exactly */}
-        {canDownload && (
-          <div style={{
-            transform: 'scale(0.7)',
-            transformOrigin: 'center top',
-            marginBottom: '-120px',
-          }}>
-            <RitualCard userName={userName} userImage={userImage} role={role} />
-          </div>
-        )}
 
         {/* input form */}
         <div style={{
@@ -647,21 +633,20 @@ function ResultScreen({
               style={{ display: 'none' }} />
           </label>
 
-          <button onClick={downloadCard} disabled={!canDownload || downloading}
+          <button onClick={handleGenerate} disabled={!canGenerate}
             style={{
               padding: '16px',
-              background: canDownload
+              background: canGenerate
                 ? `linear-gradient(135deg, ${role.color} 0%, #077345 100%)`
                 : 'rgba(255,255,255,0.1)',
               border: 'none', borderRadius: '12px',
-              color: canDownload ? '#000' : 'rgba(255,255,255,0.3)',
+              color: canGenerate ? '#000' : 'rgba(255,255,255,0.3)',
               fontWeight: 800, fontSize: '1rem',
               fontFamily: "'Barlow', sans-serif",
-              cursor: canDownload && !downloading ? 'pointer' : 'not-allowed',
-              opacity: downloading ? 0.7 : 1,
-              boxShadow: canDownload ? `0 0 30px ${role.color}40` : 'none',
+              cursor: canGenerate ? 'pointer' : 'not-allowed',
+              boxShadow: canGenerate ? `0 0 30px ${role.color}40` : 'none',
             }}>
-            {downloading ? 'Generating…' : '⬇ Download Ritual Card'}
+            ✨ Generate Card
           </button>
 
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -689,15 +674,31 @@ function ResultScreen({
             </button>
           </div>
         </div>
-      </div>
 
-      {/* HIDDEN DOWNLOAD CARD — always rendered for proper image loading */}
-      <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
-        <div ref={cardRef}>
-          {canDownload && (
+        {/* CARD DISPLAY — shown on screen for screenshot */}
+        {cardGenerated && (
+          <div id="ritual-card-display" style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+          }}>
+            <div style={{
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              color: '#40FFAF',
+              textAlign: 'center',
+              padding: '12px 24px',
+              background: 'rgba(64,255,175,0.1)',
+              border: '1px solid rgba(64,255,175,0.3)',
+              borderRadius: '10px',
+            }}>
+              📸 Your Ritual Card is ready! Take a screenshot to share on social media.
+            </div>
             <RitualCard userName={userName} userImage={userImage} role={role} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </main>
   );
