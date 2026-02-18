@@ -399,10 +399,15 @@ export default function MergeGame() {
 
       // ============ TOP OVERLAY UI - INSIDE CANVAS ============
       
-      // 1. Draw Score - Top Left (Transparent, no border)
+      // 1. Draw Score - Top Left (Transparent)
       ctx.save();
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
       ctx.fillRect(10, 10, 140, 80);
+      
+      // Score border
+      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, 140, 80);
       
       // Score label
       ctx.fillStyle = '#9CA3AF';
@@ -416,7 +421,7 @@ export default function MergeGame() {
       ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
       
-      // 2. Draw Next Ball - Top Right (Transparent, no border)
+      // 2. Draw Next Ball - Top Right (Transparent)
       const nextBallConfig = BALL_CONFIG[nextBallRef.current - 1];
       const nextBallImage = imagesRef.current[nextBallRef.current];
       
@@ -424,6 +429,11 @@ export default function MergeGame() {
       // Background panel - transparent
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
       ctx.fillRect(gameWidth - 150, 10, 140, 80);
+      
+      // Border
+      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(gameWidth - 150, 10, 140, 80);
       
       // Label
       ctx.fillStyle = '#9CA3AF';
@@ -460,6 +470,25 @@ export default function MergeGame() {
       ctx.arc(gameWidth - 80, 60, 20, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
+
+      // 3. Draw Siggy mascot - follows cursor horizontally, below Score/Next Ball
+      if (siggyImageRef.current && siggyImageRef.current.complete) {
+        const siggySize = 200; // Increased to 2.5x (was 80)
+        const siggyY = 100; // Below Score/Next Ball boxes (which end at ~90px)
+        
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        
+        // Siggy follows cursor X position
+        ctx.drawImage(
+          siggyImageRef.current,
+          dropPositionRef.current - siggySize / 2,  // Centered on cursor X
+          siggyY,
+          siggySize,
+          siggySize
+        );
+        ctx.restore();
+      }
 
       // Draw preview ball following cursor (positioned at bottom of Siggy)
       if (!gameOverRef.current && canDropBallRef.current) {
@@ -857,7 +886,7 @@ export default function MergeGame() {
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
               style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
             >
-              ← Back to Quiz
+              ← Back to Home
             </a>
             <div className="text-center">
               <h1 
@@ -886,7 +915,7 @@ export default function MergeGame() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Game Canvas */}
         <div className="lg:col-span-9">
-          <div className="relative" style={{ overflow: 'visible' }}>
+          <div className="relative">
             <canvas
               ref={canvasRef}
               width={gameWidth}
@@ -896,25 +925,6 @@ export default function MergeGame() {
               className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner"
               style={{ maxWidth: '100%', height: 'auto' }}
             />
-            
-            {/* Siggy Mascot - DOM Overlay (not clipped by canvas) */}
-            {!gameOver && (
-              <img
-                src="/avatars/siggy.png"
-                alt="Siggy"
-                style={{
-                  position: 'absolute',
-                  width: '200px',
-                  height: '200px',
-                  top: '100px',
-                  left: `${dropPosition}px`,
-                  transform: 'translateX(-50%)',
-                  opacity: 0.95,
-                  pointerEvents: 'none',
-                  zIndex: 5,
-                }}
-              />
-            )}
             
             {gameOver && showCardForm && (
               <div className="absolute inset-0 bg-black/95 backdrop-blur-md rounded-2xl flex items-center justify-center p-4">
