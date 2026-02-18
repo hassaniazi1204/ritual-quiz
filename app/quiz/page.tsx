@@ -442,13 +442,14 @@ const RitualCard = ({
       position: 'relative',
     }}>
 
-      {/* LOGO — 4x larger (240px height) */}
+      {/* LOGO — 4x larger, proportional scaling */}
       <img
         src="/brand-assets/Lockup/Grey.png"
         alt="Ritual"
         style={{
-          width: 'auto',
           height: '240px',
+          width: 'auto',
+          objectFit: 'contain',
         }}
       />
 
@@ -526,9 +527,18 @@ function ResultScreen({
     }
     setShowValidation(false);
     setDownloading(true);
-    await new Promise(r => setTimeout(r, 100));
+    
+    // Wait longer for images to fully load in the hidden DOM
+    await new Promise(r => setTimeout(r, 300));
+    
     if (cardRef.current) {
-      const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: '#FFFFFF' });
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        backgroundColor: '#FFFFFF',
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
       const link = document.createElement('a');
       link.download = `ritual-card-${userName.replace(/\s+/g, '-')}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -681,13 +691,13 @@ function ResultScreen({
         </div>
       </div>
 
-      {/* HIDDEN DOWNLOAD CARD — exact same component */}
+      {/* HIDDEN DOWNLOAD CARD — always rendered for proper image loading */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
-        {canDownload && (
-          <div ref={cardRef}>
+        <div ref={cardRef}>
+          {canDownload && (
             <RitualCard userName={userName} userImage={userImage} role={role} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </main>
   );
