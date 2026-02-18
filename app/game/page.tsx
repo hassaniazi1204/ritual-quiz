@@ -45,6 +45,7 @@ export default function MergeGame() {
   const processingMergeRef = useRef<Set<string>>(new Set());
   const cardRef = useRef<HTMLDivElement>(null);
   const siggyImageRef = useRef<HTMLImageElement | null>(null);
+  const backdropImageRef = useRef<HTMLImageElement | null>(null);
   
   // Refs for render loop to access latest values
   const currentBallRef = useRef(1);
@@ -84,6 +85,12 @@ export default function MergeGame() {
     siggyImg.src = '/avatars/siggy.png';
     siggyImg.crossOrigin = 'anonymous';
     siggyImageRef.current = siggyImg;
+    
+    // Load Game backdrop image
+    const backdropImg = new Image();
+    backdropImg.src = '/avatars/Game backdrop.png';
+    backdropImg.crossOrigin = 'anonymous';
+    backdropImageRef.current = backdropImg;
     
     // Initialize next ball
     setNextBall(getRandomBallLevel());
@@ -131,8 +138,15 @@ export default function MergeGame() {
       if (!ctx) return;
 
       ctx.clearRect(0, 0, gameWidth, gameHeight);
-      ctx.fillStyle = '#0F0F23';
-      ctx.fillRect(0, 0, gameWidth, gameHeight);
+      
+      // Draw Game backdrop image if loaded
+      if (backdropImageRef.current && backdropImageRef.current.complete) {
+        ctx.drawImage(backdropImageRef.current, 0, 0, gameWidth, gameHeight);
+      } else {
+        // Fallback to solid color if image not loaded yet
+        ctx.fillStyle = '#0F0F23';
+        ctx.fillRect(0, 0, gameWidth, gameHeight);
+      }
       
       // Draw top boundary line
       ctx.strokeStyle = '#EF4444';
