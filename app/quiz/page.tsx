@@ -412,14 +412,14 @@ const RitualCard = ({
       borderRadius: '16px 0 0 16px',
     }} />
 
-    {/* CIRCLE DIVIDER — profile picture ONLY */}
+    {/* CIRCLE DIVIDER — profile picture ONLY — diameter = 315px (50% of 630px height) */}
     <div style={{
       position: 'absolute',
       left: '40%',
       top: '50%',
       transform: 'translate(-50%, -50%)',
-      width: '50%',
-      paddingBottom: '50%',
+      width: '26.25%', /* 315px / 1200px = 26.25% */
+      aspectRatio: '1',
       borderRadius: '50%',
       overflow: 'hidden',
       border: '8px solid #FFFFFF',
@@ -430,9 +430,6 @@ const RitualCard = ({
         src={userImage!}
         alt="user"
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: '100%',
           height: '100%',
           objectFit: 'cover',
