@@ -385,9 +385,9 @@ export default function MergeGame() {
 
       // ============ TOP OVERLAY UI - INSIDE CANVAS ============
       
-      // 1. Draw Score - Top Left
+      // 1. Draw Score - Top Left (Transparent)
       ctx.save();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
       ctx.fillRect(10, 10, 140, 80);
       
       // Score border
@@ -407,13 +407,13 @@ export default function MergeGame() {
       ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
       
-      // 2. Draw Next Ball - Top Right (using ref for live updates)
+      // 2. Draw Next Ball - Top Right (Transparent)
       const nextBallConfig = BALL_CONFIG[nextBallRef.current - 1];
       const nextBallImage = imagesRef.current[nextBallRef.current];
       
       ctx.save();
-      // Background panel - same height as score box
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      // Background panel - transparent
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
       ctx.fillRect(gameWidth - 150, 10, 140, 80);
       
       // Border
@@ -872,7 +872,7 @@ export default function MergeGame() {
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
               style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
             >
-              ← Back to Home
+              ← Back to Quiz
             </a>
             <div className="text-center">
               <h1 
@@ -901,7 +901,7 @@ export default function MergeGame() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Game Canvas */}
         <div className="lg:col-span-9">
-          <div className="relative bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 rounded-3xl p-4 shadow-2xl shadow-purple-500/20">
+          <div className="relative">
             <canvas
               ref={canvasRef}
               width={gameWidth}
