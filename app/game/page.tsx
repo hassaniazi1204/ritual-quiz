@@ -769,9 +769,11 @@ export default function MergeGame() {
     }, 500);
   };
 
+  // Touch handlers - separate movement from drop
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     if (gameOver || !canDropBall) return;
-
+    e.preventDefault(); // Prevent scrolling
+    
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect || e.touches.length === 0) return;
 
@@ -785,6 +787,18 @@ export default function MergeGame() {
       wallThickness + config.radius + 2, 
       Math.min(gameWidth - wallThickness - config.radius - 2, actualX)
     );
+    
+    // Update position only, don't drop yet
+    setDropPosition(clampedX);
+    dropPositionRef.current = clampedX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (gameOver || !canDropBall) return;
+    e.preventDefault();
+    
+    // Drop ball at current position
+    const clampedX = dropPositionRef.current;
     
     // Prevent multiple drops
     setCanDropBall(false);
@@ -951,16 +965,33 @@ export default function MergeGame() {
               onMouseMove={handleMouseMove}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner"
-              style={{ maxWidth: '100%', height: 'auto' }}
+              style={{ maxWidth: '100%', height: 'auto', touchAction: 'none' }}
             />
             
-            {/* Siggy Mascot - DOM Overlay (positioned relative to canvas) */}
+            {/* Siggy Mascot - DOM Overlay (stays within canvas bounds) */}
             {!gameOver && canvasRef.current && (() => {
               const rect = canvasRef.current.getBoundingClientRect();
               const scaleX = rect.width / gameWidth;
-              const siggyX = dropPosition * scaleX; // Scale canvas coordinate to screen pixels
-              const siggyY = 100 * (rect.height / gameHeight); // Scale Y position too
+              const scaleY = rect.height / gameHeight;
+              
+              // Calculate Siggy position in screen pixels
+              const siggyCanvasSize = 200; // Size in canvas coordinates
+              const siggyScreenWidth = siggyCanvasSize * scaleX;
+              const siggyScreenHeight = siggyCanvasSize * scaleY;
+              
+              // Siggy X position (centered on dropPosition, clamped to canvas)
+              let siggyScreenX = dropPosition * scaleX;
+              
+              // Clamp Siggy to stay fully inside canvas
+              const minX = siggyScreenWidth / 2;
+              const maxX = rect.width - siggyScreenWidth / 2;
+              siggyScreenX = Math.max(minX, Math.min(maxX, siggyScreenX));
+              
+              // Siggy Y position
+              const siggyCanvasY = 100;
+              const siggyScreenY = siggyCanvasY * scaleY;
               
               return (
                 <img
@@ -968,10 +999,10 @@ export default function MergeGame() {
                   alt="Siggy"
                   style={{
                     position: 'absolute',
-                    width: `${200 * scaleX}px`, // Scale size with canvas
-                    height: `${200 * (rect.height / gameHeight)}px`,
-                    top: `${siggyY}px`,
-                    left: `${siggyX}px`,
+                    width: `${siggyScreenWidth}px`,
+                    height: `${siggyScreenHeight}px`,
+                    top: `${siggyScreenY}px`,
+                    left: `${siggyScreenX}px`,
                     transform: 'translateX(-50%)',
                     opacity: 0.95,
                     pointerEvents: 'none',
