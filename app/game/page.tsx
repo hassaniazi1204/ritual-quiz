@@ -406,12 +406,12 @@ export default function MergeGame() {
       
       // Score label
       ctx.fillStyle = '#E554E8';
-      ctx.font = 'bold 12px sans-serif';
+      ctx.font = 'bold 24px sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText('SCORE', 20, 30);
       
       // Score value (using ref for live updates)
-      ctx.fillStyle = '#E554E8';
+      ctx.fillStyle = '#8840FF';
       ctx.font = 'bold 32px sans-serif';
       ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
@@ -426,8 +426,8 @@ export default function MergeGame() {
       ctx.fillRect(gameWidth - 150, 10, 140, 80);
       
       // Label
-      ctx.fillStyle = '#9CA3AF';
-      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#E554E8';
+      ctx.font = 'bold 24px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('NEXT', gameWidth - 80, 30);
       
