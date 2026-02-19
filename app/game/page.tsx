@@ -953,8 +953,58 @@ export default function MergeGame() {
           </div>
         </div>
 
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
+      <div className="max-w-4xl mx-auto px-4 relative">
+        {/* Left Side - SIGGYDROP (top to bottom) */}
+        <div 
+          className="hidden xl:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full"
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'translateY(-50%) translateX(calc(-100% - 2rem)) rotate(180deg)',
+            fontSize: 'clamp(6rem, 8vw, 10rem)',
+            fontWeight: 900,
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+            background: 'linear-gradient(to bottom, #E554E8, #8840FF)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '0.05em',
+            height: '70vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          SIGGYDROP
+        </div>
+
+        {/* Right Side - SIGGYDROP (bottom to top) */}
+        <div 
+          className="hidden xl:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-full"
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'translateY(-50%) translateX(calc(100% + 2rem))',
+            fontSize: 'clamp(6rem, 8vw, 10rem)',
+            fontWeight: 900,
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+            background: 'linear-gradient(to bottom, #E554E8, #8840FF)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '0.05em',
+            height: '70vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          SIGGYDROP
+        </div>
+
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
         {/* Game Canvas */}
         <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
