@@ -954,7 +954,7 @@ export default function MergeGame() {
         </div>
 
       <div className="max-w-4xl mx-auto px-4">
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-16">
         {/* Game Canvas */}
         <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
