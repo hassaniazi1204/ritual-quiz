@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 
 // Ball level configuration
-// Ball level configuration
 const BALL_CONFIG = [
   { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
   { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
@@ -770,6 +769,43 @@ export default function MergeGame() {
     }, 500);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (gameOver || !canDropBall) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect || e.touches.length === 0) return;
+
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const scaleX = gameWidth / rect.width;
+    const actualX = x * scaleX;
+    
+    const config = BALL_CONFIG[currentBall - 1];
+    const clampedX = Math.max(
+      wallThickness + config.radius + 2, 
+      Math.min(gameWidth - wallThickness - config.radius - 2, actualX)
+    );
+    
+    // Prevent multiple drops
+    setCanDropBall(false);
+    canDropBallRef.current = false;
+    
+    createBall(clampedX, spawnY, currentBall);
+    
+    // Update ball queue
+    setCurrentBall(nextBall);
+    currentBallRef.current = nextBall;
+    const newNextBall = getRandomBallLevel();
+    setNextBall(newNextBall);
+    nextBallRef.current = newNextBall;
+    
+    // Re-enable dropping after delay
+    setTimeout(() => {
+      setCanDropBall(true);
+      canDropBallRef.current = true;
+    }, 500);
+  };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (gameOver || !canDropBall) return;
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -913,7 +949,7 @@ export default function MergeGame() {
               height={gameHeight}
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
-              onTouchStart={handleCanvasClick}
+              onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner"
               style={{ maxWidth: '100%', height: 'auto' }}
