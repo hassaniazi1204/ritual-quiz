@@ -956,7 +956,7 @@ export default function MergeGame() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Game Canvas */}
         <div className="lg:col-span-9">
-          <div className="relative" style={{ overflow: 'visible' }}>
+          <div className="relative w-full" style={{ overflow: 'visible', maxHeight: 'none' }}>
             <canvas
               ref={canvasRef}
               width={gameWidth}
@@ -966,30 +966,31 @@ export default function MergeGame() {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner"
-              style={{ maxWidth: '100%', height: 'auto', touchAction: 'none' }}
+              className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner w-full"
+              style={{ 
+                maxWidth: '600px',
+                height: 'auto', 
+                touchAction: 'none',
+                display: 'block',
+              }}
             />
             
-            {/* Siggy Mascot - DOM Overlay (stays within canvas bounds) */}
+            {/* Siggy Mascot - DOM Overlay (aligned with ball) */}
             {!gameOver && canvasRef.current && (() => {
               const rect = canvasRef.current.getBoundingClientRect();
               const scaleX = rect.width / gameWidth;
               const scaleY = rect.height / gameHeight;
               
-              // Calculate Siggy position in screen pixels
-              const siggyCanvasSize = 200; // Size in canvas coordinates
+              // Calculate Siggy dimensions in screen pixels
+              const siggyCanvasSize = 200;
               const siggyScreenWidth = siggyCanvasSize * scaleX;
               const siggyScreenHeight = siggyCanvasSize * scaleY;
               
-              // Siggy X position (centered on dropPosition, clamped to canvas)
-              let siggyScreenX = dropPosition * scaleX;
+              // Use dropPosition directly - it's already clamped by handlers
+              // This ensures Siggy and preview ball are perfectly aligned
+              const siggyScreenX = dropPosition * scaleX;
               
-              // Clamp Siggy to stay fully inside canvas
-              const minX = siggyScreenWidth / 2;
-              const maxX = rect.width - siggyScreenWidth / 2;
-              siggyScreenX = Math.max(minX, Math.min(maxX, siggyScreenX));
-              
-              // Siggy Y position
+              // Siggy Y position in screen pixels
               const siggyCanvasY = 100;
               const siggyScreenY = siggyCanvasY * scaleY;
               
