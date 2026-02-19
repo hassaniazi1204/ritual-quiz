@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 
 // Ball level configuration
+// Ball level configuration
 const BALL_CONFIG = [
   { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
   { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
@@ -399,15 +400,10 @@ export default function MergeGame() {
 
       // ============ TOP OVERLAY UI - INSIDE CANVAS ============
       
-      // 1. Draw Score - Top Left (Transparent)
+      // 1. Draw Score - Top Left (Transparent, no border)
       ctx.save();
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
       ctx.fillRect(10, 10, 140, 80);
-      
-      // Score border
-      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(10, 10, 140, 80);
       
       // Score label
       ctx.fillStyle = '#9CA3AF';
@@ -421,7 +417,7 @@ export default function MergeGame() {
       ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
       
-      // 2. Draw Next Ball - Top Right (Transparent)
+      // 2. Draw Next Ball - Top Right (Transparent, no border)
       const nextBallConfig = BALL_CONFIG[nextBallRef.current - 1];
       const nextBallImage = imagesRef.current[nextBallRef.current];
       
@@ -429,11 +425,6 @@ export default function MergeGame() {
       // Background panel - transparent
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
       ctx.fillRect(gameWidth - 150, 10, 140, 80);
-      
-      // Border
-      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(gameWidth - 150, 10, 140, 80);
       
       // Label
       ctx.fillStyle = '#9CA3AF';
@@ -470,25 +461,6 @@ export default function MergeGame() {
       ctx.arc(gameWidth - 80, 60, 20, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
-
-      // 3. Draw Siggy mascot - follows cursor horizontally, below Score/Next Ball
-      if (siggyImageRef.current && siggyImageRef.current.complete) {
-        const siggySize = 200; // Increased to 2.5x (was 80)
-        const siggyY = 100; // Below Score/Next Ball boxes (which end at ~90px)
-        
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        
-        // Siggy follows cursor X position
-        ctx.drawImage(
-          siggyImageRef.current,
-          dropPositionRef.current - siggySize / 2,  // Centered on cursor X
-          siggyY,
-          siggySize,
-          siggySize
-        );
-        ctx.restore();
-      }
 
       // Draw preview ball following cursor (positioned at bottom of Siggy)
       if (!gameOverRef.current && canDropBallRef.current) {
@@ -816,6 +788,25 @@ export default function MergeGame() {
     dropPositionRef.current = clampedX;
   };
 
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (gameOver || !canDropBall) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect || e.touches.length === 0) return;
+    
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const scaleX = gameWidth / rect.width;
+    const actualX = x * scaleX;
+    
+    const config = BALL_CONFIG[currentBall - 1];
+    const clampedX = Math.max(
+      wallThickness + config.radius + 2, 
+      Math.min(gameWidth - wallThickness - config.radius - 2, actualX)
+    );
+    setDropPosition(clampedX);
+    dropPositionRef.current = clampedX;
+  };
+
   const restartGame = () => {
     setScore(0);
     scoreRef.current = 0;
@@ -915,16 +906,44 @@ export default function MergeGame() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Game Canvas */}
         <div className="lg:col-span-9">
-          <div className="relative">
+          <div className="relative" style={{ overflow: 'visible' }}>
             <canvas
               ref={canvasRef}
               width={gameWidth}
               height={gameHeight}
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
+              onTouchStart={handleCanvasClick}
+              onTouchMove={handleTouchMove}
               className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner"
               style={{ maxWidth: '100%', height: 'auto' }}
             />
+            
+            {/* Siggy Mascot - DOM Overlay (positioned relative to canvas) */}
+            {!gameOver && canvasRef.current && (() => {
+              const rect = canvasRef.current.getBoundingClientRect();
+              const scaleX = rect.width / gameWidth;
+              const siggyX = dropPosition * scaleX; // Scale canvas coordinate to screen pixels
+              const siggyY = 100 * (rect.height / gameHeight); // Scale Y position too
+              
+              return (
+                <img
+                  src="/avatars/siggy.png"
+                  alt="Siggy"
+                  style={{
+                    position: 'absolute',
+                    width: `${200 * scaleX}px`, // Scale size with canvas
+                    height: `${200 * (rect.height / gameHeight)}px`,
+                    top: `${siggyY}px`,
+                    left: `${siggyX}px`,
+                    transform: 'translateX(-50%)',
+                    opacity: 0.95,
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                  }}
+                />
+              );
+            })()}
             
             {gameOver && showCardForm && (
               <div className="absolute inset-0 bg-black/95 backdrop-blur-md rounded-2xl flex items-center justify-center p-4">
