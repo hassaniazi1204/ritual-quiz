@@ -961,7 +961,7 @@ export default function MergeGame() {
             writingMode: 'vertical-rl',
             transform: 'translateY(-50%) translateX(calc(-100% - 2rem)) rotate(180deg)',
             fontSize: 'clamp(6rem, 8vw, 10rem)',
-            fontWeight: 900,
+            fontWeight: 800,
             fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
             background: 'linear-gradient(to bottom, #E554E8, #8840FF)',
             WebkitBackgroundClip: 'text',
