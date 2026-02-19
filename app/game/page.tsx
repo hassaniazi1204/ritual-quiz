@@ -401,7 +401,7 @@ export default function MergeGame() {
       
       // 1. Draw Score - Top Left (Transparent, no border)
       ctx.save();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent background
       ctx.fillRect(10, 10, 140, 80);
       
       // Score label
@@ -422,7 +422,7 @@ export default function MergeGame() {
       
       ctx.save();
       // Background panel - transparent
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Transparent background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent background
       ctx.fillRect(gameWidth - 150, 10, 140, 80);
       
       // Label
