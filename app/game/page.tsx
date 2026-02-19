@@ -927,7 +927,7 @@ export default function MergeGame() {
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
               style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
             >
-              ← Back to Home
+              ← Home
             </a>
             <div className="text-center">
               <h1 
@@ -953,9 +953,10 @@ export default function MergeGame() {
           </div>
         </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-6">
         {/* Game Canvas */}
-        <div className="lg:col-span-9">
+        <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
             <canvas
               ref={canvasRef}
@@ -1148,8 +1149,8 @@ export default function MergeGame() {
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* Sidebar */}
+        <div className="flex-shrink-0 w-full lg:w-80 space-y-6">
           {/* How to Play */}
           <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/30 p-6 rounded-2xl backdrop-blur-xl shadow-xl">
             <div className="flex items-center gap-2 mb-4">
@@ -1229,9 +1230,10 @@ export default function MergeGame() {
           >
             🔄 Restart Game
           </button>
-        </div>
-      </div>
-      </div> {/* Close div from line 862 */}
+        </div> {/* Close sidebar */}
+      </div> {/* Close flex container (line 957) */}
+      </div> {/* Close max-w-4xl (line 956) */}
+      </div> {/* Close relative z-10 content wrapper (line 921) */}
     </main>
   );
 }
