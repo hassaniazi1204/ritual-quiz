@@ -1004,7 +1004,7 @@ export default function MergeGame() {
           SIGGYDROP
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
         {/* Game Canvas */}
         <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
