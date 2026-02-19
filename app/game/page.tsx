@@ -405,13 +405,13 @@ export default function MergeGame() {
       ctx.fillRect(10, 10, 140, 80);
       
       // Score label
-      ctx.fillStyle = '#9CA3AF';
+      ctx.fillStyle = '#E554E8';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText('SCORE', 20, 30);
       
       // Score value (using ref for live updates)
-      ctx.fillStyle = '#A78BFA';
+      ctx.fillStyle = '#E554E8';
       ctx.font = 'bold 32px sans-serif';
       ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
