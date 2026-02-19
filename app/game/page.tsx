@@ -967,7 +967,7 @@ export default function MergeGame() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            letterSpacing: '0.04em',
+            letterSpacing: '0.01em',
             height: '70vh',
             display: 'flex',
             alignItems: 'center',
