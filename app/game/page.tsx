@@ -956,7 +956,7 @@ export default function MergeGame() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Game Canvas */}
         <div className="lg:col-span-9">
-          <div className="relative w-full" style={{ overflow: 'visible', maxHeight: 'none' }}>
+          <div className="relative inline-block" style={{ overflow: 'visible' }}>
             <canvas
               ref={canvasRef}
               width={gameWidth}
@@ -966,10 +966,11 @@ export default function MergeGame() {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              className="border-2 border-green-400/20 rounded-2xl cursor-crosshair mx-auto bg-black shadow-inner w-full"
+              className="border-2 border-green-400/20 rounded-2xl cursor-crosshair bg-black shadow-inner"
               style={{ 
-                maxWidth: '600px',
-                height: 'auto', 
+                width: '100%',
+                maxWidth: '360px',
+                height: 'auto',
                 touchAction: 'none',
                 display: 'block',
               }}
@@ -981,17 +982,17 @@ export default function MergeGame() {
               const scaleX = rect.width / gameWidth;
               const scaleY = rect.height / gameHeight;
               
-              // Calculate Siggy dimensions in screen pixels
+              // Siggy dimensions
               const siggyCanvasSize = 200;
               const siggyScreenWidth = siggyCanvasSize * scaleX;
               const siggyScreenHeight = siggyCanvasSize * scaleY;
               
-              // Use dropPosition directly - it's already clamped by handlers
-              // This ensures Siggy and preview ball are perfectly aligned
+              // Siggy X position - aligned with dropPosition (already clamped)
               const siggyScreenX = dropPosition * scaleX;
               
-              // Siggy Y position in screen pixels
-              const siggyCanvasY = 100;
+              // Siggy Y position - positioned so ball spawns right below Siggy
+              // Ball spawns at spawnY=310, Siggy top should be at 310-200=110 to have ball at bottom
+              const siggyCanvasY = spawnY - siggyCanvasSize; // 310 - 200 = 110
               const siggyScreenY = siggyCanvasY * scaleY;
               
               return (
