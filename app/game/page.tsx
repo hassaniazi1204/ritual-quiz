@@ -1101,27 +1101,36 @@ export default function MergeGame() {
                   flexGrow: 1,
                   justifyContent: 'center',
                   width: '100%',
-                  maxWidth: '100%',
+                  position: 'relative',
                 }}>
-                  {/* USER NAME — constrained within boundaries */}
+                  {/* USER NAME — constrained within boundaries relative to card */}
                   <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    paddingLeft: 'clamp(20px, 3%, 40px)', /* Left boundary - space from card edge */
-                    paddingRight: 'clamp(180px, 22%, 250px)', /* Right boundary - space from circle */
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: '50%',
+                    transform: 'translateY(-80%)', /* Position above center */
+                    paddingLeft: 'max(30px, 2.5%)', /* Left boundary from card edge */
+                    paddingRight: 'max(280px, 23%)', /* Right boundary to clear circle */
                     boxSizing: 'border-box',
                   }}>
                     <div style={{
-                      fontSize: 'clamp(2rem, 5vw, 6rem)',
+                      fontSize: 'clamp(1.5rem, 3.5vw, 4.5rem)', /* Reduced max size for dynamic fitting */
                       fontWeight: 900,
                       fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                       color: '#000000',
                       letterSpacing: '-0.03em',
                       textAlign: 'center',
-                      lineHeight: 0.95,
+                      lineHeight: 1.1,
                       wordBreak: 'break-word',
                       overflowWrap: 'break-word',
                       hyphens: 'auto',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2, /* Limit to 2 lines */
+                      WebkitBoxOrient: 'vertical',
                     }}>
                       {userName || 'Player'}
                     </div>
@@ -1129,14 +1138,17 @@ export default function MergeGame() {
 
                   {/* SCORE — constrained within same boundaries */}
                   <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    paddingLeft: 'clamp(20px, 3%, 40px)', /* Same left boundary as name */
-                    paddingRight: 'clamp(180px, 22%, 250px)', /* Same right boundary as name */
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: '50%',
+                    transform: 'translateY(20%)', /* Position below center */
+                    paddingLeft: 'max(30px, 2.5%)', /* Same left boundary as name */
+                    paddingRight: 'max(280px, 23%)', /* Same right boundary as name */
                     boxSizing: 'border-box',
                   }}>
                     <div style={{
-                      fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
+                      fontSize: 'clamp(1.2rem, 2.5vw, 3rem)', /* Smaller, dynamic font size */
                       fontWeight: 700,
                       fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
                       color: '#000000',
@@ -1144,6 +1156,10 @@ export default function MergeGame() {
                       letterSpacing: '0.02em',
                       wordBreak: 'break-word',
                       overflowWrap: 'break-word',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}>
                       SCORE: {score}
                     </div>
