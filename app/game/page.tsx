@@ -1092,7 +1092,7 @@ export default function MergeGame() {
                   }}
                 />
 
-                {/* CONTENT — centered */}
+                {/* CONTENT — centered with boundary constraints */}
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -1100,30 +1100,53 @@ export default function MergeGame() {
                   gap: 'clamp(12px, 2.5%, 24px)',
                   flexGrow: 1,
                   justifyContent: 'center',
+                  width: '100%',
+                  maxWidth: '100%',
                 }}>
-                  {/* USER NAME */}
+                  {/* USER NAME — constrained within boundaries */}
                   <div style={{
-                    fontSize: 'clamp(2rem, 5vw, 6rem)',
-                    fontWeight: 900,
-                    fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                    color: '#000000',
-                    letterSpacing: '-0.03em',
-                    textAlign: 'center',
-                    lineHeight: 0.95,
+                    width: '100%',
+                    maxWidth: '100%',
+                    paddingLeft: 'clamp(20px, 3%, 40px)', /* Left boundary - space from card edge */
+                    paddingRight: 'clamp(180px, 22%, 250px)', /* Right boundary - space from circle */
+                    boxSizing: 'border-box',
                   }}>
-                    {userName || 'Player'}
+                    <div style={{
+                      fontSize: 'clamp(2rem, 5vw, 6rem)',
+                      fontWeight: 900,
+                      fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                      color: '#000000',
+                      letterSpacing: '-0.03em',
+                      textAlign: 'center',
+                      lineHeight: 0.95,
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      hyphens: 'auto',
+                    }}>
+                      {userName || 'Player'}
+                    </div>
                   </div>
 
-                  {/* SCORE (instead of role) */}
+                  {/* SCORE — constrained within same boundaries */}
                   <div style={{
-                    fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
-                    fontWeight: 700,
-                    fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                    color: '#000000',
-                    textAlign: 'center',
-                    letterSpacing: '0.02em',
+                    width: '100%',
+                    maxWidth: '100%',
+                    paddingLeft: 'clamp(20px, 3%, 40px)', /* Same left boundary as name */
+                    paddingRight: 'clamp(180px, 22%, 250px)', /* Same right boundary as name */
+                    boxSizing: 'border-box',
                   }}>
-                    SCORE: {score}
+                    <div style={{
+                      fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
+                      fontWeight: 700,
+                      fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+                      color: '#000000',
+                      textAlign: 'center',
+                      letterSpacing: '0.02em',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                    }}>
+                      SCORE: {score}
+                    </div>
                   </div>
                 </div>
 
