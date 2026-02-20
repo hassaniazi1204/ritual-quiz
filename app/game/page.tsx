@@ -1009,7 +1009,7 @@ export default function MergeGame() {
                 flexDirection: 'row',
                 fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
                 position: 'relative',
-                overflow: 'visible',
+                overflow: 'hidden', /* Changed from visible */
                 background: '#FFFFFF',
                 borderRadius: '16px',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
@@ -1066,63 +1066,65 @@ export default function MergeGame() {
                 )}
               </div>
 
-              {/* RIGHT SECTION — 70% — #E7E7E7 light grey */}
+              {/* RIGHT SECTION — 70% — CSS Grid three-section layout */}
               <div style={{
                 width: '70%',
                 height: '100%',
                 background: '#E7E7E7',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start', /* Changed from center */
-                justifyContent: 'space-between',
-                padding: '5% 5% 5% 5%', /* Simplified padding */
-                position: 'relative',
+                display: 'grid',
+                gridTemplateRows: 'auto 1fr auto', /* Three sections: logo / content / url */
+                alignItems: 'center',
                 borderRadius: '0 16px 16px 0',
+                position: 'relative',
               }}>
 
-                {/* LOGO — Grey.png */}
-                <img
-                  src="/brand-assets/Lockup/Grey.png"
-                  alt="Ritual"
-                  style={{
-                    maxWidth: '85%',
-                    height: 'auto',
-                    maxHeight: '25%',
-                    objectFit: 'contain',
-                    alignSelf: 'center',
-                  }}
-                />
-
-                {/* CONTENT BOX — constrained container for name and score */}
+                {/* TOP SECTION: Logo */}
                 <div style={{
-                  flexGrow: 1,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '8% 5% 4% 5%',
+                }}>
+                  <img
+                    src="/brand-assets/Lockup/Grey.png"
+                    alt="Ritual"
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                    }}
+                  />
+                </div>
+
+                {/* MIDDLE SECTION: Name and Score - Fixed Bounding Container */}
+                <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  width: '100%',
-                  paddingLeft: '5%', /* Clear space from left edge */
-                  paddingRight: '35%', /* Clear space from circle (circle extends ~26% into this section) */
+                  gap: '4%',
+                  padding: '0 5% 0 5%',
+                  paddingRight: '30%', /* Clear circle (circle extends ~13% into section) */
                   boxSizing: 'border-box',
-                  gap: '8%',
+                  width: '100%',
+                  overflow: 'hidden',
                 }}>
-                  {/* USER NAME with true dynamic sizing */}
+                  {/* USERNAME - Dynamic font scaling */}
                   <div style={{
                     width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
                   }}>
                     <div style={{
-                      fontSize: 'clamp(1.2rem, 4.5vw, 5rem)',
+                      fontSize: 'min(max(1.5rem, 4.5vw), 5rem)',
                       fontWeight: 900,
                       fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                       color: '#000000',
                       letterSpacing: '-0.02em',
                       textAlign: 'center',
-                      lineHeight: 1.1,
+                      lineHeight: 1.15,
                       width: '100%',
-                      wordWrap: 'break-word',
+                      wordBreak: 'break-word',
                       overflowWrap: 'break-word',
                       hyphens: 'auto',
                       display: '-webkit-box',
@@ -1135,15 +1137,14 @@ export default function MergeGame() {
                     </div>
                   </div>
 
-                  {/* SCORE with dynamic sizing */}
+                  {/* SCORE - Dynamic font scaling */}
                   <div style={{
                     width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
                   }}>
                     <div style={{
-                      fontSize: 'clamp(1rem, 3vw, 3.5rem)',
+                      fontSize: 'min(max(1.2rem, 3vw), 3.5rem)',
                       fontWeight: 700,
                       fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
                       color: '#000000',
@@ -1159,18 +1160,23 @@ export default function MergeGame() {
                   </div>
                 </div>
 
-                {/* FOOTER URL */}
+                {/* BOTTOM SECTION: URL */}
                 <div style={{
-                  fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
-                  fontWeight: 500,
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  color: '#999999',
-                  letterSpacing: '0.02em',
-                  textAlign: 'center',
-                  width: '100%',
-                  alignSelf: 'center',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '4% 5% 8% 5%',
                 }}>
-                  https://ritual.net/
+                  <div style={{
+                    fontSize: 'min(max(0.8rem, 1.2vw), 1.2rem)',
+                    fontWeight: 500,
+                    fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                    color: '#999999',
+                    letterSpacing: '0.02em',
+                    textAlign: 'center',
+                  }}>
+                    https://ritual.net/
+                  </div>
                 </div>
               </div>
             </div>
