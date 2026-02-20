@@ -929,25 +929,16 @@ export default function MergeGame() {
             >
               ← Home
             </a>
-            <div className="text-center">
-              <h1 
-                className="text-3xl md:text-5xl font-black tracking-tight"
-                style={{ 
-                  color: '#E554E8',
-                  fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+            <div className="text-center flex justify-center">
+              <img
+                src="/brand-assets/Lockup/Translucent.png"
+                alt="Ritual"
+                style={{
+                  height: 'auto',
+                  width: 'clamp(200px, 40vw, 400px)',
+                  filter: 'drop-shadow(0 0 30px rgba(64,255,175,0.4))',
                 }}
-              >
-                RITUAL MERGE
-              </h1>
-              <p 
-                className="text-sm md:text-base mt-1"
-                style={{ 
-                  color: '#8840FF',
-                  fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                }}
-              >
-                Drop and merge to score! 🎮
-              </p>
+              />
             </div>
             <div className="w-32"></div>
           </div>
