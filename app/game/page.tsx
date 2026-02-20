@@ -1108,83 +1108,153 @@ export default function MergeGame() {
               <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center p-4">
                 <div 
                   ref={cardRef}
-                  className="w-full max-w-md"
                   style={{
-                    aspectRatio: '1080/1350',
+                    width: '100%',
+                    maxWidth: '1200px',
+                    aspectRatio: '1200 / 630',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                    position: 'relative',
+                    overflow: 'visible',
+                    background: '#FFFFFF',
+                    borderRadius: '16px',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                   }}
                 >
-                  <div className="w-full h-full bg-gradient-to-br from-ritual-dark to-ritual-darker p-8 rounded-3xl border-4 border-ritual-purple relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-ritual-purple/20 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-ritual-blue/20 rounded-full blur-3xl"></div>
 
-                    <div className="relative z-10 h-full flex flex-col justify-between">
-                      <div className="text-center space-y-3">
-                        <h1 className="text-5xl font-black" style={{ color: '#A78BFA' }}>
-                          GAME CARD
-                        </h1>
-                        <div className="h-2 w-32 mx-auto rounded-full" style={{
-                          background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #EC4899)',
-                        }}></div>
+                  {/* LEFT SECTION — 40% — #40FFAF green */}
+                  <div style={{
+                    width: '40%',
+                    height: '100%',
+                    background: '#40FFAF',
+                    position: 'relative',
+                    borderRadius: '16px 0 0 16px',
+                  }} />
+
+                  {/* CIRCLE DIVIDER — profile picture ONLY */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '40%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '26.25%',
+                    aspectRatio: '1',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: '8px solid #FFFFFF',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                    zIndex: 10,
+                    background: userImage ? 'transparent' : '#E7E7E7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {userImage ? (
+                      <img
+                        src={userImage}
+                        alt="user"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        fontSize: '8rem',
+                        fontWeight: 900,
+                        fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                        color: '#40FFAF',
+                        lineHeight: 1,
+                      }}>
+                        {(userName || 'G').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
+                  <div style={{
+                    width: '60%',
+                    height: '100%',
+                    background: '#E7E7E7',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(80px, 16%, 200px)',
+                    position: 'relative',
+                    borderRadius: '0 16px 16px 0',
+                  }}>
+
+                    {/* LOGO — Grey.png */}
+                    <img
+                      src="/brand-assets/Lockup/Grey.png"
+                      alt="Ritual"
+                      style={{
+                        maxWidth: '90%',
+                        height: 'auto',
+                        maxHeight: '30%',
+                        objectFit: 'contain',
+                      }}
+                    />
+
+                    {/* CONTENT — centered */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 'clamp(12px, 2.5%, 24px)',
+                      flexGrow: 1,
+                      justifyContent: 'center',
+                    }}>
+                      {/* USER NAME */}
+                      <div style={{
+                        fontSize: 'clamp(2rem, 5vw, 6rem)',
+                        fontWeight: 900,
+                        fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                        color: '#000000',
+                        letterSpacing: '-0.03em',
+                        textAlign: 'center',
+                        lineHeight: 0.95,
+                      }}>
+                        {userName || 'Player'}
                       </div>
 
-                      <div className="flex flex-col items-center gap-6 py-6">
-                        <div className="flex-shrink-0">
-                          {userImage ? (
-                            <img
-                              src={userImage}
-                              alt={userName}
-                              className="w-32 h-32 rounded-full border-4 object-cover"
-                              style={{ borderColor: '#8B5CF6' }}
-                            />
-                          ) : (
-                            <div 
-                              className="w-32 h-32 rounded-full border-4 flex items-center justify-center text-5xl font-black"
-                              style={{
-                                background: 'linear-gradient(135deg, #8B5CF6, #3B82F6, #EC4899)',
-                                borderColor: '#8B5CF6',
-                              }}
-                            >
-                              {userName.charAt(0).toUpperCase() || 'G'}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-center space-y-4 w-full px-6">
-                          <h2 className="text-3xl font-black text-white break-words">
-                            {userName || 'Player'}
-                          </h2>
-
-                          <div className="bg-black/20 rounded-2xl p-4 border-2 border-ritual-purple/30">
-                            <div className="flex items-center justify-center gap-3">
-                              <span className="text-lg text-gray-300 font-semibold">Score:</span>
-                              <span className="text-5xl font-black" style={{ color: '#A78BFA' }}>
-                                {score}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t-2 border-ritual-purple/40 pt-4">
-                        <div className="text-center space-y-1">
-                          <p className="text-sm text-gray-400 font-semibold">
-                            ritualfoundation.com
-                          </p>
-                          <p className="text-sm font-bold" style={{ color: '#A78BFA' }}>
-                            @ritualfnd
-                          </p>
-                        </div>
+                      {/* SCORE (instead of role) */}
+                      <div style={{
+                        fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
+                        fontWeight: 700,
+                        fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+                        color: '#000000',
+                        textAlign: 'center',
+                        letterSpacing: '0.02em',
+                      }}>
+                        SCORE: {score}
                       </div>
                     </div>
+
+                    {/* FOOTER URL */}
+                    <div style={{
+                      fontSize: 'clamp(0.8rem, 1.2vw, 1.2rem)',
+                      fontWeight: 500,
+                      fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                      color: '#999999',
+                      letterSpacing: '0.02em',
+                      textAlign: 'center',
+                    }}>
+                      https://ritual.net/
+                    </div>
                   </div>
+                </div>
                   
                   <button
-                    onClick={restartGame}
-                    className="w-full mt-4 px-8 py-3 bg-ritual-purple rounded-xl font-bold text-white hover:scale-105 transition-transform"
+                    onClick={() => setShowCardForm(true)}
+                    className="absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
+                    style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
                   >
-                    Play Again
+                    ✏️ Edit Card
                   </button>
-                </div>
               </div>
             )}
           </div>
