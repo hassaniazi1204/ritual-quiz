@@ -995,7 +995,155 @@ export default function MergeGame() {
           SIGGYDROP
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
+        {/* Conditional Layout: Fullscreen Card OR Game Layout */}
+        {gameOver && !showCardForm ? (
+          /* FULLSCREEN CARD DISPLAY */
+          <div className="flex items-center justify-center min-h-[80vh] w-full">
+            <div 
+              ref={cardRef}
+              style={{
+                width: '100%',
+                maxWidth: '1200px',
+                aspectRatio: '1200 / 630',
+                display: 'flex',
+                flexDirection: 'row',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                position: 'relative',
+                overflow: 'visible',
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              }}
+            >
+
+              {/* LEFT SECTION — 40% — #40FFAF green */}
+              <div style={{
+                width: '40%',
+                height: '100%',
+                background: '#40FFAF',
+                position: 'relative',
+                borderRadius: '16px 0 0 16px',
+              }} />
+
+              {/* CIRCLE DIVIDER — profile picture ONLY */}
+              <div style={{
+                position: 'absolute',
+                left: '40%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '26.25%',
+                aspectRatio: '1',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '8px solid #FFFFFF',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                zIndex: 10,
+                background: userImage ? 'transparent' : '#E7E7E7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                {userImage ? (
+                  <img
+                    src={userImage}
+                    alt="user"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    fontSize: '8rem',
+                    fontWeight: 900,
+                    fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                    color: '#40FFAF',
+                    lineHeight: 1,
+                  }}>
+                    {(userName || 'G').charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
+              <div style={{
+                width: '60%',
+                height: '100%',
+                background: '#E7E7E7',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(80px, 16%, 200px)',
+                position: 'relative',
+                borderRadius: '0 16px 16px 0',
+              }}>
+
+                {/* LOGO — Grey.png */}
+                <img
+                  src="/brand-assets/Lockup/Grey.png"
+                  alt="Ritual"
+                  style={{
+                    maxWidth: '90%',
+                    height: 'auto',
+                    maxHeight: '30%',
+                    objectFit: 'contain',
+                  }}
+                />
+
+                {/* CONTENT — centered */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'clamp(12px, 2.5%, 24px)',
+                  flexGrow: 1,
+                  justifyContent: 'center',
+                }}>
+                  {/* USER NAME */}
+                  <div style={{
+                    fontSize: 'clamp(2rem, 5vw, 6rem)',
+                    fontWeight: 900,
+                    fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                    color: '#000000',
+                    letterSpacing: '-0.03em',
+                    textAlign: 'center',
+                    lineHeight: 0.95,
+                  }}>
+                    {userName || 'Player'}
+                  </div>
+
+                  {/* SCORE (instead of role) */}
+                  <div style={{
+                    fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
+                    fontWeight: 700,
+                    fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+                    color: '#000000',
+                    textAlign: 'center',
+                    letterSpacing: '0.02em',
+                  }}>
+                    SCORE: {score}
+                  </div>
+                </div>
+
+                {/* FOOTER URL */}
+                <div style={{
+                  fontSize: 'clamp(0.8rem, 1.2vw, 1.2rem)',
+                  fontWeight: 500,
+                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                  color: '#999999',
+                  letterSpacing: '0.02em',
+                  textAlign: 'center',
+                }}>
+                  https://ritual.net/
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* NORMAL GAME LAYOUT */
+          <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
         {/* Game Canvas */}
         <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
@@ -1104,159 +1252,6 @@ export default function MergeGame() {
               </div>
             )}
 
-            {gameOver && !showCardForm && (
-              <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center p-4">
-                <div 
-                  ref={cardRef}
-                  style={{
-                    width: '100%',
-                    maxWidth: '1200px',
-                    aspectRatio: '1200 / 630',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                    position: 'relative',
-                    overflow: 'visible',
-                    background: '#FFFFFF',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                  }}
-                >
-
-                  {/* LEFT SECTION — 40% — #40FFAF green */}
-                  <div style={{
-                    width: '40%',
-                    height: '100%',
-                    background: '#40FFAF',
-                    position: 'relative',
-                    borderRadius: '16px 0 0 16px',
-                  }} />
-
-                  {/* CIRCLE DIVIDER — profile picture ONLY */}
-                  <div style={{
-                    position: 'absolute',
-                    left: '40%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '26.25%',
-                    aspectRatio: '1',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: '8px solid #FFFFFF',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                    zIndex: 10,
-                    background: userImage ? 'transparent' : '#E7E7E7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {userImage ? (
-                      <img
-                        src={userImage}
-                        alt="user"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        fontSize: '8rem',
-                        fontWeight: 900,
-                        fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                        color: '#40FFAF',
-                        lineHeight: 1,
-                      }}>
-                        {(userName || 'G').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
-                  <div style={{
-                    width: '60%',
-                    height: '100%',
-                    background: '#E7E7E7',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(80px, 16%, 200px)',
-                    position: 'relative',
-                    borderRadius: '0 16px 16px 0',
-                  }}>
-
-                    {/* LOGO — Grey.png */}
-                    <img
-                      src="/brand-assets/Lockup/Grey.png"
-                      alt="Ritual"
-                      style={{
-                        maxWidth: '90%',
-                        height: 'auto',
-                        maxHeight: '30%',
-                        objectFit: 'contain',
-                      }}
-                    />
-
-                    {/* CONTENT — centered */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 'clamp(12px, 2.5%, 24px)',
-                      flexGrow: 1,
-                      justifyContent: 'center',
-                    }}>
-                      {/* USER NAME */}
-                      <div style={{
-                        fontSize: 'clamp(2rem, 5vw, 6rem)',
-                        fontWeight: 900,
-                        fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                        color: '#000000',
-                        letterSpacing: '-0.03em',
-                        textAlign: 'center',
-                        lineHeight: 0.95,
-                      }}>
-                        {userName || 'Player'}
-                      </div>
-
-                      {/* SCORE (instead of role) */}
-                      <div style={{
-                        fontSize: 'clamp(1.5rem, 3.5vw, 4rem)',
-                        fontWeight: 700,
-                        fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                        color: '#000000',
-                        textAlign: 'center',
-                        letterSpacing: '0.02em',
-                      }}>
-                        SCORE: {score}
-                      </div>
-                    </div>
-
-                    {/* FOOTER URL */}
-                    <div style={{
-                      fontSize: 'clamp(0.8rem, 1.2vw, 1.2rem)',
-                      fontWeight: 500,
-                      fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                      color: '#999999',
-                      letterSpacing: '0.02em',
-                      textAlign: 'center',
-                    }}>
-                      https://ritual.net/
-                    </div>
-                  </div>
-                </div>
-                  
-                  <button
-                    onClick={() => setShowCardForm(true)}
-                    className="absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
-                    style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
-                  >
-                    ✏️ Edit Card
-                  </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -1341,8 +1336,30 @@ export default function MergeGame() {
           >
             🔄 Restart Game
           </button>
-        </div> {/* Close sidebar */}
-      </div> {/* Close flex container (line 957) */}
+        </div>
+        </div>
+        )}
+        
+        {/* Buttons below card when card is displayed */}
+        {gameOver && !showCardForm && (
+          <div className="flex justify-center mt-8 gap-4">
+            <button
+              onClick={() => setShowCardForm(true)}
+              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
+              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
+            >
+              ✏️ Edit Card
+            </button>
+            <button
+              onClick={restartGame}
+              className="px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-600 rounded-xl font-black text-black hover:scale-105 transition-transform shadow-lg shadow-green-400/30"
+              style={{ fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif" }}
+            >
+              🔄 Restart Game
+            </button>
+          </div>
+        )}
+
       </div> {/* Close max-w-4xl (line 956) */}
       </div> {/* Close relative z-10 content wrapper (line 921) */}
     </main>
