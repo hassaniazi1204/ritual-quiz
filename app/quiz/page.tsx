@@ -60,7 +60,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
     <main style={{ minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'space-between',
-      fontFamily: "'Barlow', sans-serif", position: 'relative' }}>
+      fontFamily: "'Barlow-Regular', 'Barlow', sans-serif", position: 'relative' }}>
 
       <div style={OVERLAY} />
 
@@ -72,8 +72,8 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
               color: 'rgba(255,255,255,0.55)',
-              fontFamily: "'Barlow', sans-serif",
-              fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer',
+              fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+              fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
               textDecoration: 'none',
               transition: 'color 0.2s ease',
             }}
@@ -111,7 +111,8 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
         <div style={{ ...fade('0.15s'), marginBottom: '24px', maxWidth: '820px' }}>
           <h1 style={{
             fontSize: 'clamp(1.6rem, 4vw, 3.2rem)',
-            fontWeight: 900,
+            fontWeight: 800,
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
             color: '#40FFAF',
             letterSpacing: '-0.02em',
             lineHeight: 1.25,
@@ -127,6 +128,7 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
           <p style={{
             fontSize: 'clamp(1rem, 2vw, 1.2rem)',
             fontWeight: 400,
+            fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
             color: '#E7E7E7',
             lineHeight: 1.6,
             margin: 0,
@@ -139,7 +141,9 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
         <div style={{ ...fade('0.38s'), marginBottom: '28px' }}>
           <p style={{
             fontSize: 'clamp(0.9rem, 1.6vw, 1.05rem)',
-            fontWeight: 400, color: '#E7E7E7',
+            fontWeight: 400,
+            fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+            color: '#E7E7E7',
             lineHeight: 1.5, margin: 0,
           }}>
             Answer 10 questions and get your personalized Ritual Card
@@ -154,7 +158,8 @@ function StartScreen({ onStart, loading }: { onStart: () => void; loading: boole
             style={{
               padding: '22px 72px',
               fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-              fontWeight: 800, fontFamily: "'Barlow', sans-serif",
+              fontWeight: 800,
+              fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
               letterSpacing: '0.05em', textTransform: 'uppercase',
               color: '#000000',
               background: 'linear-gradient(135deg, #40FFAF 0%, #077345 100%)',
@@ -218,7 +223,7 @@ function QuizScreen({
       minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',   /* ← vertically centered */
-      fontFamily: "'Barlow', sans-serif", position: 'relative',
+      fontFamily: "'Barlow-Regular', 'Barlow', sans-serif", position: 'relative',
     }}>
 
       <div style={OVERLAY} />
@@ -232,7 +237,8 @@ function QuizScreen({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/">
             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', cursor: 'pointer',
-              transition: 'color 0.2s' }}
+              transition: 'color 0.2s', fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+              fontWeight: 700 }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#40FFAF'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'}
             >← Home</span>
@@ -248,7 +254,8 @@ function QuizScreen({
             }}
           />
 
-          <span style={{ color: '#40FFAF', fontWeight: 700, fontSize: '0.95rem' }}>
+          <span style={{ color: '#40FFAF', fontWeight: 700, fontSize: '0.95rem',
+            fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}>
             {score} / {index}
           </span>
         </div>
@@ -273,7 +280,8 @@ function QuizScreen({
 
             {/* question counter only — no difficulty badge */}
             <div style={{ marginBottom: '16px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600,
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}>
                 Question {index + 1} of {total}
               </span>
             </div>
@@ -281,6 +289,7 @@ function QuizScreen({
             {/* question text — #077345 */}
             <h2 style={{
               fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)', fontWeight: 800,
+              fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
               color: '#077345', lineHeight: 1.4, margin: '0 0 28px',
             }}>
               {question.question}
@@ -311,8 +320,8 @@ function QuizScreen({
                       background: bg, border, borderRadius: '12px',
                       padding: '14px 18px', textAlign: 'left',
                       cursor: locked ? 'default' : 'pointer',
-                      color, fontFamily: "'Barlow', sans-serif",
-                      fontSize: '1rem', fontWeight: 600, lineHeight: 1.4,
+                      color, fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                      fontSize: '1rem', fontWeight: 400, lineHeight: 1.4,
                       display: 'flex', alignItems: 'center', gap: '14px',
                       transition: 'all 0.15s ease',
                       transform: isSelected && !locked ? 'scale(1.01)' : 'scale(1)',
@@ -321,6 +330,7 @@ function QuizScreen({
                       width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 800, fontSize: '0.85rem',
+                      fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                       background: isSelected && !locked ? '#077345' :
                                   showResult && isCorrect ? '#40FFAF' :
                                   showResult && isSelected ? '#FF5757' : 'rgba(255,255,255,0.1)',
@@ -339,6 +349,7 @@ function QuizScreen({
               <div style={{
                 padding: '12px 18px', borderRadius: '10px', textAlign: 'center',
                 fontWeight: 700, fontSize: '0.95rem', marginBottom: '20px',
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
                 background: selected === question.correctAnswer
                   ? 'rgba(64,255,175,0.15)' : 'rgba(255,87,87,0.15)',
                 color: selected === question.correctAnswer ? '#40FFAF' : '#FF5757',
@@ -360,7 +371,7 @@ function QuizScreen({
                     : 'rgba(255,255,255,0.07)',
                   border: 'none', borderRadius: '12px',
                   color: selected !== null ? '#000' : 'rgba(255,255,255,0.3)',
-                  fontFamily: "'Barlow', sans-serif",
+                  fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                   fontWeight: 800, fontSize: '1rem',
                   letterSpacing: '0.05em', textTransform: 'uppercase',
                   cursor: selected !== null ? 'pointer' : 'not-allowed',
@@ -551,7 +562,7 @@ function ResultScreen({
   return (
     <main style={{ minHeight: '100vh', width: '100%', ...BG_ROUNDEL,
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      fontFamily: "'Barlow', sans-serif", position: 'relative' }}>
+      fontFamily: "'Barlow-Regular', 'Barlow', sans-serif", position: 'relative' }}>
 
       <div style={OVERLAY} />
 
@@ -571,10 +582,12 @@ function ResultScreen({
           padding: '32px 48px', textAlign: 'center',
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{role.emoji}</div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: role.color, marginBottom: '8px' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: role.color, marginBottom: '8px',
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif" }}>
             {role.title}
           </div>
-          <div style={{ fontSize: '4rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
+          <div style={{ fontSize: '4rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1,
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif" }}>
             {score}<span style={{ fontSize: '60%', color: 'rgba(255,255,255,0.4)' }}>/{total}</span>
           </div>
         </div>
@@ -587,7 +600,8 @@ function ResultScreen({
           borderRadius: '20px', padding: '32px',
           display: 'flex', flexDirection: 'column', gap: '16px',
         }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#FFFFFF', marginBottom: '8px' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#FFFFFF', marginBottom: '8px',
+            fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}>
             Generate Your Ritual Card
           </div>
 
@@ -597,6 +611,7 @@ function ResultScreen({
               padding: '12px 16px', borderRadius: '10px',
               background: 'rgba(255,87,87,0.2)', border: '1px solid #FF5757',
               color: '#FF5757', fontSize: '0.9rem', fontWeight: 600,
+              fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
             }}>
               ⚠️ Please enter your name and upload a profile picture to generate your Ritual Card.
             </div>
@@ -611,7 +626,7 @@ function ResultScreen({
               background: 'rgba(255,255,255,0.08)',
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '10px', color: '#fff',
-              fontFamily: "'Barlow', sans-serif", fontSize: '1rem',
+              fontFamily: "'Barlow-Regular', 'Barlow', sans-serif", fontSize: '1rem',
               outline: 'none',
             }}
           />
@@ -622,7 +637,7 @@ function ResultScreen({
             border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: '10px',
             color: userImage ? '#40FFAF' : 'rgba(255,255,255,0.5)',
-            fontFamily: "'Barlow', sans-serif", fontSize: '0.95rem',
+            fontFamily: "'Barlow-Regular', 'Barlow', sans-serif", fontSize: '0.95rem',
             cursor: 'pointer', textAlign: 'center', fontWeight: 600,
           }}>
             {userImage ? '✅ Photo uploaded' : '📷 Upload profile picture *'}
@@ -639,7 +654,7 @@ function ResultScreen({
               border: 'none', borderRadius: '12px',
               color: canGenerate ? '#000' : 'rgba(255,255,255,0.3)',
               fontWeight: 800, fontSize: '1rem',
-              fontFamily: "'Barlow', sans-serif",
+              fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
               cursor: canGenerate ? 'pointer' : 'not-allowed',
               boxShadow: canGenerate ? `0 0 30px ${role.color}40` : 'none',
             }}>
@@ -654,7 +669,7 @@ function ResultScreen({
                 border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '12px', color: '#fff',
                 fontWeight: 700, fontSize: '0.95rem',
-                fontFamily: "'Barlow', sans-serif", cursor: 'pointer',
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif", cursor: 'pointer',
               }}>
               𝕏 Share
             </button>
@@ -665,7 +680,7 @@ function ResultScreen({
                 border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '12px', color: '#fff',
                 fontWeight: 700, fontSize: '0.95rem',
-                fontFamily: "'Barlow', sans-serif", cursor: 'pointer',
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif", cursor: 'pointer',
               }}>
               🔄 Retry
             </button>
@@ -684,6 +699,7 @@ function ResultScreen({
             <div style={{
               fontSize: '0.95rem',
               fontWeight: 600,
+              fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
               color: '#40FFAF',
               textAlign: 'center',
               padding: '12px 24px',
