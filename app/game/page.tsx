@@ -1025,13 +1025,13 @@ export default function MergeGame() {
                 borderRadius: '16px 0 0 16px',
               }} />
 
-              {/* CIRCLE DIVIDER — profile picture ONLY */}
+              {/* CIRCLE DIVIDER — profile picture ONLY — reduced size to prevent overlap */}
               <div style={{
                 position: 'absolute',
                 left: '40%',
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '26.25%',
+                width: '22%', /* Reduced from 26.25% to prevent name overlap */
                 aspectRatio: '1',
                 borderRadius: '50%',
                 overflow: 'hidden',
@@ -1055,7 +1055,7 @@ export default function MergeGame() {
                   />
                 ) : (
                   <div style={{
-                    fontSize: '8rem',
+                    fontSize: '6rem', /* Reduced from 8rem */
                     fontWeight: 900,
                     fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                     color: '#40FFAF',
@@ -1075,7 +1075,7 @@ export default function MergeGame() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(80px, 16%, 200px)',
+                padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(100px, 20%, 220px)', /* Increased left padding */
                 position: 'relative',
                 borderRadius: '0 16px 16px 0',
               }}>
