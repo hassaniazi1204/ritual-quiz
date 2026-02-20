@@ -1073,9 +1073,9 @@ export default function MergeGame() {
                 background: '#E7E7E7',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
+                alignItems: 'flex-start', /* Changed from center */
                 justifyContent: 'space-between',
-                padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(100px, 20%, 220px)', /* Keep increased left padding */
+                padding: '5% 5% 5% 5%', /* Simplified padding */
                 position: 'relative',
                 borderRadius: '0 16px 16px 0',
               }}>
@@ -1085,81 +1085,74 @@ export default function MergeGame() {
                   src="/brand-assets/Lockup/Grey.png"
                   alt="Ritual"
                   style={{
-                    maxWidth: '90%',
+                    maxWidth: '85%',
                     height: 'auto',
-                    maxHeight: '30%',
+                    maxHeight: '25%',
                     objectFit: 'contain',
+                    alignSelf: 'center',
                   }}
                 />
 
-                {/* CONTENT — centered with boundary constraints */}
+                {/* CONTENT BOX — constrained container for name and score */}
                 <div style={{
+                  flexGrow: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 'clamp(12px, 2.5%, 24px)',
-                  flexGrow: 1,
                   justifyContent: 'center',
+                  alignItems: 'center',
                   width: '100%',
-                  position: 'relative',
+                  paddingLeft: '5%', /* Clear space from left edge */
+                  paddingRight: '35%', /* Clear space from circle (circle extends ~26% into this section) */
+                  boxSizing: 'border-box',
+                  gap: '8%',
                 }}>
-                  {/* USER NAME — constrained within boundaries relative to card */}
+                  {/* USER NAME with true dynamic sizing */}
                   <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    top: '50%',
-                    transform: 'translateY(-80%)', /* Position above center */
-                    paddingLeft: 'max(30px, 2.5%)', /* Left boundary from card edge */
-                    paddingRight: 'max(280px, 23%)', /* Right boundary to clear circle */
-                    boxSizing: 'border-box',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
                     <div style={{
-                      fontSize: 'clamp(1.5rem, 3.5vw, 4.5rem)', /* Reduced max size for dynamic fitting */
+                      fontSize: 'clamp(1.2rem, 4.5vw, 5rem)',
                       fontWeight: 900,
                       fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                       color: '#000000',
-                      letterSpacing: '-0.03em',
+                      letterSpacing: '-0.02em',
                       textAlign: 'center',
                       lineHeight: 1.1,
-                      wordBreak: 'break-word',
+                      width: '100%',
+                      wordWrap: 'break-word',
                       overflowWrap: 'break-word',
                       hyphens: 'auto',
-                      maxWidth: '100%',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2, /* Limit to 2 lines */
-                      WebkitBoxOrient: 'vertical',
                     }}>
                       {userName || 'Player'}
                     </div>
                   </div>
 
-                  {/* SCORE — constrained within same boundaries */}
+                  {/* SCORE with dynamic sizing */}
                   <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    top: '50%',
-                    transform: 'translateY(20%)', /* Position below center */
-                    paddingLeft: 'max(30px, 2.5%)', /* Same left boundary as name */
-                    paddingRight: 'max(280px, 23%)', /* Same right boundary as name */
-                    boxSizing: 'border-box',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
                     <div style={{
-                      fontSize: 'clamp(1.2rem, 2.5vw, 3rem)', /* Smaller, dynamic font size */
+                      fontSize: 'clamp(1rem, 3vw, 3.5rem)',
                       fontWeight: 700,
                       fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
                       color: '#000000',
                       textAlign: 'center',
-                      letterSpacing: '0.02em',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
-                      maxWidth: '100%',
+                      letterSpacing: '0.01em',
+                      width: '100%',
+                      whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
                     }}>
                       SCORE: {score}
                     </div>
@@ -1168,12 +1161,14 @@ export default function MergeGame() {
 
                 {/* FOOTER URL */}
                 <div style={{
-                  fontSize: 'clamp(0.8rem, 1.2vw, 1.2rem)',
+                  fontSize: 'clamp(0.7rem, 1vw, 1.1rem)',
                   fontWeight: 500,
                   fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
                   color: '#999999',
                   letterSpacing: '0.02em',
                   textAlign: 'center',
+                  width: '100%',
+                  alignSelf: 'center',
                 }}>
                   https://ritual.net/
                 </div>
