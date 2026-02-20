@@ -1016,22 +1016,22 @@ export default function MergeGame() {
               }}
             >
 
-              {/* LEFT SECTION — 40% — #40FFAF green */}
+              {/* LEFT SECTION — 30% — #40FFAF green */}
               <div style={{
-                width: '40%',
+                width: '30%',
                 height: '100%',
                 background: '#40FFAF',
                 position: 'relative',
                 borderRadius: '16px 0 0 16px',
               }} />
 
-              {/* CIRCLE DIVIDER — profile picture ONLY — reduced size to prevent overlap */}
+              {/* CIRCLE DIVIDER — profile picture ONLY — centered on 30/70 split */}
               <div style={{
                 position: 'absolute',
-                left: '40%',
+                left: '30%', /* Changed from 40% to 30% */
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '22%', /* Reduced from 26.25% to prevent name overlap */
+                width: '26.25%', /* Original size - 50% of card height */
                 aspectRatio: '1',
                 borderRadius: '50%',
                 overflow: 'hidden',
@@ -1055,7 +1055,7 @@ export default function MergeGame() {
                   />
                 ) : (
                   <div style={{
-                    fontSize: '6rem', /* Reduced from 8rem */
+                    fontSize: '8rem', /* Restored original size */
                     fontWeight: 900,
                     fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                     color: '#40FFAF',
@@ -1066,16 +1066,16 @@ export default function MergeGame() {
                 )}
               </div>
 
-              {/* RIGHT SECTION — 60% — #E7E7E7 light grey */}
+              {/* RIGHT SECTION — 70% — #E7E7E7 light grey */}
               <div style={{
-                width: '60%',
+                width: '70%',
                 height: '100%',
                 background: '#E7E7E7',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(100px, 20%, 220px)', /* Increased left padding */
+                padding: 'clamp(24px, 5%, 64px) clamp(40px, 8%, 80px) clamp(24px, 5%, 64px) clamp(100px, 20%, 220px)', /* Keep increased left padding */
                 position: 'relative',
                 borderRadius: '0 16px 16px 0',
               }}>
