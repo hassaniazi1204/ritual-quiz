@@ -1073,7 +1073,7 @@ export default function MergeGame() {
                 background: '#E7E7E7',
                 display: 'grid',
                 gridTemplateRows: 'auto 1fr auto', /* Three vertical sections: logo / content / url */
-                gridTemplateColumns: '28% 1fr', /* Two horizontal sections: circle space / text space */
+                gridTemplateColumns: '45% 1fr', /* Two horizontal sections: circle space / text space */
                 borderRadius: '0 16px 16px 0',
                 position: 'relative',
               }}>
