@@ -1066,47 +1066,55 @@ export default function MergeGame() {
                 )}
               </div>
 
-              {/* RIGHT SECTION — 70% — CSS Grid three-section layout */}
+              {/* RIGHT SECTION — 70% — CSS Grid with circle space reserved */}
               <div style={{
                 width: '70%',
                 height: '100%',
                 background: '#E7E7E7',
                 display: 'grid',
-                gridTemplateRows: 'auto 1fr auto', /* Three sections: logo / content / url */
-                alignItems: 'center',
+                gridTemplateRows: 'auto 1fr auto', /* Three vertical sections: logo / content / url */
+                gridTemplateColumns: '35% 1fr', /* Two horizontal sections: circle space / text space */
                 borderRadius: '0 16px 16px 0',
                 position: 'relative',
               }}>
 
-                {/* TOP SECTION: Logo */}
+                {/* TOP LEFT: Empty space for circle */}
+                <div style={{ gridRow: '1', gridColumn: '1' }} />
+
+                {/* TOP RIGHT: Logo */}
                 <div style={{
+                  gridRow: '1',
+                  gridColumn: '2',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  padding: '8% 5% 4% 5%',
+                  padding: '8% 5%',
                 }}>
                   <img
                     src="/brand-assets/Lockup/Grey.png"
                     alt="Ritual"
                     style={{
-                      maxWidth: '80%',
+                      maxWidth: '90%',
                       maxHeight: '100%',
                       objectFit: 'contain',
                     }}
                   />
                 </div>
 
-                {/* MIDDLE SECTION: Name and Score - Fixed Bounding Container */}
+                {/* MIDDLE LEFT: Empty space for circle */}
+                <div style={{ gridRow: '2', gridColumn: '1' }} />
+
+                {/* MIDDLE RIGHT: Name and Score - Safe from circle overlap */}
                 <div style={{
+                  gridRow: '2',
+                  gridColumn: '2',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  gap: '4%',
-                  padding: '0 5% 0 5%',
-                  paddingRight: '30%', /* Clear circle (circle extends ~13% into section) */
+                  gap: '6%',
+                  padding: '0 8%',
                   boxSizing: 'border-box',
-                  width: '100%',
                   overflow: 'hidden',
                 }}>
                   {/* USERNAME - Dynamic font scaling */}
@@ -1116,13 +1124,13 @@ export default function MergeGame() {
                     overflow: 'hidden',
                   }}>
                     <div style={{
-                      fontSize: 'min(max(1.5rem, 4.5vw), 5rem)',
+                      fontSize: 'min(max(1.8rem, 5vw), 6rem)',
                       fontWeight: 900,
                       fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
                       color: '#000000',
                       letterSpacing: '-0.02em',
                       textAlign: 'center',
-                      lineHeight: 1.15,
+                      lineHeight: 1.1,
                       width: '100%',
                       wordBreak: 'break-word',
                       overflowWrap: 'break-word',
@@ -1144,7 +1152,7 @@ export default function MergeGame() {
                     overflow: 'hidden',
                   }}>
                     <div style={{
-                      fontSize: 'min(max(1.2rem, 3vw), 3.5rem)',
+                      fontSize: 'min(max(1.4rem, 3.5vw), 4rem)',
                       fontWeight: 700,
                       fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
                       color: '#000000',
@@ -1160,8 +1168,13 @@ export default function MergeGame() {
                   </div>
                 </div>
 
-                {/* BOTTOM SECTION: URL */}
+                {/* BOTTOM LEFT: Empty space for circle */}
+                <div style={{ gridRow: '3', gridColumn: '1' }} />
+
+                {/* BOTTOM RIGHT: URL */}
                 <div style={{
+                  gridRow: '3',
+                  gridColumn: '2',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
