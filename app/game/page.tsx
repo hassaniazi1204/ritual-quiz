@@ -64,6 +64,8 @@ export default function MergeGame() {
   const [userName, setUserName] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
+  const [submittingToLeaderboard, setSubmittingToLeaderboard] = useState(false);
+  const [leaderboardSubmitted, setLeaderboardSubmitted] = useState(false);
   
   const gameWidth = 360;
   const gameHeight = 800;
@@ -863,6 +865,7 @@ export default function MergeGame() {
     setGameOver(false);
     gameOverRef.current = false;
     setShowCardForm(false);
+    setLeaderboardSubmitted(false);
     setUserName('');
     setUserImage(null);
     setCurrentBall(1);
@@ -883,6 +886,46 @@ export default function MergeGame() {
           Matter.World.remove(worldRef.current!, body);
         }
       });
+    }
+  };
+
+  const submitToLeaderboard = async () => {
+    if (!userName || userName.trim().length === 0) {
+      alert('Please enter your name before submitting to the leaderboard!');
+      return;
+    }
+
+    try {
+      setSubmittingToLeaderboard(true);
+
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: userName,
+          score: score,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit score');
+      }
+
+      setLeaderboardSubmitted(true);
+      
+      // Redirect to leaderboard after short delay
+      setTimeout(() => {
+        window.location.href = '/leaderboard';
+      }, 1000);
+    } catch (error) {
+      console.error('Error submitting to leaderboard:', error);
+      alert(error instanceof Error ? error.message : 'Failed to submit score. Please try again.');
+    } finally {
+      setSubmittingToLeaderboard(false);
     }
   };
 
@@ -1073,7 +1116,7 @@ export default function MergeGame() {
                 background: '#E7E7E7',
                 display: 'grid',
                 gridTemplateRows: 'auto 1fr auto', /* Three vertical sections: logo / content / url */
-                gridTemplateColumns: '45% 1fr', /* Two horizontal sections: circle space / text space */
+                gridTemplateColumns: '35% 1fr', /* Two horizontal sections: circle space / text space */
                 borderRadius: '0 16px 16px 0',
                 position: 'relative',
               }}>
@@ -1395,13 +1438,21 @@ export default function MergeGame() {
         
         {/* Buttons below card when card is displayed */}
         {gameOver && !showCardForm && (
-          <div className="flex justify-center mt-8 gap-4">
+          <div className="flex flex-wrap justify-center mt-8 gap-4">
             <button
               onClick={() => setShowCardForm(true)}
               className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
               style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
             >
               ✏️ Edit Card
+            </button>
+            <button
+              onClick={submitToLeaderboard}
+              disabled={submittingToLeaderboard || leaderboardSubmitted}
+              className="px-8 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
+            >
+              {submittingToLeaderboard ? '⏳ Submitting...' : leaderboardSubmitted ? '✅ Submitted!' : '🏆 Submit to Leaderboard'}
             </button>
             <button
               onClick={restartGame}
