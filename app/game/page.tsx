@@ -65,6 +65,8 @@ export default function MergeGame() {
   const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
+
   
   const gameWidth = 360;
   const gameHeight = 800;
