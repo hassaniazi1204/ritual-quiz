@@ -892,15 +892,6 @@ export default function MergeGame() {
     }
   };
 
-  const startGame = () => {
-    if (!tempUsername || tempUsername.trim().length === 0) {
-      alert('Please enter a username to start the game!');
-      return;
-    }
-    setUserName(tempUsername.trim());
-    setShowUsernameModal(false);
-    setGameStarted(true);
-  };
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
     try {
@@ -949,20 +940,6 @@ export default function MergeGame() {
     setShowUsernameModal(false);
   };
 
-  const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
-    try {
-      setSavingScore(true);
-
-      const response = await fetch('/api/leaderboard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username,
-          score: finalScore,
-        }),
-      });
 
       const result = await response.json();
 
