@@ -890,6 +890,31 @@ export default function MergeGame() {
       });
     }
   };
+const submitToLeaderboard = async () => {
+    if (!userName || userName.trim().length === 0) {
+      alert('Please enter your name before submitting to the leaderboard!');
+      return;
+    }
+
+    try {
+      setSubmittingToLeaderboard(true);
+
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: userName,
+          score: score,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit score');
+      }
 
   const startGame = () => {
     if (!tempUsername || tempUsername.trim().length === 0) {
