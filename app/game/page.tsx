@@ -1461,7 +1461,7 @@ const submitToLeaderboard = async () => {
         )}
 
       </div> {/* Close max-w-4xl (line 956) */}
-      </div> {/* Close relative z-10 content wrapper (line 921) */};
+      </div> {/* Close relative z-10 content wrapper (line 921) */}
     </main>
   );
 }
