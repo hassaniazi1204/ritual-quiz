@@ -43,7 +43,7 @@ export default function MergeGame() {
   const ballsRef = useRef<Ball[]>([]);
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
-  const cardRef = useRef<HTMLDivElement>(null);
+  // cardRef removed - no longer needed
   const siggyImageRef = useRef<HTMLImageElement | null>(null);
   const backdropImageRef = useRef<HTMLImageElement | null>(null);
   
@@ -62,10 +62,10 @@ export default function MergeGame() {
   const [canDropBall, setCanDropBall] = useState(true);
   const [dropPosition, setDropPosition] = useState(180);
   const [userName, setUserName] = useState('');
-  const [userImage, setUserImage] = useState<string | null>(null);
-  const [showCardForm, setShowCardForm] = useState(false);
-  const [submittingToLeaderboard, setSubmittingToLeaderboard] = useState(false);
-  const [leaderboardSubmitted, setLeaderboardSubmitted] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(true); // Show modal on load
+  const [tempUsername, setTempUsername] = useState(''); // For modal input
+  const [gameStarted, setGameStarted] = useState(false); // Track if game has started
+  const [savingScore, setSavingScore] = useState(false);
   
   const gameWidth = 360;
   const gameHeight = 800;
@@ -659,7 +659,11 @@ export default function MergeGame() {
       if (anyBallAbove) {
         setGameOver(true);
         gameOverRef.current = true;
-        setShowCardForm(true);
+        
+        // Auto-save score to leaderboard
+        if (userName && score > 0) {
+          saveScoreToLeaderboard(userName, score);
+        }
       }
     }, 500);
 
@@ -864,10 +868,9 @@ export default function MergeGame() {
     scoreRef.current = 0;
     setGameOver(false);
     gameOverRef.current = false;
-    setShowCardForm(false);
-    setLeaderboardSubmitted(false);
-    setUserName('');
-    setUserImage(null);
+    setSavingScore(false);
+    setShowUsernameModal(true);
+    setTempUsername('');
     setCurrentBall(1);
     currentBallRef.current = 1;
     const newNextBall = getRandomBallLevel();
@@ -889,14 +892,19 @@ export default function MergeGame() {
     }
   };
 
-  const submitToLeaderboard = async () => {
-    if (!userName || userName.trim().length === 0) {
-      alert('Please enter your name before submitting to the leaderboard!');
+  const startGame = () => {
+    if (!tempUsername || tempUsername.trim().length === 0) {
+      alert('Please enter a username to start the game!');
       return;
     }
+    setUserName(tempUsername.trim());
+    setShowUsernameModal(false);
+    setGameStarted(true);
+  };
 
+  const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
     try {
-      setSubmittingToLeaderboard(true);
+      setSavingScore(true);
 
       const response = await fetch('/api/leaderboard', {
         method: 'POST',
@@ -904,47 +912,81 @@ export default function MergeGame() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: userName,
-          score: score,
+          username: username,
+          score: finalScore,
         }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to submit score');
+        throw new Error(result.error || 'Failed to save score');
       }
 
-      setLeaderboardSubmitted(true);
+      console.log('Score saved successfully:', result.data);
       
       // Redirect to leaderboard after short delay
       setTimeout(() => {
         window.location.href = '/leaderboard';
-      }, 1000);
+      }, 1500);
     } catch (error) {
-      console.error('Error submitting to leaderboard:', error);
-      alert(error instanceof Error ? error.message : 'Failed to submit score. Please try again.');
+      console.error('Error saving score to leaderboard:', error);
+      alert('Failed to save your score. Redirecting to leaderboard...');
+      setTimeout(() => {
+        window.location.href = '/leaderboard';
+      }, 2000);
     } finally {
-      setSubmittingToLeaderboard(false);
+      setSavingScore(false);
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setUserImage(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const generateCard = () => {
-    if (!userName.trim()) {
-      alert('Please enter your name');
+  const startGame = () => {
+    if (!tempUsername || tempUsername.trim().length === 0) {
+      alert('Please enter a username to start the game!');
       return;
     }
-    setShowCardForm(false);
+    setUserName(tempUsername.trim());
+    setShowUsernameModal(false);
   };
+
+  const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
+    try {
+      setSavingScore(true);
+
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          score: finalScore,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save score');
+      }
+
+      console.log('Score saved successfully:', result.data);
+      
+      setTimeout(() => {
+        window.location.href = '/leaderboard';
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving score to leaderboard:', error);
+      alert('Failed to save your score. Redirecting to leaderboard...');
+      setTimeout(() => {
+        window.location.href = '/leaderboard';
+      }, 2000);
+    } finally {
+      setSavingScore(false);
+    }
+  };
+
+  // handleImageUpload and generateCard removed - no longer needed
 
   return (
     <main 
@@ -957,6 +999,137 @@ export default function MergeGame() {
         fontFamily: "'Barlow', sans-serif",
       }}
     >
+      ```tsx
+      {/* Username Modal */}
+      {showUsernameModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+              border: '2px solid #40FFAF',
+              borderRadius: '20px',
+              padding: '3rem 2rem',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(64, 255, 175, 0.3)',
+            }}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <img
+                src="/brand-assets/Lockup/Translucent.png"
+                alt="Ritual"
+                style={{
+                  width: 'clamp(150px, 60%, 280px)',
+                  height: 'auto',
+                  display: 'inline-block',
+                  filter: 'drop-shadow(0 0 20px rgba(64,255,175,0.4))',
+                }}
+              />
+            </div>
+
+            <h2
+              style={{
+                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+                fontWeight: 800,
+                fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+                color: '#40FFAF',
+                textAlign: 'center',
+                marginBottom: '1rem',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Welcome to SiggyDrop!
+            </h2>
+
+            <p
+              style={{
+                fontSize: '1rem',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                color: '#E7E7E7',
+                textAlign: 'center',
+                marginBottom: '2rem',
+                lineHeight: 1.5,
+              }}
+            >
+              Enter your username to start playing
+            </p>
+
+            <input
+              type="text"
+              value={tempUsername}
+              onChange={(e) => setTempUsername(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && tempUsername.trim().length > 0) {
+                  startGame();
+                }
+              }}
+              placeholder="Enter your username"
+              maxLength={50}
+              style={{
+                width: '100%',
+                padding: '1rem 1.5rem',
+                fontSize: '1.1rem',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '2px solid rgba(64, 255, 175, 0.3)',
+                borderRadius: '12px',
+                color: '#FFFFFF',
+                outline: 'none',
+                marginBottom: '1.5rem',
+              }}
+              autoFocus
+            />
+
+            <button
+              onClick={startGame}
+              disabled={!tempUsername || tempUsername.trim().length === 0}
+              style={{
+                width: '100%',
+                padding: '1rem 2rem',
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+                color: tempUsername.trim().length === 0 ? 'rgba(255, 255, 255, 0.3)' : '#000000',
+                background: tempUsername.trim().length === 0
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'linear-gradient(135deg, #40FFAF 0%, #077345 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: tempUsername.trim().length === 0 ? 'not-allowed' : 'pointer',
+                boxShadow: tempUsername.trim().length === 0 ? 'none' : '0 0 30px rgba(64, 255, 175, 0.4)',
+                opacity: tempUsername.trim().length === 0 ? 0.5 : 1,
+              }}
+            >
+              🎮 Start Game
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <a href="/" style={{
+                fontSize: '0.9rem',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                color: 'rgba(255, 255, 255, 0.5)',
+                textDecoration: 'none',
+              }}>
+                ← Back to Home
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+```
+
       {/* Dark overlay for better contrast */}
       <div className="fixed inset-0 bg-black/40" style={{ zIndex: 0 }}></div>
 
@@ -1039,206 +1212,7 @@ export default function MergeGame() {
         </div>
 
         {/* Conditional Layout: Fullscreen Card OR Game Layout */}
-        {gameOver && !showCardForm ? (
-          /* FULLSCREEN CARD DISPLAY */
-          <div className="flex items-center justify-center min-h-[80vh] w-full">
-            <div 
-              ref={cardRef}
-              style={{
-                width: '100%',
-                maxWidth: '1200px',
-                aspectRatio: '1200 / 630',
-                display: 'flex',
-                flexDirection: 'row',
-                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                position: 'relative',
-                overflow: 'hidden', /* Changed from visible */
-                background: '#FFFFFF',
-                borderRadius: '16px',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-              }}
-            >
-
-              {/* LEFT SECTION — 30% — #40FFAF green */}
-              <div style={{
-                width: '30%',
-                height: '100%',
-                background: '#40FFAF',
-                position: 'relative',
-                borderRadius: '16px 0 0 16px',
-              }} />
-
-              {/* CIRCLE DIVIDER — profile picture ONLY — centered on 30/70 split */}
-              <div style={{
-                position: 'absolute',
-                left: '30%', /* Changed from 40% to 30% */
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '26.25%', /* Original size - 50% of card height */
-                aspectRatio: '1',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '8px solid #FFFFFF',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                zIndex: 10,
-                background: userImage ? 'transparent' : '#E7E7E7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                {userImage ? (
-                  <img
-                    src={userImage}
-                    alt="user"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    fontSize: '8rem', /* Restored original size */
-                    fontWeight: 900,
-                    fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                    color: '#40FFAF',
-                    lineHeight: 1,
-                  }}>
-                    {(userName || 'G').charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-
-              {/* RIGHT SECTION — 70% — CSS Grid with circle space reserved */}
-              <div style={{
-                width: '70%',
-                height: '100%',
-                background: '#E7E7E7',
-                display: 'grid',
-                gridTemplateRows: 'auto 1fr auto', /* Three vertical sections: logo / content / url */
-                gridTemplateColumns: '35% 1fr', /* Two horizontal sections: circle space / text space */
-                borderRadius: '0 16px 16px 0',
-                position: 'relative',
-              }}>
-
-                {/* TOP LEFT: Empty space for circle */}
-                <div style={{ gridRow: '1', gridColumn: '1' }} />
-
-                {/* TOP RIGHT: Logo */}
-                <div style={{
-                  gridRow: '1',
-                  gridColumn: '2',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '8% 5%',
-                }}>
-                  <img
-                    src="/brand-assets/Lockup/Grey.png"
-                    alt="Ritual"
-                    style={{
-                      maxWidth: '90%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                    }}
-                  />
-                </div>
-
-                {/* MIDDLE LEFT: Empty space for circle */}
-                <div style={{ gridRow: '2', gridColumn: '1' }} />
-
-                {/* MIDDLE RIGHT: Name and Score - Safe from circle overlap */}
-                <div style={{
-                  gridRow: '2',
-                  gridColumn: '2',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '6%',
-                  padding: '0 8%',
-                  boxSizing: 'border-box',
-                  overflow: 'hidden',
-                }}>
-                  {/* USERNAME - Dynamic font scaling */}
-                  <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      fontSize: 'min(max(1.8rem, 5vw), 6rem)',
-                      fontWeight: 900,
-                      fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                      color: '#000000',
-                      letterSpacing: '-0.02em',
-                      textAlign: 'center',
-                      lineHeight: 1.1,
-                      width: '100%',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
-                      hyphens: 'auto',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {userName || 'Player'}
-                    </div>
-                  </div>
-
-                  {/* SCORE - Dynamic font scaling */}
-                  <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      fontSize: 'min(max(1.4rem, 3.5vw), 4rem)',
-                      fontWeight: 700,
-                      fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                      color: '#000000',
-                      textAlign: 'center',
-                      letterSpacing: '0.01em',
-                      width: '100%',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      SCORE: {score}
-                    </div>
-                  </div>
-                </div>
-
-                {/* BOTTOM LEFT: Empty space for circle */}
-                <div style={{ gridRow: '3', gridColumn: '1' }} />
-
-                {/* BOTTOM RIGHT: URL */}
-                <div style={{
-                  gridRow: '3',
-                  gridColumn: '2',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '4% 5% 8% 5%',
-                }}>
-                  <div style={{
-                    fontSize: 'min(max(0.8rem, 1.2vw), 1.2rem)',
-                    fontWeight: 500,
-                    fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                    color: '#999999',
-                    letterSpacing: '0.02em',
-                    textAlign: 'center',
-                  }}>
-                    https://ritual.net/
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* NORMAL GAME LAYOUT */
+        
           <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
         {/* Game Canvas */}
         <div className="flex-shrink-0">
@@ -1300,11 +1274,11 @@ export default function MergeGame() {
               );
             })()}
             
-            {gameOver && showCardForm && (
+            {gameOver && savingScore && (
               <div className="absolute inset-0 bg-black/95 backdrop-blur-md rounded-2xl flex items-center justify-center p-4">
-                <div className="text-center space-y-6 max-w-sm w-full bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/50 rounded-2xl p-8 shadow-2xl">
+                <div className="text-center space-y-6 max-w-sm w-full bg-gradient-to-br from-gray-900 to-black border-2 border-green-400/50 rounded-2xl p-8 shadow-2xl">
                   <div className="text-5xl mb-2">🎮</div>
-                  <h2 className="text-4xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                  <h2 className="text-4xl font-black bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
                     Game Over!
                   </h2>
                   <div className="bg-black/50 rounded-xl p-6 border border-green-400/30">
@@ -1315,35 +1289,14 @@ export default function MergeGame() {
                     <p className="text-lg text-white/70 mt-2">Points</p>
                   </div>
                   
-                  <div className="bg-black/30 p-6 rounded-xl space-y-4 border border-white/10">
-                    <div className="text-sm text-white/70 mb-3">Save Your Score</div>
-                    <input
-                      type="text"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="Enter your name"
-                      className="w-full px-4 py-3 bg-black/50 border-2 border-purple-400/30 rounded-xl text-white text-sm focus:border-purple-400 outline-none transition-colors"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="w-full px-4 py-3 bg-black/50 border-2 border-purple-400/30 rounded-xl text-white text-xs file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-purple-500 file:to-pink-500 file:text-white file:font-bold file:text-xs cursor-pointer"
-                    />
-                    <button
-                      onClick={generateCard}
-                      className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
-                    >
-                      🎨 Generate Card
-                    </button>
+                  <div className="text-center space-y-4">
+                    <div className="text-xl text-green-400 font-bold animate-pulse">
+                      💾 Saving your score...
+                    </div>
+                    <div className="text-sm text-white/70">
+                      Redirecting to leaderboard
+                    </div>
                   </div>
-                  
-                  <button
-                    onClick={restartGame}
-                    className="w-full px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-600 rounded-xl font-black text-black hover:scale-105 transition-transform shadow-lg shadow-green-400/30"
-                  >
-                    🔄 Play Again
-                  </button>
                 </div>
               </div>
             )}
@@ -1436,33 +1389,7 @@ export default function MergeGame() {
         </div>
         )}
         
-        {/* Buttons below card when card is displayed */}
-        {gameOver && !showCardForm && (
-          <div className="flex flex-wrap justify-center mt-8 gap-4">
-            <button
-              onClick={() => setShowCardForm(true)}
-              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
-              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
-            >
-              ✏️ Edit Card
-            </button>
-            <button
-              onClick={submitToLeaderboard}
-              disabled={submittingToLeaderboard || leaderboardSubmitted}
-              className="px-8 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
-            >
-              {submittingToLeaderboard ? '⏳ Submitting...' : leaderboardSubmitted ? '✅ Submitted!' : '🏆 Submit to Leaderboard'}
-            </button>
-            <button
-              onClick={restartGame}
-              className="px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-600 rounded-xl font-black text-black hover:scale-105 transition-transform shadow-lg shadow-green-400/30"
-              style={{ fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif" }}
-            >
-              🔄 Restart Game
-            </button>
-          </div>
-        )}
+        
 
       </div> {/* Close max-w-4xl (line 956) */}
       </div> {/* Close relative z-10 content wrapper (line 921) */}
