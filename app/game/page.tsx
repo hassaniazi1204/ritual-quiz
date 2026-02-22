@@ -62,6 +62,7 @@ export default function MergeGame() {
   const [canDropBall, setCanDropBall] = useState(true);
   const [dropPosition, setDropPosition] = useState(180);
   const [userName, setUserName] = useState('');
+  const [userImage, setUserImage] = useState<string | null>(null);
   const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
