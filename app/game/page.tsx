@@ -662,9 +662,15 @@ export default function MergeGame() {
         setGameOver(true);
         gameOverRef.current = true;
         
-        // Auto-save score to leaderboard
-        if (userName && score > 0) {
-          saveScoreToLeaderboard(userName, score);
+        // Auto-save score to leaderboard - use scoreRef for accuracy
+        const finalScore = scoreRef.current;
+        console.log('Game Over! Username:', userName, 'Score:', finalScore);
+        if (userName && userName.trim().length > 0) {
+          console.log('Saving to leaderboard...');
+          saveScoreToLeaderboard(userName, finalScore);
+        } else {
+          console.error('Cannot save: No username found!');
+          alert('Error: Username not found. Please restart the game.');
         }
       }
     }, 500);
@@ -909,9 +915,12 @@ export default function MergeGame() {
   };
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
+    console.log('saveScoreToLeaderboard called with:', { username, finalScore });
+    
     try {
       setSavingScore(true);
 
+      console.log('Sending POST request to /api/leaderboard...');
       const response = await fetch('/api/leaderboard', {
         method: 'POST',
         headers: {
@@ -923,13 +932,15 @@ export default function MergeGame() {
         }),
       });
 
+      console.log('Response status:', response.status);
       const result = await response.json();
+      console.log('Response data:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to save score');
       }
 
-      console.log('Score saved successfully:', result.data);
+      console.log('Score saved successfully! Redirecting to leaderboard...');
       
       // Redirect to leaderboard after short delay
       setTimeout(() => {
@@ -937,7 +948,7 @@ export default function MergeGame() {
       }, 1500);
     } catch (error) {
       console.error('Error saving score to leaderboard:', error);
-      alert('Failed to save your score. Redirecting to leaderboard...');
+      alert(`Failed to save your score: ${error instanceof Error ? error.message : 'Unknown error'}. Redirecting to leaderboard anyway...`);
       setTimeout(() => {
         window.location.href = '/leaderboard';
       }, 2000);
