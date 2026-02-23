@@ -54,6 +54,7 @@ export default function MergeGame() {
   const gameOverRef = useRef(false);
   const scoreRef = useRef(0);
   const nextBallRef = useRef(2);
+  const userNameRef = useRef(''); // Store username in ref for immediate access
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -74,6 +75,14 @@ export default function MergeGame() {
   const topBoundary = 380;  // Game over line - moved up for better difficulty (was 450)
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
+
+  // Sync userName state with ref
+  useEffect(() => {
+    if (userName) {
+      userNameRef.current = userName;
+      console.log('Username synced to ref:', userName);
+    }
+  }, [userName]);
 
   // Load all avatar images
   useEffect(() => {
@@ -662,14 +671,18 @@ export default function MergeGame() {
         setGameOver(true);
         gameOverRef.current = true;
         
-        // Auto-save score to leaderboard - use scoreRef for accuracy
+        // Auto-save score to leaderboard - use refs for accuracy
         const finalScore = scoreRef.current;
-        console.log('Game Over! Username:', userName, 'Score:', finalScore);
-        if (userName && userName.trim().length > 0) {
+        const finalUsername = userNameRef.current;
+        console.log('Game Over! Username:', finalUsername, 'Score:', finalScore);
+        
+        if (finalUsername && finalUsername.trim().length > 0) {
           console.log('Saving to leaderboard...');
-          saveScoreToLeaderboard(userName, finalScore);
+          saveScoreToLeaderboard(finalUsername, finalScore);
         } else {
           console.error('Cannot save: No username found!');
+          console.error('userNameRef.current:', userNameRef.current);
+          console.error('userName state:', userName);
           alert('Error: Username not found. Please restart the game.');
         }
       }
@@ -894,6 +907,7 @@ export default function MergeGame() {
     setTempUsername('');
     setUserName('');
     setUserImage(null);
+    userNameRef.current = ''; // Clear username ref
     
     // Clear physics world
     if (engineRef.current && worldRef.current) {
@@ -910,7 +924,10 @@ export default function MergeGame() {
       alert('Please enter a username to start the game!');
       return;
     }
-    setUserName(tempUsername.trim());
+    const trimmedUsername = tempUsername.trim();
+    console.log('Starting game with username:', trimmedUsername);
+    setUserName(trimmedUsername);
+    userNameRef.current = trimmedUsername; // Store in ref immediately
     setShowUsernameModal(false);
   };
 
