@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== Leaderboard POST API Called ===');
     const body = await request.json();
+    console.log('Request body:', body);
     const { username, score } = body;
 
     // Validation
     if (!username || typeof username !== 'string' || username.trim().length === 0) {
+      console.error('Validation failed: Invalid username');
       return NextResponse.json(
         { error: 'Username is required and cannot be empty' },
         { status: 400 }
@@ -15,6 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (typeof score !== 'number' || score < 0) {
+      console.error('Validation failed: Invalid score');
       return NextResponse.json(
         { error: 'Invalid score' },
         { status: 400 }
@@ -23,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Trim and limit username length
     const cleanUsername = username.trim().slice(0, 50);
+    console.log('Inserting into database:', { username: cleanUsername, score });
 
     // Insert into database
     const { data, error } = await supabase
@@ -44,6 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Successfully saved to database:', data);
     return NextResponse.json(
       { success: true, data },
       { status: 201 }
