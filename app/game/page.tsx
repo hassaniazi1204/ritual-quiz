@@ -425,36 +425,37 @@ export default function MergeGame() {
       ctx.fillText(scoreRef.current.toString(), 20, 65);
       ctx.restore();
       
-      // 2. Draw Next Ball - Top Right (Transparent, no border)
+      // 2. Draw Next Ball - Top Right (Right-aligned, inside canvas)
       const nextBallConfig = BALL_CONFIG[nextBallRef.current - 1];
       const nextBallImage = imagesRef.current[nextBallRef.current];
       
       ctx.save();
       // Background panel - transparent
       ctx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent background
-      ctx.fillRect(gameWidth - 150, 10, 140, 80);
+      ctx.fillRect(gameWidth - 100, 10, 90, 80);
       
-      // Label
+      // Label - Right aligned
       ctx.fillStyle = '#E554E8';
       ctx.font = 'bold 24px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('NEXT', gameWidth - 80, 30);
+      ctx.textAlign = 'right';
+      ctx.fillText('NEXT', gameWidth - 20, 30);
       
-      // Next ball circle
+      // Next ball circle - positioned below "NEXT" text, right-aligned
+      const ballX = gameWidth - 50; // 50px from right edge (20px margin + 30px for ball centering)
       ctx.fillStyle = nextBallConfig.color;
       ctx.beginPath();
-      ctx.arc(gameWidth - 80, 60, 20, 0, Math.PI * 2);
+      ctx.arc(ballX, 60, 20, 0, Math.PI * 2);
       ctx.fill();
       
       // Next ball image
       if (nextBallImage && nextBallImage.complete) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(gameWidth - 80, 60, 19, 0, Math.PI * 2);
+        ctx.arc(ballX, 60, 19, 0, Math.PI * 2);
         ctx.clip();
         ctx.drawImage(
           nextBallImage,
-          gameWidth - 80 - 20,
+          ballX - 20,
           60 - 20,
           40,
           40
@@ -466,7 +467,7 @@ export default function MergeGame() {
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(gameWidth - 80, 60, 20, 0, Math.PI * 2);
+      ctx.arc(ballX, 60, 20, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
