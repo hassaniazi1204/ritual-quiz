@@ -43,7 +43,6 @@ export default function MergeGame() {
   const ballsRef = useRef<Ball[]>([]);
   const imagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
   const processingMergeRef = useRef<Set<string>>(new Set());
-  const cardRef = useRef<HTMLDivElement>(null);
   const siggyImageRef = useRef<HTMLImageElement | null>(null);
   const backdropImageRef = useRef<HTMLImageElement | null>(null);
   
@@ -63,12 +62,9 @@ export default function MergeGame() {
   const [canDropBall, setCanDropBall] = useState(true);
   const [dropPosition, setDropPosition] = useState(180);
   const [userName, setUserName] = useState('');
-  const [userImage, setUserImage] = useState<string | null>(null);
   const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
-  const [showCardForm, setShowCardForm] = useState(false);
-
   
   const gameWidth = 360;
   const gameHeight = 800;
@@ -906,7 +902,6 @@ export default function MergeGame() {
     setShowUsernameModal(true);
     setTempUsername('');
     setUserName('');
-    setUserImage(null);
     userNameRef.current = ''; // Clear username ref
     
     // Clear physics world
@@ -1051,7 +1046,7 @@ export default function MergeGame() {
                 lineHeight: 1.5,
               }}
             >
-              Enter your details to start playing and compete on the leaderboard
+              Enter your username to compete on the leaderboard
             </p>
 
             {/* Username Input - REQUIRED */}
@@ -1105,53 +1100,6 @@ export default function MergeGame() {
               </div>
             </div>
 
-            {/* Profile Picture Input - OPTIONAL */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.9rem',
-                  fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                  color: '#E7E7E7',
-                  marginBottom: '0.5rem',
-                }}
-              >
-                Profile Picture <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)' }}>(Optional - for card display only)</span>
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setUserImage(reader.result as string);
-                    reader.readAsDataURL(file);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  fontSize: '0.9rem',
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '2px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '12px',
-                  color: '#FFFFFF',
-                  cursor: 'pointer',
-                }}
-              />
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  marginTop: '0.25rem',
-                }}
-              >
-                {userImage ? '✓ Image uploaded' : 'Optional: Upload a profile picture'}
-              </div>
-            </div>
 
             {/* Start Button */}
             <button
@@ -1296,209 +1244,10 @@ export default function MergeGame() {
           SIGGYDROP
         </div>
 
-        {/* Conditional Layout: Fullscreen Card OR Game Layout */}
-        {gameOver && !showCardForm ? (
-          /* FULLSCREEN CARD DISPLAY */
-          <div className="flex items-center justify-center min-h-[80vh] w-full">
-            <div 
-              ref={cardRef}
-              style={{
-                width: '100%',
-                maxWidth: '1200px',
-                aspectRatio: '1200 / 630',
-                display: 'flex',
-                flexDirection: 'row',
-                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                position: 'relative',
-                overflow: 'hidden', /* Changed from visible */
-                background: '#FFFFFF',
-                borderRadius: '16px',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-              }}
-            >
-
-              {/* LEFT SECTION — 30% — #40FFAF green */}
-              <div style={{
-                width: '30%',
-                height: '100%',
-                background: '#40FFAF',
-                position: 'relative',
-                borderRadius: '16px 0 0 16px',
-              }} />
-
-              {/* CIRCLE DIVIDER — profile picture ONLY — centered on 30/70 split */}
-              <div style={{
-                position: 'absolute',
-                left: '30%', /* Changed from 40% to 30% */
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '26.25%', /* Original size - 50% of card height */
-                aspectRatio: '1',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '8px solid #FFFFFF',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                zIndex: 10,
-                background: userImage ? 'transparent' : '#E7E7E7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                {userImage ? (
-                  <img
-                    src={userImage}
-                    alt="user"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    fontSize: '8rem', /* Restored original size */
-                    fontWeight: 900,
-                    fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                    color: '#40FFAF',
-                    lineHeight: 1,
-                  }}>
-                    {(userName || 'G').charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-
-              {/* RIGHT SECTION — 70% — CSS Grid with circle space reserved */}
-              <div style={{
-                width: '70%',
-                height: '100%',
-                background: '#E7E7E7',
-                display: 'grid',
-                gridTemplateRows: 'auto 1fr auto', /* Three vertical sections: logo / content / url */
-                gridTemplateColumns: '35% 1fr', /* Two horizontal sections: circle space / text space */
-                borderRadius: '0 16px 16px 0',
-                position: 'relative',
-              }}>
-
-                {/* TOP LEFT: Empty space for circle */}
-                <div style={{ gridRow: '1', gridColumn: '1' }} />
-
-                {/* TOP RIGHT: Logo */}
-                <div style={{
-                  gridRow: '1',
-                  gridColumn: '2',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '8% 5%',
-                }}>
-                  <img
-                    src="/brand-assets/Lockup/Grey.png"
-                    alt="Ritual"
-                    style={{
-                      maxWidth: '90%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                    }}
-                  />
-                </div>
-
-                {/* MIDDLE LEFT: Empty space for circle */}
-                <div style={{ gridRow: '2', gridColumn: '1' }} />
-
-                {/* MIDDLE RIGHT: Name and Score - Safe from circle overlap */}
-                <div style={{
-                  gridRow: '2',
-                  gridColumn: '2',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '6%',
-                  padding: '0 8%',
-                  boxSizing: 'border-box',
-                  overflow: 'hidden',
-                }}>
-                  {/* USERNAME - Dynamic font scaling */}
-                  <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      fontSize: 'min(max(1.8rem, 5vw), 6rem)',
-                      fontWeight: 900,
-                      fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                      color: '#000000',
-                      letterSpacing: '-0.02em',
-                      textAlign: 'center',
-                      lineHeight: 1.1,
-                      width: '100%',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
-                      hyphens: 'auto',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {userName || 'Player'}
-                    </div>
-                  </div>
-
-                  {/* SCORE - Dynamic font scaling */}
-                  <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      fontSize: 'min(max(1.4rem, 3.5vw), 4rem)',
-                      fontWeight: 700,
-                      fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                      color: '#000000',
-                      textAlign: 'center',
-                      letterSpacing: '0.01em',
-                      width: '100%',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      SCORE: {score}
-                    </div>
-                  </div>
-                </div>
-
-                {/* BOTTOM LEFT: Empty space for circle */}
-                <div style={{ gridRow: '3', gridColumn: '1' }} />
-
-                {/* BOTTOM RIGHT: URL */}
-                <div style={{
-                  gridRow: '3',
-                  gridColumn: '2',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '4% 5% 8% 5%',
-                }}>
-                  <div style={{
-                    fontSize: 'min(max(0.8rem, 1.2vw), 1.2rem)',
-                    fontWeight: 500,
-                    fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                    color: '#999999',
-                    letterSpacing: '0.02em',
-                    textAlign: 'center',
-                  }}>
-                    https://ritual.net/
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* NORMAL GAME LAYOUT */
-          <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
+        {/* Game Layout */}
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
         {/* Game Canvas */}
+        <div className="flex-shrink-0">
         <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
             <canvas
@@ -1671,7 +1420,7 @@ export default function MergeGame() {
           </button>
         </div>
         </div>
-        )}
+        </div>
         
 
       </div> {/* Close max-w-4xl (line 956) */}
