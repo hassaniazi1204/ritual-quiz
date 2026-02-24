@@ -1248,7 +1248,6 @@ export default function MergeGame() {
         <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
         {/* Game Canvas */}
         <div className="flex-shrink-0">
-        <div className="flex-shrink-0">
           <div className="relative inline-block" style={{ overflow: 'visible' }}>
             <canvas
               ref={canvasRef}
@@ -1418,7 +1417,6 @@ export default function MergeGame() {
           >
             🔄 Restart Game
           </button>
-        </div>
         </div>
         </div>
         
