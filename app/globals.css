@@ -18,6 +18,14 @@
 }
 
 @font-face {
+  font-family: 'Barlow-Medium';
+  src: url('/brand-assets/Fonts/Barlow-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Barlow-Regular';
   src: url('/brand-assets/Fonts/Barlow-Regular.ttf') format('truetype');
   font-weight: 400;
