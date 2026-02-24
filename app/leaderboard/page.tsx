@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
+          background: 'rgba(0, 0, 0, 0)',
           zIndex: 0,
         }}
       />
@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
           }}
         >
           <Link
-            href="/game"
+            href="/"
             style={{
               padding: '0.75rem 1.5rem',
               background: 'linear-gradient(135deg, #E554E8, #8840FF)',
@@ -117,7 +117,7 @@ export default function LeaderboardPage() {
               (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
             }}
           >
-            ← Back to Game
+            ← Back to Home
           </Link>
 
           <Link
