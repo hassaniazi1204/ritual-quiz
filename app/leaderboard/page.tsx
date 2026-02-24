@@ -52,7 +52,7 @@ export default function LeaderboardPage() {
       style={{
         minHeight: '100vh',
         width: '100%',
-        backgroundImage: 'url(/brand-assets/Patterns/Dots.png)',
+        backgroundImage: 'url(/brand-assets/Patterns/Curved%20Grid.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
