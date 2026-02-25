@@ -65,6 +65,13 @@ export default function MergeGame() {
   const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  
+  // Audio refs - created once and reused
+  const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
+  const dropSoundRef = useRef<HTMLAudioElement | null>(null);
+  const mergeSoundRef = useRef<HTMLAudioElement | null>(null);
+  const gameOverSoundRef = useRef<HTMLAudioElement | null>(null);
   
   const gameWidth = 360;
   const gameHeight = 800;
@@ -79,6 +86,56 @@ export default function MergeGame() {
       console.log('Username synced to ref:', userName);
     }
   }, [userName]);
+
+  // Initialize audio objects - run once on mount
+  useEffect(() => {
+    // Background music
+    backgroundMusicRef.current = new Audio('/sounds/background.mp3');
+    backgroundMusicRef.current.loop = true;
+    backgroundMusicRef.current.volume = 0.3; // Lower volume for background music
+    
+    // Sound effects
+    dropSoundRef.current = new Audio('/sounds/drop.wav');
+    dropSoundRef.current.volume = 0.7;
+    
+    mergeSoundRef.current = new Audio('/sounds/merge.wav');
+    mergeSoundRef.current.volume = 0.7;
+    
+    gameOverSoundRef.current = new Audio('/sounds/gameover.wav');
+    gameOverSoundRef.current.volume = 0.8;
+    
+    console.log('🔊 Audio system initialized');
+    
+    // Cleanup on unmount
+    return () => {
+      if (backgroundMusicRef.current) {
+        backgroundMusicRef.current.pause();
+        backgroundMusicRef.current = null;
+      }
+      dropSoundRef.current = null;
+      mergeSoundRef.current = null;
+      gameOverSoundRef.current = null;
+      console.log('🔇 Audio system cleaned up');
+    };
+  }, []);
+  
+  // Handle mute toggle
+  useEffect(() => {
+    const audios = [
+      backgroundMusicRef.current,
+      dropSoundRef.current,
+      mergeSoundRef.current,
+      gameOverSoundRef.current,
+    ];
+    
+    audios.forEach(audio => {
+      if (audio) {
+        audio.muted = isMuted;
+      }
+    });
+    
+    console.log(isMuted ? '🔇 Audio muted' : '🔊 Audio unmuted');
+  }, [isMuted]);
 
   // Load all avatar images
   useEffect(() => {
@@ -644,6 +701,14 @@ export default function MergeGame() {
         const mergeX = (parentA.position.x + parentB.position.x) / 2;
         const mergeY = (parentA.position.y + parentB.position.y) / 2;
 
+        // Play merge sound
+        if (mergeSoundRef.current && !isMuted) {
+          mergeSoundRef.current.currentTime = 0; // Reset for rapid merges
+          mergeSoundRef.current.play().catch(error => {
+            console.warn('Merge sound play failed:', error);
+          });
+        }
+
         Matter.World.remove(engine.world, parentA);
         Matter.World.remove(engine.world, parentB);
         
@@ -686,6 +751,19 @@ export default function MergeGame() {
       if (anyBallAbove) {
         setGameOver(true);
         gameOverRef.current = true;
+        
+        // Stop background music and play game over sound
+        if (backgroundMusicRef.current) {
+          backgroundMusicRef.current.pause();
+          console.log('🎵 Background music stopped');
+        }
+        if (gameOverSoundRef.current && !isMuted) {
+          gameOverSoundRef.current.currentTime = 0;
+          gameOverSoundRef.current.play().catch(error => {
+            console.warn('Game over sound play failed:', error);
+          });
+          console.log('💀 Game over sound played');
+        }
         
         // Auto-save score to leaderboard - use refs for accuracy
         const finalScore = scoreRef.current;
@@ -798,6 +876,14 @@ export default function MergeGame() {
     
     createBall(clampedX, spawnY, currentBall);
     
+    // Play drop sound
+    if (dropSoundRef.current && !isMuted) {
+      dropSoundRef.current.currentTime = 0; // Reset to start for rapid drops
+      dropSoundRef.current.play().catch(error => {
+        console.warn('Drop sound play failed:', error);
+      });
+    }
+    
     // Update ball queue
     setCurrentBall(nextBall);
     currentBallRef.current = nextBall;
@@ -848,6 +934,14 @@ export default function MergeGame() {
     canDropBallRef.current = false;
     
     createBall(clampedX, spawnY, currentBall);
+    
+    // Play drop sound
+    if (dropSoundRef.current && !isMuted) {
+      dropSoundRef.current.currentTime = 0; // Reset to start for rapid drops
+      dropSoundRef.current.play().catch(error => {
+        console.warn('Drop sound play failed:', error);
+      });
+    }
     
     // Update ball queue
     setCurrentBall(nextBall);
@@ -924,6 +1018,13 @@ export default function MergeGame() {
     setUserName('');
     userNameRef.current = ''; // Clear username ref
     
+    // Stop background music (will restart when user clicks Start Game again)
+    if (backgroundMusicRef.current) {
+      backgroundMusicRef.current.pause();
+      backgroundMusicRef.current.currentTime = 0; // Reset to beginning
+      console.log('🎵 Background music stopped for restart');
+    }
+    
     // Clear physics world
     if (engineRef.current && worldRef.current) {
       const bodies = Matter.Composite.allBodies(worldRef.current);
@@ -944,6 +1045,14 @@ export default function MergeGame() {
     setUserName(trimmedUsername);
     userNameRef.current = trimmedUsername; // Store in ref immediately
     setShowUsernameModal(false);
+    
+    // Start background music (after user interaction, autoplay is allowed)
+    if (backgroundMusicRef.current && !isMuted) {
+      backgroundMusicRef.current.play().catch(error => {
+        console.warn('Background music autoplay prevented:', error);
+      });
+      console.log('🎵 Background music started');
+    }
   };
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
@@ -1210,7 +1319,15 @@ export default function MergeGame() {
                 }}
               />
             </div>
-            <div className="w-32"></div>
+            {/* Mute/Unmute Button */}
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-600 border-2 border-green-400/30 rounded-xl font-bold text-black hover:scale-105 transition-transform shadow-lg shadow-green-400/30"
+              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
+              title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
+            >
+              {isMuted ? '🔇 Unmute' : '🔊 Mute'}
+            </button>
           </div>
         </div>
 
