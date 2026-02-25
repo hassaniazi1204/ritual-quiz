@@ -7,14 +7,14 @@ import Matter from 'matter-js';
 const BALL_CONFIG = [
   { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
   { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
-  { level: 3, radius: 30, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
-  { level: 4, radius: 35, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
-  { level: 5, radius: 40, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
-  { level: 6, radius: 45, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
-  { level: 7, radius: 50, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
-  { level: 8, radius: 55, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
-  { level: 9, radius: 60, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
-  { level: 10, radius: 70, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
+  { level: 3, radius: 33, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
+  { level: 4, radius: 38, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
+  { level: 5, radius: 43, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
+  { level: 6, radius: 48, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
+  { level: 7, radius: 53, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
+  { level: 8, radius: 58, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
+  { level: 9, radius: 63, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
+  { level: 10, radius: 73, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
 ];
 
 interface Ball {
@@ -110,7 +110,7 @@ export default function MergeGame() {
     if (!canvasRef.current || engineRef.current) return;
 
     const engine = Matter.Engine.create({
-      gravity: { x: 0, y: 1.2 },  // Increased gravity for faster falling
+      gravity: { x: 0, y: 0.6 },  // Reduced gravity for slower, more controlled falling (50% of original 1.2)
     });
     engineRef.current = engine;
     worldRef.current = engine.world;
@@ -607,17 +607,36 @@ export default function MergeGame() {
         // Use parent body for compound bodies (Level 2 cylinders)
         const parentA = bodyA.parent || bodyA;
         const parentB = bodyB.parent || bodyB;
+        
+        // Skip if same body (shouldn't happen but just in case)
+        if (parentA.id === parentB.id) return;
 
         const ballA = ballsRef.current.find(b => b.body.id === parentA.id);
         const ballB = ballsRef.current.find(b => b.body.id === parentB.id);
 
+        // Both balls must exist
         if (!ballA || !ballB) return;
-        if (ballA.level !== ballB.level) return;
+        
+        // STRICT CHECK: Only merge if EXACT same level
+        if (ballA.level !== ballB.level) {
+          console.log(`❌ Merge blocked: Different levels (${ballA.level} vs ${ballB.level})`);
+          return;
+        }
+        
+        // Additional safety: Verify both balls have the same level
+        const levelA = ballA.level;
+        const levelB = ballB.level;
+        if (levelA !== levelB) {
+          console.error(`⚠️ Level mismatch detected: ballA.level=${levelA}, ballB.level=${levelB}`);
+          return;
+        }
 
         // Use parent body IDs for merge key to prevent duplicates
         const mergeKey = [ballA.id, ballB.id].sort().join('-');
         if (processingMergeRef.current.has(mergeKey)) return;
         processingMergeRef.current.add(mergeKey);
+
+        console.log(`✅ Merging: Level ${levelA} + Level ${levelB} → Level ${levelA === 10 ? 1 : levelA + 1}`);
 
         const mergeLevel = ballA.level;
         const mergeScore = BALL_CONFIG[mergeLevel - 1].score;
