@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0)',
+          background: 'rgba(0, 0, 0, 0.7)',
           zIndex: 0,
         }}
       />
@@ -118,32 +118,6 @@ export default function LeaderboardPage() {
             }}
           >
             ← Back to Home
-          </Link>
-
-          <Link
-            href="/"
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '12px',
-              color: '#FFFFFF',
-              fontWeight: 700,
-              fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-              fontSize: '1rem',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              display: 'inline-block',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.1)';
-            }}
-          >
-            🏠 Home
           </Link>
         </div>
 
