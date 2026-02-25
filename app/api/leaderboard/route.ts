@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('=== Leaderboard POST API Called ===');
+    
+    // Check for environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing database credentials' },
+        { status: 500 }
+      );
+    }
+    
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
     const body = await request.json();
     console.log('Request body:', body);
     const { username, score } = body;
@@ -44,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: 'Failed to save score' },
+        { error: `Database error: ${error.message}` },
         { status: 500 }
       );
     }
@@ -57,7 +73,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
@@ -65,6 +81,21 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    // Check for environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing database credentials' },
+        { status: 500 }
+      );
+    }
+    
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
     // Fetch top 20 scores
     const { data, error } = await supabase
       .from('leaderboard')
@@ -76,7 +107,7 @@ export async function GET() {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch leaderboard' },
+        { error: `Database error: ${error.message}` },
         { status: 500 }
       );
     }
@@ -88,7 +119,7 @@ export async function GET() {
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
