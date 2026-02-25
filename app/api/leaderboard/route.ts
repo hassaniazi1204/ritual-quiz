@@ -45,17 +45,14 @@ export async function POST(request: NextRequest) {
     const cleanUsername = username.trim().slice(0, 50);
     console.log('Inserting into database:', { username: cleanUsername, score });
 
-    // Insert into database
+    // Insert into database - let the database auto-generate the id
     const { data, error } = await supabase
       .from('leaderboard')
-      .insert([
-        {
-          username: cleanUsername,
-          score: score,
-        },
-      ])
-      .select()
-      .single();
+      .insert({
+        username: cleanUsername,
+        score: score,
+      })
+      .select();
 
     if (error) {
       console.error('Supabase error:', error);
@@ -67,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Successfully saved to database:', data);
     return NextResponse.json(
-      { success: true, data },
+      { success: true, data: data?.[0] || data },
       { status: 201 }
     );
   } catch (error) {
