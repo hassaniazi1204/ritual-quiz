@@ -955,18 +955,19 @@ export default function MergeGame() {
 
       console.log('Score saved successfully! Redirecting to leaderboard...');
       
-      // Redirect to leaderboard after short delay
+      // Only redirect on success
       setTimeout(() => {
         window.location.href = '/leaderboard';
       }, 1500);
     } catch (error) {
       console.error('Error saving score to leaderboard:', error);
-      alert(`Failed to save your score: ${error instanceof Error ? error.message : 'Unknown error'}. Redirecting to leaderboard anyway...`);
-      setTimeout(() => {
-        window.location.href = '/leaderboard';
-      }, 2000);
-    } finally {
-      setSavingScore(false);
+      setSavingScore(false); // Stop showing saving message
+      
+      // Show detailed error message and DO NOT redirect
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Failed to save your score!\n\nError: ${errorMessage}\n\nPlease check:\n1. Your internet connection\n2. Supabase credentials are set in Vercel\n3. The leaderboard table exists\n\nYour score (${finalScore}) was NOT saved.`);
+      
+      // Do NOT redirect - let user stay on game page
     }
   };
 
