@@ -45,17 +45,39 @@ export async function POST(request: NextRequest) {
     const cleanUsername = username.trim().slice(0, 50);
     console.log('Inserting into database:', { username: cleanUsername, score });
 
-    // Insert into database - let the database auto-generate the id
+    // Insert into database - ONLY username and score (NO id field)
+    // The database will auto-generate the id via the sequence
+    const insertData = {
+      username: cleanUsername,
+      score: score,
+      // Explicitly omit 'id' field - let database handle it
+    };
+    
     const { data, error } = await supabase
       .from('leaderboard')
-      .insert({
-        username: cleanUsername,
-        score: score,
-      })
+      .insert(insertData)
       .select();
 
     if (error) {
       console.error('Supabase error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      
+      // Check if it's the duplicate key error
+      if (error.message.includes('duplicate key') || error.code === '23505') {
+        return NextResponse.json(
+          { 
+            error: 'Database sequence error. The id auto-increment is out of sync. Please contact support to reset the sequence.',
+            details: error.message 
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { error: `Database error: ${error.message}` },
         { status: 500 }
