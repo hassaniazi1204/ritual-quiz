@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '../../lib/supabase-server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('=== Leaderboard POST API Called ===');
     
-    // Use singleton Supabase client for better performance
-    const supabase = getSupabaseClient();
+    // Check for environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing database credentials' },
+        { status: 500 }
+      );
+    }
+    
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     const body = await request.json();
     console.log('Request body:', body);
@@ -88,8 +100,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    // Use singleton Supabase client for better performance
-    const supabase = getSupabaseClient();
+    // Check for environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing database credentials' },
+        { status: 500 }
+      );
+    }
+    
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     // Fetch top 20 scores
     const { data, error } = await supabase
