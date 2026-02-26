@@ -1,10 +1,38 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Define database types
+export interface Database {
+  public: {
+    Tables: {
+      leaderboard: {
+        Row: {
+          id: number;
+          username: string;
+          score: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          username: string;
+          score: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          username?: string;
+          score?: number;
+          created_at?: string;
+        };
+      };
+    };
+  };
+}
 
 // Singleton Supabase client for server-side API routes
 // Reuses connection across requests for better performance and lower connection usage
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
+let supabaseInstance: SupabaseClient<Database> | null = null;
 
-export function getSupabaseClient() {
+export function getSupabaseClient(): SupabaseClient<Database> {
   // Return existing instance if already created
   if (supabaseInstance) {
     return supabaseInstance;
@@ -18,8 +46,8 @@ export function getSupabaseClient() {
     throw new Error('Missing Supabase environment variables');
   }
   
-  // Create new instance
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+  // Create new instance with proper typing
+  supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false, // Important: server-side should not persist sessions
     },
