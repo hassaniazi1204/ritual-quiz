@@ -6,7 +6,7 @@ import Matter from 'matter-js';
 // Ball level configuration
 const BALL_CONFIG = [
   { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
-  { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
+  { level: 2, radius: 20, image: '/avatars/willow.png', color: '#3B82F6', score: 20, name: 'willow', shape: 'cylinder' as const },
   { level: 3, radius: 33, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
   { level: 4, radius: 38, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
   { level: 5, radius: 43, image: '/avatars/majorproject2.png', color: '#10B981', score: 50, name: 'majorproject', shape: 'circle' as const },
