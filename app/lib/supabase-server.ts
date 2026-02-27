@@ -1,7 +1,7 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
-// Define database types
-export interface Database {
+// Define your database schema
+type Database = {
   public: {
     Tables: {
       leaderboard: {
@@ -12,54 +12,37 @@ export interface Database {
           created_at: string;
         };
         Insert: {
-          id?: number;
           username: string;
           score: number;
-          created_at?: string;
         };
         Update: {
-          id?: number;
           username?: string;
           score?: number;
-          created_at?: string;
         };
       };
     };
+    Views: {};
+    Functions: {};
+    Enums: {};
   };
-}
+};
 
-// Singleton Supabase client for server-side API routes
-// Reuses connection across requests for better performance and lower connection usage
-let supabaseInstance: SupabaseClient<Database> | null = null;
+// Singleton client for concurrent requests
+let client: ReturnType<typeof createClient<Database>> | null = null;
 
-export function getSupabaseClient(): SupabaseClient<Database> {
-  // Return existing instance if already created
-  if (supabaseInstance) {
-    return supabaseInstance;
+export function getSupabaseClient() {
+  if (client) return client;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase credentials');
   }
-  
-  // Check for environment variables
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-  
-  // Create new instance with proper typing
-  supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false, // Important: server-side should not persist sessions
-    },
-    db: {
-      schema: 'public',
-    },
+
+  client = createClient<Database>(url, key, {
+    auth: { persistSession: false },
   });
-  
-  console.log('✅ Supabase singleton client created');
-  
-  return supabaseInstance;
-}
 
-// Export for backward compatibility
-export const supabase = getSupabaseClient();
+  return client;
+}
