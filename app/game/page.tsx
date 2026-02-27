@@ -53,12 +53,11 @@ export default function MergeGame() {
   const gameOverRef = useRef(false);
   const scoreRef = useRef(0);
   const nextBallRef = useRef(2);
-  const userNameRef = useRef(''); // Store username in ref for immediate access
+    const userNameRef = useRef(''); // Store username in ref for immediate access
   
   // Frame-rate independence refs
   const lastTimeRef = useRef<number>(performance.now());
   const accumulatorRef = useRef<number>(0);
-  const fixedTimeStep = 1000 / 60; // 60 FPS fixed timestep
   
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -197,34 +196,10 @@ export default function MergeGame() {
     console.log('✅ Physics initialized - Ground at y:', gameHeight - groundHeight / 2);
     
     // Frame-rate independent game loop using deltaTime
+    const FIXED_TIME_STEP = 1000 / 60; // 60 FPS fixed timestep
     lastTimeRef.current = performance.now();
     
-    const gameLoop = () => {
-      if (!engineRef.current) return;
-      
-      // Calculate deltaTime
-      const currentTime = performance.now();
-      const deltaTime = currentTime - lastTimeRef.current;
-      lastTimeRef.current = currentTime;
-      
-      // Accumulate time for fixed timestep
-      accumulatorRef.current += deltaTime;
-      
-      // Update physics with fixed timestep (frame-rate independent)
-      while (accumulatorRef.current >= fixedTimeStep) {
-        Matter.Engine.update(engineRef.current, fixedTimeStep);
-        accumulatorRef.current -= fixedTimeStep;
-      }
-      
-      // Render at display refresh rate
-      customRender();
-      requestAnimationFrame(gameLoop);
-    };
-    
-    // Start the game loop
-    gameLoop();
-
-    // Custom render loop
+    // Define render function FIRST (before gameLoop references it)
     const customRender = () => {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
@@ -674,10 +649,29 @@ export default function MergeGame() {
         ctx.stroke();
         ctx.setLineDash([]);
       }
-
-      // Render loop is now handled by gameLoop()
+    }; // End of customRender
+    
+    // NOW define gameLoop (after customRender is defined)
+    const gameLoop = () => {
+      if (!engineRef.current) return;
+      
+      const currentTime = performance.now();
+      const deltaTime = currentTime - lastTimeRef.current;
+      lastTimeRef.current = currentTime;
+      
+      accumulatorRef.current += deltaTime;
+      
+      while (accumulatorRef.current >= FIXED_TIME_STEP) {
+        Matter.Engine.update(engineRef.current, FIXED_TIME_STEP);
+        accumulatorRef.current -= FIXED_TIME_STEP;
+      }
+      
+      customRender();
+      requestAnimationFrame(gameLoop);
     };
-    // Removed customRender() call - now handled by gameLoop()
+    
+    // Start the game loop
+    gameLoop();
 
     // Collision detection
     Matter.Events.on(engine, 'collisionStart', (event) => {
