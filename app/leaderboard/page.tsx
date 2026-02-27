@@ -16,7 +16,7 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [playerUsername, setPlayerUsername] = useState<string | null>(null);
   const [playerScore, setPlayerScore] = useState<number | null>(null);
-  const [isPlayerInTop20, setIsPlayerInTop20] = useState<boolean | null>(null); // null = unknown, true = in top 20, false = not in top 20
+  const [isPlayerInTop20, setIsPlayerInTop20] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Extract URL params
@@ -37,7 +37,6 @@ export default function LeaderboardPage() {
       console.log('✅ Player Score:', parsedScore);
     }
     
-    // Fetch leaderboard
     fetchLeaderboard();
   }, []);
 
@@ -46,12 +45,11 @@ export default function LeaderboardPage() {
     if (leaderboard.length > 0 && playerUsername && playerScore !== null) {
       console.log('🔍 Checking if player is in Top 20...');
       console.log('Looking for:', { username: playerUsername, score: playerScore });
-      console.log('In leaderboard:', leaderboard.map(e => ({ username: e.username, score: e.score })));
       
       const foundInTop20 = leaderboard.some((entry) => {
         const usernameMatch = entry.username.trim().toLowerCase() === playerUsername.trim().toLowerCase();
         const scoreMatch = entry.score === playerScore;
-        console.log(`Comparing: "${entry.username}" (${entry.score}) with "${playerUsername}" (${playerScore}) - Username Match: ${usernameMatch}, Score Match: ${scoreMatch}`);
+        console.log(`Comparing: "${entry.username}" (${entry.score}) with "${playerUsername}" (${playerScore}) - Match: ${usernameMatch && scoreMatch}`);
         return usernameMatch && scoreMatch;
       });
       
@@ -81,27 +79,6 @@ export default function LeaderboardPage() {
       const data = result.data || [];
       console.log('📊 Leaderboard fetched:', data.length, 'entries');
       setLeaderboard(data);
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
-    } finally {
-      setLoading(false);
-    }
-  };
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch leaderboard');
-      }
-
-      const data = result.data || [];
-      setLeaderboard(data);
-      
-      // Check if player is in top 20
-      if (playerUsername && playerScore !== null) {
-        const foundInTop20 = data.some((entry: LeaderboardEntry) => 
-          entry.username === playerUsername && entry.score === playerScore
-        );
-        setIsPlayerInTop20(foundInTop20);
-      }
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
       setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
@@ -278,7 +255,6 @@ export default function LeaderboardPage() {
               padding: '1.5rem',
               marginBottom: '2rem',
               textAlign: 'center',
-              animation: 'fadeIn 0.5s ease-in',
             }}
           >
             <div
@@ -397,19 +373,19 @@ export default function LeaderboardPage() {
                 const medal = getMedalEmoji(rank);
                 const isTopThree = rank <= 3;
                 const isCurrentPlayer = 
-  playerUsername && 
-  playerScore !== null && 
-  entry.username.trim().toLowerCase() === playerUsername.trim().toLowerCase() && 
-  entry.score === playerScore;
+                  playerUsername && 
+                  playerScore !== null && 
+                  entry.username.trim().toLowerCase() === playerUsername.trim().toLowerCase() && 
+                  entry.score === playerScore;
 
-if (isCurrentPlayer) {
-  console.log('🎯 Found current player row:', entry);
-}
+                if (isCurrentPlayer) {
+                  console.log('🎯 Found current player row:', entry);
+                }
 
                 // Determine background color
                 let backgroundColor = 'transparent';
                 if (isCurrentPlayer) {
-                  backgroundColor = 'rgba(136, 64, 255, 0.2)'; // Purple highlight for player
+                  backgroundColor = 'rgba(136, 64, 255, 0.2)';
                 } else if (isTopThree) {
                   backgroundColor = 'rgba(64, 255, 175, 0.05)';
                 }
@@ -449,28 +425,32 @@ if (isCurrentPlayer) {
                     {/* Rank */}
                     <div
                       style={{
+                        fontWeight: isCurrentPlayer ? 900 : 700,
+                        fontFamily: isCurrentPlayer ? "'Barlow-ExtraBold', 'Barlow', sans-serif" : "'Barlow-Bold', 'Barlow', sans-serif",
+                        color: isCurrentPlayer ? '#8840FF' : (isTopThree ? '#40FFAF' : '#FFFFFF'),
+                        fontSize: isCurrentPlayer ? '1.5rem' : '1.25rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: isCurrentPlayer ? '1.75rem' : '1.5rem',
-                        fontWeight: isCurrentPlayer ? 900 : 700,
-                        fontFamily: isCurrentPlayer ? "'Barlow-ExtraBold', 'Barlow', sans-serif" : "'Barlow-Bold', 'Barlow', sans-serif",
-                        color: isCurrentPlayer ? '#8840FF' : '#40FFAF',
+                        gap: '0.5rem',
                       }}
                     >
-                      {medal && <span style={{ fontSize: '1.5rem' }}>{medal}</span>}
+                      {medal && <span style={{ fontSize: isCurrentPlayer ? '1.75rem' : '1.5rem' }}>{medal}</span>}
                       {!medal && <span>#{rank}</span>}
                     </div>
 
-                    {/* Player */}
+                    {/* Username */}
                     <div
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontSize: isCurrentPlayer ? '1.2rem' : '1.1rem',
                         fontFamily: isCurrentPlayer ? "'Barlow-Bold', 'Barlow', sans-serif" : "'Barlow-Regular', 'Barlow', sans-serif",
                         color: isCurrentPlayer ? '#E554E8' : '#FFFFFF',
+                        fontSize: isCurrentPlayer ? '1.2rem' : '1.1rem',
                         fontWeight: isCurrentPlayer ? 700 : 400,
+                        display: 'flex',
+                        alignItems: 'center',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {entry.username}
@@ -479,11 +459,13 @@ if (isCurrentPlayer) {
                     {/* Score */}
                     <div
                       style={{
-                        textAlign: 'right',
-                        fontSize: isCurrentPlayer ? '1.5rem' : '1.3rem',
                         fontWeight: isCurrentPlayer ? 900 : 700,
                         fontFamily: isCurrentPlayer ? "'Barlow-ExtraBold', 'Barlow', sans-serif" : "'Barlow-Bold', 'Barlow', sans-serif",
-                        color: isCurrentPlayer ? '#8840FF' : '#FFFFFF',
+                        color: isCurrentPlayer ? '#8840FF' : (isTopThree ? '#40FFAF' : '#E7E7E7'),
+                        fontSize: isCurrentPlayer ? '1.5rem' : '1.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
                       }}
                     >
                       {entry.score.toLocaleString()}
