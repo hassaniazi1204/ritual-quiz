@@ -55,6 +55,11 @@ export default function MergeGame() {
   const nextBallRef = useRef(2);
   const userNameRef = useRef(''); // Store username in ref for immediate access
   
+  // Frame-rate independence refs
+  const lastTimeRef = useRef<number>(performance.now());
+  const accumulatorRef = useRef<number>(0);
+  const fixedTimeStep = 1000 / 60; // 60 FPS fixed timestep
+  
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [currentBall, setCurrentBall] = useState(1);
@@ -191,12 +196,33 @@ export default function MergeGame() {
     
     console.log('✅ Physics initialized - Ground at y:', gameHeight - groundHeight / 2);
     
-    // Run physics engine with proper timing
-    const runner = Matter.Runner.create({
-      delta: 1000 / 60,  // 60 FPS
-      isFixed: true,
-    });
-    Matter.Runner.run(runner, engine);
+    // Frame-rate independent game loop using deltaTime
+    lastTimeRef.current = performance.now();
+    
+    const gameLoop = () => {
+      if (!engineRef.current) return;
+      
+      // Calculate deltaTime
+      const currentTime = performance.now();
+      const deltaTime = currentTime - lastTimeRef.current;
+      lastTimeRef.current = currentTime;
+      
+      // Accumulate time for fixed timestep
+      accumulatorRef.current += deltaTime;
+      
+      // Update physics with fixed timestep (frame-rate independent)
+      while (accumulatorRef.current >= fixedTimeStep) {
+        Matter.Engine.update(engineRef.current, fixedTimeStep);
+        accumulatorRef.current -= fixedTimeStep;
+      }
+      
+      // Render at display refresh rate
+      customRender();
+      requestAnimationFrame(gameLoop);
+    };
+    
+    // Start the game loop
+    gameLoop();
 
     // Custom render loop
     const customRender = () => {
@@ -649,9 +675,9 @@ export default function MergeGame() {
         ctx.setLineDash([]);
       }
 
-      requestAnimationFrame(customRender);
+      // Render loop is now handled by gameLoop()
     };
-    customRender();
+    // Removed customRender() call - now handled by gameLoop()
 
     // Collision detection
     Matter.Events.on(engine, 'collisionStart', (event) => {
@@ -1385,8 +1411,8 @@ export default function MergeGame() {
         {/* Game Layout */}
         <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
         {/* Game Canvas */}
-        <div className="flex-shrink-0">
-          <div className="relative inline-block" style={{ overflow: 'visible' }}>
+        <div className="flex-shrink-0 order-3 lg:order-1 w-full lg:w-auto">
+          <div className="relative inline-block w-full max-w-[360px] mx-auto lg:mx-0" style={{ overflow: 'visible' }}>
             <canvas
               ref={canvasRef}
               width={gameWidth}
@@ -1403,6 +1429,8 @@ export default function MergeGame() {
                 height: 'auto',
                 touchAction: 'none',
                 display: 'block',
+                WebkitTapHighlightColor: 'transparent',
+                userSelect: 'none',
               }}
             />
             
