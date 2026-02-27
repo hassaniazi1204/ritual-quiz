@@ -1105,7 +1105,7 @@ export default function MergeGame() {
       
       // Only redirect on success
       setTimeout(() => {
-        window.location.href = '/leaderboard';
+        window.location.href = `/leaderboard?username=${encodeURIComponent(username)}&score=${finalScore}`;
       }, 1500);
     } catch (error) {
       console.error('Error saving score to leaderboard:', error);
