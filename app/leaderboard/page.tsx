@@ -14,8 +14,19 @@ export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [playerUsername, setPlayerUsername] = useState<string | null>(null);
+  const [playerScore, setPlayerScore] = useState<number | null>(null);
+  const [isPlayerInTop20, setIsPlayerInTop20] = useState<boolean>(true);
 
   useEffect(() => {
+    // Get URL params
+    const params = new URLSearchParams(window.location.search);
+    const username = params.get('username');
+    const score = params.get('score');
+    
+    if (username) setPlayerUsername(decodeURIComponent(username));
+    if (score) setPlayerScore(parseInt(score, 10));
+    
     fetchLeaderboard();
   }, []);
 
@@ -31,7 +42,16 @@ export default function LeaderboardPage() {
         throw new Error(result.error || 'Failed to fetch leaderboard');
       }
 
-      setLeaderboard(result.data || []);
+      const data = result.data || [];
+      setLeaderboard(data);
+      
+      // Check if player is in top 20
+      if (playerUsername && playerScore !== null) {
+        const foundInTop20 = data.some((entry: LeaderboardEntry) => 
+          entry.username === playerUsername && entry.score === playerScore
+        );
+        setIsPlayerInTop20(foundInTop20);
+      }
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
       setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
@@ -198,6 +218,49 @@ export default function LeaderboardPage() {
           </div>
         )}
 
+        {/* Not in Top 20 Message */}
+        {!loading && !error && playerUsername && !isPlayerInTop20 && (
+          <div
+            style={{
+              background: 'rgba(255, 87, 87, 0.15)',
+              border: '2px solid rgba(255, 87, 87, 0.5)',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '1.5rem',
+                marginBottom: '0.5rem',
+              }}
+            >
+              ⚠️
+            </div>
+            <div
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+                color: '#FF5757',
+                marginBottom: '0.5rem',
+              }}
+            >
+              You are not in the Top 20
+            </div>
+            <div
+              style={{
+                fontSize: '1rem',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+              }}
+            >
+              Keep playing to beat the high scores!
+            </div>
+          </div>
+        )}
+
         {/* Leaderboard Table */}
         {!loading && !error && (
           <div
@@ -272,6 +335,15 @@ export default function LeaderboardPage() {
                 const rank = index + 1;
                 const medal = getMedalEmoji(rank);
                 const isTopThree = rank <= 3;
+                const isCurrentPlayer = playerUsername && entry.username === playerUsername && entry.score === playerScore;
+
+                // Determine background color
+                let backgroundColor = 'transparent';
+                if (isCurrentPlayer) {
+                  backgroundColor = 'rgba(136, 64, 255, 0.2)'; // Purple highlight for player
+                } else if (isTopThree) {
+                  backgroundColor = 'rgba(64, 255, 175, 0.05)';
+                }
 
                 return (
                   <div
@@ -285,46 +357,51 @@ export default function LeaderboardPage() {
                         index < leaderboard.length - 1
                           ? '1px solid rgba(255, 255, 255, 0.1)'
                           : 'none',
-                      background: isTopThree ? 'rgba(64, 255, 175, 0.05)' : 'transparent',
-                      transition: 'background 0.2s',
+                      background: backgroundColor,
+                      border: isCurrentPlayer ? '2px solid rgba(136, 64, 255, 0.6)' : 'none',
+                      borderRadius: isCurrentPlayer ? '12px' : '0',
+                      margin: isCurrentPlayer ? '0.25rem 0' : '0',
+                      transition: 'all 0.2s',
+                      boxShadow: isCurrentPlayer ? '0 0 20px rgba(136, 64, 255, 0.4)' : 'none',
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(64, 255, 175, 0.1)';
+                      if (!isCurrentPlayer) {
+                        (e.currentTarget as HTMLElement).style.background = 'rgba(64, 255, 175, 0.1)';
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = isTopThree
-                        ? 'rgba(64, 255, 175, 0.05)'
-                        : 'transparent';
+                      if (!isCurrentPlayer) {
+                        (e.currentTarget as HTMLElement).style.background = isTopThree
+                          ? 'rgba(64, 255, 175, 0.05)'
+                          : 'transparent';
+                      }
                     }}
                   >
                     {/* Rank */}
                     <div
                       style={{
-                        fontWeight: 700,
-                        fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                        color: isTopThree ? '#40FFAF' : '#FFFFFF',
-                        fontSize: '1.25rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '0.5rem',
+                        fontSize: isCurrentPlayer ? '1.75rem' : '1.5rem',
+                        fontWeight: isCurrentPlayer ? 900 : 700,
+                        fontFamily: isCurrentPlayer ? "'Barlow-ExtraBold', 'Barlow', sans-serif" : "'Barlow-Bold', 'Barlow', sans-serif",
+                        color: isCurrentPlayer ? '#8840FF' : '#40FFAF',
                       }}
                     >
                       {medal && <span style={{ fontSize: '1.5rem' }}>{medal}</span>}
                       {!medal && <span>#{rank}</span>}
                     </div>
 
-                    {/* Username */}
+                    {/* Player */}
                     <div
                       style={{
-                        fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                        color: '#FFFFFF',
-                        fontSize: '1.1rem',
                         display: 'flex',
                         alignItems: 'center',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        fontSize: isCurrentPlayer ? '1.2rem' : '1.1rem',
+                        fontFamily: isCurrentPlayer ? "'Barlow-Bold', 'Barlow', sans-serif" : "'Barlow-Regular', 'Barlow', sans-serif",
+                        color: isCurrentPlayer ? '#E554E8' : '#FFFFFF',
+                        fontWeight: isCurrentPlayer ? 700 : 400,
                       }}
                     >
                       {entry.username}
@@ -333,13 +410,11 @@ export default function LeaderboardPage() {
                     {/* Score */}
                     <div
                       style={{
-                        fontWeight: 700,
-                        fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                        color: isTopThree ? '#40FFAF' : '#E7E7E7',
-                        fontSize: '1.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
+                        textAlign: 'right',
+                        fontSize: isCurrentPlayer ? '1.5rem' : '1.3rem',
+                        fontWeight: isCurrentPlayer ? 900 : 700,
+                        fontFamily: isCurrentPlayer ? "'Barlow-ExtraBold', 'Barlow', sans-serif" : "'Barlow-Bold', 'Barlow', sans-serif",
+                        color: isCurrentPlayer ? '#8840FF' : '#FFFFFF',
                       }}
                     >
                       {entry.score.toLocaleString()}
