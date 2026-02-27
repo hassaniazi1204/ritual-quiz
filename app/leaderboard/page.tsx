@@ -16,19 +16,55 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [playerUsername, setPlayerUsername] = useState<string | null>(null);
   const [playerScore, setPlayerScore] = useState<number | null>(null);
-  const [isPlayerInTop20, setIsPlayerInTop20] = useState<boolean>(true);
+  const [isPlayerInTop20, setIsPlayerInTop20] = useState<boolean | null>(null); // null = unknown, true = in top 20, false = not in top 20
 
   useEffect(() => {
-    // Get URL params
+    // Extract URL params
     const params = new URLSearchParams(window.location.search);
     const username = params.get('username');
     const score = params.get('score');
     
-    if (username) setPlayerUsername(decodeURIComponent(username));
-    if (score) setPlayerScore(parseInt(score, 10));
+    console.log('🔍 URL Params:', { username, score });
     
+    if (username) {
+      const decodedUsername = decodeURIComponent(username);
+      setPlayerUsername(decodedUsername);
+      console.log('✅ Player Username:', decodedUsername);
+    }
+    if (score) {
+      const parsedScore = parseInt(score, 10);
+      setPlayerScore(parsedScore);
+      console.log('✅ Player Score:', parsedScore);
+    }
+    
+    // Fetch leaderboard
     fetchLeaderboard();
   }, []);
+
+  // Check if player is in top 20 whenever leaderboard or player data changes
+  useEffect(() => {
+    if (leaderboard.length > 0 && playerUsername && playerScore !== null) {
+      console.log('🔍 Checking if player is in Top 20...');
+      console.log('Looking for:', { username: playerUsername, score: playerScore });
+      console.log('In leaderboard:', leaderboard.map(e => ({ username: e.username, score: e.score })));
+      
+      const foundInTop20 = leaderboard.some((entry) => {
+        const usernameMatch = entry.username.trim().toLowerCase() === playerUsername.trim().toLowerCase();
+        const scoreMatch = entry.score === playerScore;
+        console.log(`Comparing: "${entry.username}" (${entry.score}) with "${playerUsername}" (${playerScore}) - Username Match: ${usernameMatch}, Score Match: ${scoreMatch}`);
+        return usernameMatch && scoreMatch;
+      });
+      
+      console.log('✅ Player in Top 20:', foundInTop20);
+      setIsPlayerInTop20(foundInTop20);
+    } else {
+      console.log('⏳ Waiting for data...', { 
+        leaderboardLength: leaderboard.length, 
+        playerUsername, 
+        playerScore 
+      });
+    }
+  }, [leaderboard, playerUsername, playerScore]);
 
   const fetchLeaderboard = async () => {
     try {
@@ -38,6 +74,20 @@ export default function LeaderboardPage() {
       const response = await fetch('/api/leaderboard');
       const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch leaderboard');
+      }
+
+      const data = result.data || [];
+      console.log('📊 Leaderboard fetched:', data.length, 'entries');
+      setLeaderboard(data);
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
+    } finally {
+      setLoading(false);
+    }
+  };
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch leaderboard');
       }
@@ -219,7 +269,7 @@ export default function LeaderboardPage() {
         )}
 
         {/* Not in Top 20 Message */}
-        {!loading && !error && playerUsername && !isPlayerInTop20 && (
+        {!loading && !error && playerUsername && isPlayerInTop20 === false && (
           <div
             style={{
               background: 'rgba(255, 87, 87, 0.15)',
@@ -228,35 +278,46 @@ export default function LeaderboardPage() {
               padding: '1.5rem',
               marginBottom: '2rem',
               textAlign: 'center',
+              animation: 'fadeIn 0.5s ease-in',
             }}
           >
             <div
               style={{
-                fontSize: '1.5rem',
-                marginBottom: '0.5rem',
+                fontSize: '2rem',
+                marginBottom: '0.75rem',
               }}
             >
-              ⚠️
+              😔
             </div>
             <div
               style={{
-                fontSize: '1.25rem',
+                fontSize: '1.5rem',
                 fontWeight: 700,
                 fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
                 color: '#FF5757',
-                marginBottom: '0.5rem',
+                marginBottom: '0.75rem',
               }}
             >
               You are not in the Top 20
             </div>
             <div
               style={{
+                fontSize: '1.1rem',
+                color: 'rgba(255, 255, 255, 0.8)',
+                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
+                marginBottom: '0.5rem',
+              }}
+            >
+              Your score: <strong style={{ color: '#40FFAF' }}>{playerScore}</strong>
+            </div>
+            <div
+              style={{
                 fontSize: '1rem',
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'rgba(255, 255, 255, 0.6)',
                 fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
               }}
             >
-              Keep playing to beat the high scores!
+              Keep playing to beat the high scores and claim your spot! 🎮
             </div>
           </div>
         )}
@@ -335,7 +396,15 @@ export default function LeaderboardPage() {
                 const rank = index + 1;
                 const medal = getMedalEmoji(rank);
                 const isTopThree = rank <= 3;
-                const isCurrentPlayer = playerUsername && entry.username === playerUsername && entry.score === playerScore;
+                const isCurrentPlayer = 
+  playerUsername && 
+  playerScore !== null && 
+  entry.username.trim().toLowerCase() === playerUsername.trim().toLowerCase() && 
+  entry.score === playerScore;
+
+if (isCurrentPlayer) {
+  console.log('🎯 Found current player row:', entry);
+}
 
                 // Determine background color
                 let backgroundColor = 'transparent';
