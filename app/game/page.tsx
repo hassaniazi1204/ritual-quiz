@@ -75,7 +75,10 @@ export default function MergeGame() {
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  
+    // Authentication state
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+
   // Audio refs - created once and reused
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
   const dropSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -87,7 +90,94 @@ export default function MergeGame() {
   const topBoundary = 380;  // Game over line - moved up for better difficulty (was 450)
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
-  
+
+    // Auth state listener - reacts to login/logout in real-time
+  useEffect(() => {
+    console.log('🔐 Setting up auth listener...');
+    
+    // Check initial session
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabaseAuth.auth.getSession();
+        
+        if (error) {
+          console.error('Session check error:', error);
+          setIsAuthenticating(false);
+          setAuthChecked(true);
+          return;
+        }
+        
+        if (session?.user) {
+          // Valid session exists
+          const username = session.user.user_metadata.full_name || 
+                          session.user.user_metadata.name || 
+                          session.user.email?.split('@')[0] || 
+                          'Player';
+          
+          console.log('✅ Valid session found:', { 
+            email: session.user.email, 
+            username,
+            provider: session.user.app_metadata.provider 
+          });
+          
+          setUserName(username);
+          userNameRef.current = username;
+          setShowUsernameModal(false);
+        } else {
+          console.log('ℹ️ No session found - showing auth modal');
+          setShowUsernameModal(true);
+        }
+        
+        setIsAuthenticating(false);
+        setAuthChecked(true);
+        
+      } catch (error) {
+        console.error('Error checking session:', error);
+        setIsAuthenticating(false);
+        setAuthChecked(true);
+      }
+    };
+    
+    // Check session immediately
+    checkInitialSession();
+    
+    // Listen for auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabaseAuth.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔔 Auth state changed:', event, session?.user?.email);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          // User just logged in
+          const username = session.user.user_metadata.full_name || 
+                          session.user.user_metadata.name || 
+                          session.user.email?.split('@')[0] || 
+                          'Player';
+          
+          console.log('✅ User signed in:', username);
+          setUserName(username);
+          userNameRef.current = username;
+          setShowUsernameModal(false);
+          
+        } else if (event === 'SIGNED_OUT') {
+          // User logged out
+          console.log('👋 User signed out');
+          setUserName('');
+          userNameRef.current = '';
+          setShowUsernameModal(true);
+          
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed');
+        }
+      }
+    );
+    
+    // Cleanup: unsubscribe when component unmounts
+    return () => {
+      console.log('🧹 Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
+  }, []); // Run once on mount
+
   // Handle mute toggle
   useEffect(() => {
     const audios = [
@@ -1020,19 +1110,23 @@ export default function MergeGame() {
       });
     }
   };
-  const handleGuestLogin = (username: string) => {
-  const guestUser = createGuestUser(username);
-  saveGuestUser(guestUser);
-  setUser(guestUser);
-  setUserName(username);
-  userNameRef.current = username;
-  setShowUsernameModal(false);
-  
-  // Start background music
-  if (backgroundMusicRef.current && !isMuted) {
-    backgroundMusicRef.current.play().catch(console.warn);
-  }
-};
+
+    const handleGuestLogin = (username: string) => {
+    console.log('🎮 Guest login:', username);
+    
+    const guestUser = createGuestUser(username);
+    saveGuestUser(guestUser);
+    setUser(guestUser);
+    setUserName(username);
+    userNameRef.current = username;
+    setShowUsernameModal(false);
+    
+    // Start background music
+    if (backgroundMusicRef.current && !isMuted) {
+      backgroundMusicRef.current.play().catch(console.warn);
+    }
+  };
+
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
     console.log('saveScoreToLeaderboard called with:', { username, finalScore });
