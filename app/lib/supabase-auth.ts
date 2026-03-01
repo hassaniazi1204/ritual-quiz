@@ -121,9 +121,9 @@ export function createGuestUser(username: string): User {
     id: `guest_${Date.now()}`,
     username,
     authMode: 'guest',
-    email: null,
-    avatar: null,
-    provider_id: null,
+    email: undefined,
+    avatar: undefined,
+    provider_id: undefined,
     created_at: new Date().toISOString(),
   };
 }
