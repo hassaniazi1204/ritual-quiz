@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "SiggyDrop",
   description: "A community run platform to promote Ritual",
+  metadataBase: new URL("https://siggydrop.vercel.app"),
 };
 
 export default function RootLayout({
