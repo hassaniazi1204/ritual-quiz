@@ -5,6 +5,7 @@ import Matter from 'matter-js';
 import AuthModal from '../components/AuthModal';
 import { createGuestUser, saveGuestUser } from '../lib/supabase-auth';
 import type { User } from '../lib/auth-types';
+import { supabase } from '../lib/supabase';
 
 // Ball level configuration
 const BALL_CONFIG = [
@@ -111,7 +112,7 @@ export default function MergeGame() {
         
         // Second priority: Check for existing Supabase session
         console.log('🔍 Checking Supabase session...');
-        const { data: { session }, error } = await supabaseAuth.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.log('Session check error:', error);
