@@ -38,8 +38,10 @@ export default function AuthCallbackPage() {
                         session.user.email?.split('@')[0] || 
                         'Player';
         
+        const provider = session.user.app_metadata.provider || 'unknown';
+        
         localStorage.setItem('auth_username', username);
-        localStorage.setItem('auth_mode', session.user.app_metadata.provider);
+        localStorage.setItem('auth_mode', provider);
         
         setStatus('success');
         
