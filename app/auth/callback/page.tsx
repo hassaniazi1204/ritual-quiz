@@ -14,7 +14,8 @@ export default function AuthCallbackPage() {
       try {
         console.log('🔍 Processing OAuth callback...');
         
-        // Exchange the code for a session
+        // Supabase automatically handles the OAuth callback
+        // Just check if session was established
         const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
 
         if (sessionError) {
@@ -24,32 +25,19 @@ export default function AuthCallbackPage() {
 
         if (!session) {
           console.error('No session found after OAuth');
-          throw new Error('No session found');
+          throw new Error('No session established');
         }
 
-        console.log('✅ Session established:', {
-          user: session.user.email,
-          provider: session.user.app_metadata.provider,
+        console.log('✅ OAuth successful:', {
+          email: session.user.email,
+          provider: session.user.app_metadata.provider
         });
 
-        // Store username from OAuth
-        const username = session.user.user_metadata.full_name || 
-                        session.user.user_metadata.name || 
-                        session.user.email?.split('@')[0] || 
-                        'Player';
-        
-        const provider = session.user.app_metadata.provider || 'unknown';
-        
-        localStorage.setItem('auth_username', username);
-        localStorage.setItem('auth_mode', provider);
-        
         setStatus('success');
         
-        // Redirect to game
-        console.log('🎮 Redirecting to game...');
+        // Redirect to game - the auth listener will handle the rest
         setTimeout(() => {
           router.push('/game');
-          router.refresh(); // Force refresh to pick up new session
         }, 1000);
         
       } catch (err) {
