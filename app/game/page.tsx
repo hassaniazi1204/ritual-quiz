@@ -1169,9 +1169,6 @@ export default function MergeGame() {
   <AuthModal onGuestLogin={handleGuestLogin} />
 )}
 
-          </div>
-        </div>
-
         {/* Sidebar */}
         <div className="flex-shrink-0 w-full lg:w-80 space-y-6">
           {/* How to Play */}
