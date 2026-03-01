@@ -87,45 +87,83 @@ export default function MergeGame() {
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
-  // Sync userName state with ref
+  // Check for authenticated session on mount
   useEffect(() => {
-    if (userName) {
-      userNameRef.current = userName;
-      console.log('Username synced to ref:', userName);
-    }
-  }, [userName]);
-
-  // Initialize audio objects - run once on mount
-  useEffect(() => {
-    // Background music
-    backgroundMusicRef.current = new Audio('/sounds/background.mp3');
-    backgroundMusicRef.current.loop = true;
-    backgroundMusicRef.current.volume = 0.3; // Lower volume for background music
-    
-    // Sound effects
-    dropSoundRef.current = new Audio('/sounds/drop.wav');
-    dropSoundRef.current.volume = 0.7;
-    
-    mergeSoundRef.current = new Audio('/sounds/merge.wav');
-    mergeSoundRef.current.volume = 0.7;
-    
-    gameOverSoundRef.current = new Audio('/sounds/gameover.wav');
-    gameOverSoundRef.current.volume = 0.8;
-    
-    console.log('🔊 Audio system initialized');
-    
-    // Cleanup on unmount
-    return () => {
-      if (backgroundMusicRef.current) {
-        backgroundMusicRef.current.pause();
-        backgroundMusicRef.current = null;
+    const checkAuth = async () => {
+      console.log('🔍 Checking for existing auth session...');
+      
+      try {
+        // First priority: Check for OAuth redirect flags
+        const authUsername = localStorage.getItem('auth_username');
+        const authMode = localStorage.getItem('auth_mode');
+        
+        if (authUsername) {
+          console.log('✅ Found OAuth session from redirect:', { username: authUsername, mode: authMode });
+          setUserName(authUsername);
+          userNameRef.current = authUsername;
+          setShowUsernameModal(false);
+          
+          // Clear the temporary flags
+          localStorage.removeItem('auth_username');
+          localStorage.removeItem('auth_mode');
+          return;
+        }
+        
+        // Second priority: Check for existing Supabase session
+        console.log('🔍 Checking Supabase session...');
+        const { data: { session }, error } = await supabaseAuth.auth.getSession();
+        
+        if (error) {
+          console.log('Session check error:', error);
+        }
+        
+        if (session?.user) {
+          console.log('✅ Found existing Supabase session');
+          const username = session.user.user_metadata.full_name || 
+                          session.user.user_metadata.name || 
+                          session.user.email?.split('@')[0] || 
+                          'Player';
+          console.log('Username from session:', username);
+          setUserName(username);
+          userNameRef.current = username;
+          setShowUsernameModal(false);
+          return;
+        }
+        
+        // Third priority: Check for guest session
+        const guestUser = localStorage.getItem('guest_user');
+        if (guestUser) {
+          try {
+            const parsed = JSON.parse(guestUser);
+            console.log('✅ Found guest session:', parsed.username);
+            setUserName(parsed.username);
+            userNameRef.current = parsed.username;
+            setShowUsernameModal(false);
+            return;
+          } catch (err) {
+            console.log('Invalid guest session data');
+          }
+        }
+        
+        // No session found - show auth modal
+        console.log('ℹ️ No existing session - showing auth modal');
+        setShowUsernameModal(true);
+        
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        // On error, show modal
+        setShowUsernameModal(true);
       }
-      dropSoundRef.current = null;
-      mergeSoundRef.current = null;
-      gameOverSoundRef.current = null;
-      console.log('🔇 Audio system cleaned up');
     };
-  }, []);
+    
+    // Add a small delay to ensure localStorage is ready
+    const timer = setTimeout(() => {
+      checkAuth();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
+
   
   // Handle mute toggle
   useEffect(() => {
