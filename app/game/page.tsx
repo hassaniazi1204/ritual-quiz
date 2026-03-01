@@ -5,7 +5,6 @@ import Matter from 'matter-js';
 import AuthModal from '../components/AuthModal';
 import { createGuestUser, saveGuestUser } from '../lib/supabase-auth';
 import type { User } from '../lib/auth-types';
-import { supabaseAuth } from '../lib/supabase-auth';
 
 // Ball level configuration
 const BALL_CONFIG = [
@@ -87,41 +86,6 @@ export default function MergeGame() {
   const topBoundary = 380;  // Game over line - moved up for better difficulty (was 450)
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
-
-  // Check for authenticated session on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Check if coming from OAuth
-      const authUsername = localStorage.getItem('auth_username');
-      const authMode = localStorage.getItem('auth_mode');
-      
-      if (authUsername) {
-        console.log('✅ Found OAuth session:', { username: authUsername, mode: authMode });
-        setUserName(authUsername);
-        userNameRef.current = authUsername;
-        setShowUsernameModal(false);
-        
-        // Clear the flags
-        localStorage.removeItem('auth_username');
-        localStorage.removeItem('auth_mode');
-      } else {
-        // Check Supabase session
-        const { data: { session } } = await supabaseAuth.auth.getSession();
-        if (session) {
-          const username = session.user.user_metadata.full_name || 
-                          session.user.user_metadata.name || 
-                          session.user.email?.split('@')[0] || 
-                          'Player';
-          console.log('✅ Found Supabase session:', username);
-          setUserName(username);
-          userNameRef.current = username;
-          setShowUsernameModal(false);
-        }
-      }
-    };
-    
-    checkAuth();
-  }, []);
 
   // Sync userName state with ref
   useEffect(() => {
@@ -1102,13 +1066,21 @@ export default function MergeGame() {
   setUserName(username);
   userNameRef.current = username;
   setShowUsernameModal(false);
-
+  
   // Start background music
   if (backgroundMusicRef.current && !isMuted) {
     backgroundMusicRef.current.play().catch(console.warn);
   }
 };
-
+    
+    // Start background music (after user interaction, autoplay is allowed)
+    if (backgroundMusicRef.current && !isMuted) {
+      backgroundMusicRef.current.play().catch(error => {
+        console.warn('Background music autoplay prevented:', error);
+      });
+      console.log('🎵 Background music started');
+    }
+  };
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
     console.log('saveScoreToLeaderboard called with:', { username, finalScore });
@@ -1168,6 +1140,189 @@ export default function MergeGame() {
       {showUsernameModal && (
   <AuthModal onGuestLogin={handleGuestLogin} />
 )}
+
+      {/* Dark overlay for better contrast */}
+      <div className="fixed inset-0 bg-black/40" style={{ zIndex: 0 }}></div>
+
+      {/* Content */}
+      <div className="relative z-10 p-4 md:p-8">
+        {/* Header */}
+        <div className="max-w-7xl mx-auto mb-8">
+          <div className="flex justify-between items-center">
+            <a
+              href="/"
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 border-2 border-purple-400/30 rounded-xl font-bold text-white hover:scale-105 transition-transform shadow-lg shadow-purple-500/30"
+              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
+            >
+              ← Home
+            </a>
+            <div className="text-center flex justify-center">
+              <img
+                src="/brand-assets/Lockup/Translucent.png"
+                alt="Ritual"
+                style={{
+                  height: 'auto',
+                  width: 'clamp(200px, 40vw, 400px)',
+                  filter: 'drop-shadow(0 0 30px rgba(64,255,175,0.4))',
+                }}
+              />
+            </div>
+            {/* Mute/Unmute Button */}
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-600 border-2 border-green-400/30 rounded-xl font-bold text-black hover:scale-105 transition-transform shadow-lg shadow-green-400/30"
+              style={{ fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}
+              title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
+            >
+              {isMuted ? '🔇 Unmute' : '🔊 Mute'}
+            </button>
+          </div>
+        </div>
+
+      <div className="max-w-4xl mx-auto px-4 relative">
+        {/* Left Side - SIGGYDROP (top to bottom) */}
+        <div 
+          className="hidden xl:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full"
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'translateY(-50%) translateX(calc(-100% - 2rem)) rotate(180deg)',
+            fontSize: 'clamp(6rem, 8vw, 10rem)',
+            fontWeight: 900,
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+            background: 'linear-gradient(to bottom, #E554E8, #8840FF)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '0.00001em',
+            height: '77vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          SIGGYDROP
+        </div>
+
+        {/* Right Side - SIGGYDROP (bottom to top) */}
+        <div 
+          className="hidden xl:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-full"
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'translateY(-50%) translateX(calc(100% + 2rem))',
+            fontSize: 'clamp(6rem, 8vw, 10rem)',
+            fontWeight: 900,
+            fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
+            background: 'linear-gradient(to bottom, #E554E8, #8840FF)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '0.00001em',
+            height: '77vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          SIGGYDROP
+        </div>
+
+        {/* Game Layout */}
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-20">
+        {/* Game Canvas */}
+        <div className="flex-shrink-0 order-3 lg:order-1 w-full lg:w-auto">
+          <div className="relative inline-block w-full max-w-[360px] mx-auto lg:mx-0" style={{ overflow: 'visible' }}>
+            <canvas
+              ref={canvasRef}
+              width={gameWidth}
+              height={gameHeight}
+              onClick={handleCanvasClick}
+              onMouseMove={handleMouseMove}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="border-2 border-green-400/20 rounded-2xl cursor-crosshair bg-black shadow-inner"
+              style={{ 
+                width: '100%',
+                maxWidth: '360px',
+                height: 'auto',
+                touchAction: 'none',
+                display: 'block',
+                WebkitTapHighlightColor: 'transparent',
+                userSelect: 'none',
+              }}
+            />
+            
+            {/* Siggy Mascot - DOM Overlay (aligned with ball) */}
+            {!gameOver && canvasRef.current && (() => {
+              const rect = canvasRef.current.getBoundingClientRect();
+              const scaleX = rect.width / gameWidth;
+              const scaleY = rect.height / gameHeight;
+              
+              // Siggy dimensions
+              const siggyCanvasSize = 200;
+              const siggyScreenWidth = siggyCanvasSize * scaleX;
+              const siggyScreenHeight = siggyCanvasSize * scaleY;
+              
+              // Siggy X position - aligned with dropPosition (already clamped)
+              const siggyScreenX = dropPosition * scaleX;
+              
+              // Siggy Y position - positioned so ball spawns right below Siggy
+              // Ball spawns at spawnY=310, Siggy top should be at 310-200=110 to have ball at bottom
+              const siggyCanvasY = spawnY - siggyCanvasSize; // 310 - 200 = 110
+              const siggyScreenY = siggyCanvasY * scaleY;
+              
+              return (
+                <img
+                  src="/avatars/siggy.png"
+                  alt="Siggy"
+                  style={{
+                    position: 'absolute',
+                    width: `${siggyScreenWidth}px`,
+                    height: `${siggyScreenHeight}px`,
+                    top: `${siggyScreenY}px`,
+                    left: `${siggyScreenX}px`,
+                    transform: 'translateX(-50%)',
+                    opacity: 0.95,
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                  }}
+                />
+              );
+            })()}
+            
+            {gameOver && savingScore && (
+              <div className="absolute inset-0 bg-black/95 backdrop-blur-md rounded-2xl flex items-center justify-center p-4">
+                <div className="text-center space-y-6 max-w-sm w-full bg-gradient-to-br from-gray-900 to-black border-2 border-green-400/50 rounded-2xl p-8 shadow-2xl">
+                  <div className="text-5xl mb-2">🎮</div>
+                  <h2 className="text-4xl font-black bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
+                    Game Over!
+                  </h2>
+                  <div className="bg-black/50 rounded-xl p-6 border border-green-400/30">
+                    <div className="text-sm text-white/50 mb-2">Final Score</div>
+                    <p className="text-6xl font-black bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
+                      {score}
+                    </p>
+                    <p className="text-lg text-white/70 mt-2">Points</p>
+                  </div>
+                  
+                  <div className="text-center space-y-4">
+                    <div className="text-xl text-green-400 font-bold animate-pulse">
+                      💾 Saving your score...
+                    </div>
+                    <div className="text-sm text-white/70">
+                      Redirecting to leaderboard
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
 
         {/* Sidebar */}
         <div className="flex-shrink-0 w-full lg:w-80 space-y-6">
@@ -1252,6 +1407,10 @@ export default function MergeGame() {
           </button>
         </div>
         </div>
+        
+
+      </div> {/* Close max-w-4xl (line 956) */}
+      </div> {/* Close relative z-10 content wrapper (line 921) */}
     </main>
   );
 }
