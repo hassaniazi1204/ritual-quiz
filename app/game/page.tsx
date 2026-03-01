@@ -1072,15 +1072,6 @@ export default function MergeGame() {
     backgroundMusicRef.current.play().catch(console.warn);
   }
 };
-    
-    // Start background music (after user interaction, autoplay is allowed)
-    if (backgroundMusicRef.current && !isMuted) {
-      backgroundMusicRef.current.play().catch(error => {
-        console.warn('Background music autoplay prevented:', error);
-      });
-      console.log('🎵 Background music started');
-    }
-  };
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
     console.log('saveScoreToLeaderboard called with:', { username, finalScore });
