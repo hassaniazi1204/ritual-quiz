@@ -1096,18 +1096,18 @@ export default function MergeGame() {
     }
   };
   const handleGuestLogin = (username: string) => {
-    const guestUser = createGuestUser(username);
-    saveGuestUser(guestUser);
-    setUser(guestUser);
-    setUserName(username);
-    userNameRef.current = username;
-    setShowUsernameModal(false);
-    
-    // Start background music
-    if (backgroundMusicRef.current && !isMuted) {
-      backgroundMusicRef.current.play().catch(console.warn);
-    }
-  };
+  const guestUser = createGuestUser(username);
+  saveGuestUser(guestUser);
+  setUser(guestUser);
+  setUserName(username);
+  userNameRef.current = username;
+  setShowUsernameModal(false);
+
+  // Start background music
+  if (backgroundMusicRef.current && !isMuted) {
+    backgroundMusicRef.current.play().catch(console.warn);
+  }
+};
 
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
@@ -1166,17 +1166,7 @@ export default function MergeGame() {
       }}
     >
       {showUsernameModal && (
-  <AuthModal onGuestLogin={(username) => {
-    const guestUser = createGuestUser(username);
-    saveGuestUser(guestUser);
-    setUserName(username);
-    userNameRef.current = username;
-    setShowUsernameModal(false);
-    
-    if (backgroundMusicRef.current && !isMuted) {
-      backgroundMusicRef.current.play().catch(console.warn);
-    }
-  }} />
+  <AuthModal onGuestLogin={handleGuestLogin} />
 )}
 
           </div>
