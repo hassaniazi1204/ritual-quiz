@@ -2,6 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
+import AuthModal from '../components/AuthModal';
+import { createGuestUser, saveGuestUser } from '../lib/supabase-auth';
+import type { User } from '../lib/auth-types';
 
 // Ball level configuration
 const BALL_CONFIG = [
@@ -67,6 +70,7 @@ export default function MergeGame() {
   const [dropPosition, setDropPosition] = useState(180);
   const [userName, setUserName] = useState('');
   const [showUsernameModal, setShowUsernameModal] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -1055,16 +1059,19 @@ export default function MergeGame() {
       });
     }
   };
-  const startGame = () => {
-    if (!tempUsername || tempUsername.trim().length === 0) {
-      alert('Please enter a username to start the game!');
-      return;
-    }
-    const trimmedUsername = tempUsername.trim();
-    console.log('Starting game with username:', trimmedUsername);
-    setUserName(trimmedUsername);
-    userNameRef.current = trimmedUsername; // Store in ref immediately
-    setShowUsernameModal(false);
+  const handleGuestLogin = (username: string) => {
+  const guestUser = createGuestUser(username);
+  saveGuestUser(guestUser);
+  setUser(guestUser);
+  setUserName(username);
+  userNameRef.current = username;
+  setShowUsernameModal(false);
+  
+  // Start background music
+  if (backgroundMusicRef.current && !isMuted) {
+    backgroundMusicRef.current.play().catch(console.warn);
+  }
+};
     
     // Start background music (after user interaction, autoplay is allowed)
     if (backgroundMusicRef.current && !isMuted) {
@@ -1130,188 +1137,9 @@ export default function MergeGame() {
         fontFamily: "'Barlow', sans-serif",
       }}
     >
-      {/* Username Modal - Shows before game starts */}
       {showUsernameModal && (
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.95)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-          }}
-        >
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
-              border: '2px solid #40FFAF',
-              borderRadius: '20px',
-              padding: '3rem 2rem',
-              maxWidth: '500px',
-              width: '100%',
-              boxShadow: '0 20px 60px rgba(64, 255, 175, 0.3)',
-            }}
-          >
-            {/* Logo */}
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <img
-                src="/brand-assets/Lockup/Translucent.png"
-                alt="Ritual"
-                style={{
-                  width: 'clamp(150px, 60%, 280px)',
-                  height: 'auto',
-                  display: 'inline-block',
-                  filter: 'drop-shadow(0 0 20px rgba(64,255,175,0.4))',
-                }}
-              />
-            </div>
-
-            {/* Title */}
-            <h2
-              style={{
-                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
-                fontWeight: 800,
-                fontFamily: "'Barlow-ExtraBold', 'Barlow', sans-serif",
-                color: '#40FFAF',
-                textAlign: 'center',
-                marginBottom: '0.5rem',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Welcome to SiggyDrop!
-            </h2>
-
-            {/* Subtitle */}
-            <p
-              style={{
-                fontSize: '0.95rem',
-                fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                color: '#E7E7E7',
-                textAlign: 'center',
-                marginBottom: '2rem',
-                lineHeight: 1.5,
-              }}
-            >
-              Enter your username to compete on the leaderboard
-            </p>
-
-            {/* Username Input - REQUIRED */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.9rem',
-                  fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                  color: '#40FFAF',
-                  marginBottom: '0.5rem',
-                }}
-              >
-                Username <span style={{ color: '#FF5757' }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={tempUsername}
-                onChange={(e) => setTempUsername(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && tempUsername.trim().length > 0) {
-                    startGame();
-                  }
-                }}
-                placeholder="Enter your username"
-                maxLength={50}
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.5rem',
-                  fontSize: '1.1rem',
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '2px solid rgba(64, 255, 175, 0.3)',
-                  borderRadius: '12px',
-                  color: '#FFFFFF',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-                autoFocus
-              />
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  color: tempUsername.length > 40 ? '#FF5757' : 'rgba(255, 255, 255, 0.4)',
-                  textAlign: 'right',
-                  marginTop: '0.25rem',
-                }}
-              >
-                {tempUsername.length}/50 characters
-              </div>
-            </div>
-
-
-            {/* Start Button */}
-            <button
-              onClick={startGame}
-              disabled={!tempUsername || tempUsername.trim().length === 0}
-              style={{
-                width: '100%',
-                padding: '1rem 2rem',
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-                color: tempUsername.trim().length === 0 ? 'rgba(255, 255, 255, 0.3)' : '#000000',
-                background: tempUsername.trim().length === 0
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : 'linear-gradient(135deg, #40FFAF 0%, #077345 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: tempUsername.trim().length === 0 ? 'not-allowed' : 'pointer',
-                boxShadow: tempUsername.trim().length === 0 ? 'none' : '0 0 30px rgba(64, 255, 175, 0.4)',
-                opacity: tempUsername.trim().length === 0 ? 0.5 : 1,
-                marginBottom: '1rem',
-              }}
-            >
-              {tempUsername.trim().length === 0 ? '⚠️ Username Required' : '🎮 Start Game'}
-            </button>
-
-            {/* Warning Message */}
-            {tempUsername.trim().length === 0 && (
-              <div
-                style={{
-                  padding: '0.75rem',
-                  background: 'rgba(255, 87, 87, 0.1)',
-                  border: '1px solid rgba(255, 87, 87, 0.3)',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  color: '#FF5757',
-                  textAlign: 'center',
-                  marginBottom: '1rem',
-                }}
-              >
-                Username is required to play and submit your score to the leaderboard
-              </div>
-            )}
-
-            {/* Back to Home Link */}
-            <div style={{ textAlign: 'center' }}>
-              <a
-                href="/"
-                style={{
-                  fontSize: '0.9rem',
-                  fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  textDecoration: 'none',
-                }}
-              >
-                ← Back to Home
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+  <AuthModal onGuestLogin={handleGuestLogin} />
+)}
 
       {/* Dark overlay for better contrast */}
       <div className="fixed inset-0 bg-black/40" style={{ zIndex: 0 }}></div>
