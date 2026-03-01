@@ -5,7 +5,7 @@ import Matter from 'matter-js';
 import AuthModal from '../components/AuthModal';
 import { createGuestUser, saveGuestUser } from '../lib/supabase-auth';
 import type { User } from '../lib/auth-types';
-import { supabase } from '../lib/supabase';
+import { supabaseAuth } from '../lib/supabase-auth';
 
 // Ball level configuration
 const BALL_CONFIG = [
