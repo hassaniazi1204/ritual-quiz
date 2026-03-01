@@ -1,6 +1,3 @@
-// OAuth Callback Handler
-// app/auth/callback/page.tsx
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,32 +12,51 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get the auth code from URL
-        const { data, error: authError } = await supabaseAuth.auth.getSession();
+        console.log('🔍 Processing OAuth callback...');
+        
+        // Exchange the code for a session
+        const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
 
-        if (authError) {
-          throw authError;
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
         }
 
-        if (data.session) {
-          console.log('✅ Auth successful:', data.session.user.email);
-          setStatus('success');
-          
-          // Redirect to game after short delay
-          setTimeout(() => {
-            router.push('/game');
-          }, 1500);
-        } else {
+        if (!session) {
+          console.error('No session found after OAuth');
           throw new Error('No session found');
         }
+
+        console.log('✅ Session established:', {
+          user: session.user.email,
+          provider: session.user.app_metadata.provider,
+        });
+
+        // Store username from OAuth
+        const username = session.user.user_metadata.full_name || 
+                        session.user.user_metadata.name || 
+                        session.user.email?.split('@')[0] || 
+                        'Player';
+        
+        localStorage.setItem('auth_username', username);
+        localStorage.setItem('auth_mode', session.user.app_metadata.provider);
+        
+        setStatus('success');
+        
+        // Redirect to game
+        console.log('🎮 Redirecting to game...');
+        setTimeout(() => {
+          router.push('/game');
+          router.refresh(); // Force refresh to pick up new session
+        }, 1000);
+        
       } catch (err) {
-        console.error('❌ Auth callback error:', err);
+        console.error('❌ Callback error:', err);
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setStatus('error');
         
-        // Redirect to home after error
         setTimeout(() => {
-          router.push('/');
+          router.push('/game');
         }, 3000);
       }
     };
@@ -59,14 +75,7 @@ export default function AuthCallbackPage() {
         fontFamily: "'Barlow-Regular', 'Barlow', sans-serif",
       }}
     >
-      <div
-        style={{
-          textAlign: 'center',
-          padding: '3rem',
-          maxWidth: '500px',
-        }}
-      >
-        {/* Logo */}
+      <div style={{ textAlign: 'center', padding: '3rem', maxWidth: '500px' }}>
         <img
           src="/brand-assets/Lockup/Translucent.png"
           alt="Ritual"
@@ -102,12 +111,7 @@ export default function AuthCallbackPage() {
             >
               Signing you in...
             </h2>
-            <p
-              style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '1rem',
-              }}
-            >
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '1rem' }}>
               Please wait a moment
             </p>
           </>
@@ -115,14 +119,7 @@ export default function AuthCallbackPage() {
 
         {status === 'success' && (
           <>
-            <div
-              style={{
-                fontSize: '4rem',
-                marginBottom: '1rem',
-              }}
-            >
-              ✅
-            </div>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
             <h2
               style={{
                 fontSize: '1.5rem',
@@ -134,12 +131,7 @@ export default function AuthCallbackPage() {
             >
               Successfully signed in!
             </h2>
-            <p
-              style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '1rem',
-              }}
-            >
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '1rem' }}>
               Redirecting to game...
             </p>
           </>
@@ -147,14 +139,7 @@ export default function AuthCallbackPage() {
 
         {status === 'error' && (
           <>
-            <div
-              style={{
-                fontSize: '4rem',
-                marginBottom: '1rem',
-              }}
-            >
-              ❌
-            </div>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>❌</div>
             <h2
               style={{
                 fontSize: '1.5rem',
@@ -166,22 +151,11 @@ export default function AuthCallbackPage() {
             >
               Authentication Failed
             </h2>
-            <p
-              style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '1rem',
-                marginBottom: '1rem',
-              }}
-            >
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '1rem', marginBottom: '1rem' }}>
               {error || 'Something went wrong'}
             </p>
-            <p
-              style={{
-                color: 'rgba(255, 255, 255, 0.4)',
-                fontSize: '0.9rem',
-              }}
-            >
-              Redirecting to home...
+            <p style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.9rem' }}>
+              Redirecting to game...
             </p>
           </>
         )}
