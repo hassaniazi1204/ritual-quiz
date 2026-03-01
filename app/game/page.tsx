@@ -5,6 +5,7 @@ import Matter from 'matter-js';
 import AuthModal from '../components/AuthModal';
 import { createGuestUser, saveGuestUser } from '../lib/supabase-auth';
 import type { User } from '../lib/auth-types';
+import { supabaseAuth } from '../lib/supabase-auth';
 
 // Ball level configuration
 const BALL_CONFIG = [
@@ -86,7 +87,40 @@ export default function MergeGame() {
   const topBoundary = 380;  // Game over line - moved up for better difficulty (was 450)
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
-
+// Check for authenticated session on mount
+useEffect(() => {
+  const checkAuth = async () => {
+    // Check if coming from OAuth
+    const authUsername = localStorage.getItem('auth_username');
+    const authMode = localStorage.getItem('auth_mode');
+    
+    if (authUsername) {
+      console.log('✅ Found OAuth session:', { username: authUsername, mode: authMode });
+      setUserName(authUsername);
+      userNameRef.current = authUsername;
+      setShowUsernameModal(false);
+      
+      // Clear the flags
+      localStorage.removeItem('auth_username');
+      localStorage.removeItem('auth_mode');
+    } else {
+      // Check Supabase session
+      const { data: { session } } = await supabaseAuth.auth.getSession();
+      if (session) {
+        const username = session.user.user_metadata.full_name || 
+                        session.user.user_metadata.name || 
+                        session.user.email?.split('@')[0] || 
+                        'Player';
+        console.log('✅ Found Supabase session:', username);
+        setUserName(username);
+        userNameRef.current = username;
+        setShowUsernameModal(false);
+      }
+    }
+  };
+  
+  checkAuth();
+}, []);
   // Sync userName state with ref
   useEffect(() => {
     if (userName) {
