@@ -92,13 +92,13 @@ export default function MergeGame() {
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
-// ✅ PROPER AUTH STATE LISTENER
+// ✅ FIXED AUTH STATE LISTENER
   useEffect(() => {
     console.log('🔐 Initializing auth listener...');
     
     let mounted = true;
 
-    // Function to check initial session
+    // Check initial session
     const checkInitialSession = async () => {
       try {
         console.log('🔍 Checking for existing session...');
@@ -127,17 +127,19 @@ export default function MergeGame() {
           userNameRef.current = username;
           setShowUsernameModal(false);
         } else {
-          // No session - show modal
+          // No session
           console.log('ℹ️ No session - showing auth modal');
           setShowUsernameModal(true);
         }
         
+        // ✅ FIX: Always set these flags after check completes
         setIsCheckingAuth(false);
         setIsAuthReady(true);
         
       } catch (error) {
         console.error('❌ Auth check error:', error);
         if (mounted) {
+          // ✅ FIX: Set flags even on error
           setIsCheckingAuth(false);
           setIsAuthReady(true);
           setShowUsernameModal(true);
@@ -145,17 +147,36 @@ export default function MergeGame() {
       }
     };
 
-    // Check session immediately
+    // Run initial check
     checkInitialSession();
 
-    // Set up real-time auth state listener
+    // Set up auth state listener
     const { data: { subscription } } = supabaseAuth.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth state changed:', event);
         
         if (!mounted) return;
         
-        if (event === 'SIGNED_IN' && session?.user) {
+        // ✅ FIX: Handle INITIAL_SESSION event
+        if (event === 'INITIAL_SESSION') {
+          console.log('📍 Initial session event');
+          // Ensure UI states are set
+          setIsCheckingAuth(false);
+          setIsAuthReady(true);
+          
+          if (session?.user) {
+            const username = session.user.user_metadata.full_name || 
+                            session.user.user_metadata.name || 
+                            session.user.email?.split('@')[0] || 
+                            'Player';
+            setUserName(username);
+            userNameRef.current = username;
+            setShowUsernameModal(false);
+          } else {
+            setShowUsernameModal(true);
+          }
+        }
+        else if (event === 'SIGNED_IN' && session?.user) {
           // User just signed in
           const username = session.user.user_metadata.full_name || 
                           session.user.user_metadata.name || 
@@ -173,15 +194,15 @@ export default function MergeGame() {
           if (backgroundMusicRef.current && !isMuted) {
             backgroundMusicRef.current.play().catch(console.warn);
           }
-          
-        } else if (event === 'SIGNED_OUT') {
+        } 
+        else if (event === 'SIGNED_OUT') {
           console.log('👋 User signed out');
           
           setUserName('');
           userNameRef.current = '';
           setShowUsernameModal(true);
-          
-        } else if (event === 'TOKEN_REFRESHED') {
+        } 
+        else if (event === 'TOKEN_REFRESHED') {
           console.log('🔄 Token refreshed');
         }
       }
@@ -1244,7 +1265,7 @@ export default function MergeGame() {
         </div>
       )}
 
-{/* Loading State - Show while checking auth */}
+{/* Loading State - Only while checking auth */}
       {isCheckingAuth && (
         <div
           style={{
@@ -1283,8 +1304,8 @@ export default function MergeGame() {
         </div>
       )}
 
-      {/* Auth Modal - Only show after auth check completes */}
-      {isAuthReady && showUsernameModal && (
+      {/* Auth Modal - Show after check completes AND no session */}
+      {!isCheckingAuth && showUsernameModal && (
         <AuthModal onGuestLogin={handleGuestLogin} />
       )}
 
