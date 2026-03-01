@@ -3,9 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import AuthModal from '../components/AuthModal';
-import { createGuestUser, saveGuestUser } from '../lib/supabase-auth';
+import { createGuestUser, saveGuestUser, supabaseAuth } from '../lib/supabase-auth';
 import type { User } from '../lib/auth-types';
-import { supabaseAuth } from '../lib/supabase-auth';
 
 // Ball level configuration
 const BALL_CONFIG = [
@@ -75,6 +74,8 @@ export default function MergeGame() {
   const [tempUsername, setTempUsername] = useState('');
   const [savingScore, setSavingScore] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
     // Authentication state
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
@@ -91,76 +92,91 @@ export default function MergeGame() {
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
-    // Auth state listener - reacts to login/logout in real-time
+// ✅ PROPER AUTH STATE LISTENER
   useEffect(() => {
-    console.log('🔐 Setting up auth listener...');
+    console.log('🔐 Initializing auth listener...');
     
-    // Check initial session
+    let mounted = true;
+
+    // Function to check initial session
     const checkInitialSession = async () => {
       try {
+        console.log('🔍 Checking for existing session...');
         const { data: { session }, error } = await supabaseAuth.auth.getSession();
         
         if (error) {
-          console.error('Session check error:', error);
-          setIsAuthenticating(false);
-          setAuthChecked(true);
-          return;
+          console.error('❌ Session check error:', error);
         }
         
+        if (!mounted) return;
+        
         if (session?.user) {
-          // Valid session exists
+          // User is logged in
           const username = session.user.user_metadata.full_name || 
                           session.user.user_metadata.name || 
                           session.user.email?.split('@')[0] || 
                           'Player';
           
-          console.log('✅ Valid session found:', { 
-            email: session.user.email, 
+          console.log('✅ Session found:', {
+            email: session.user.email,
             username,
-            provider: session.user.app_metadata.provider 
+            provider: session.user.app_metadata.provider
           });
           
           setUserName(username);
           userNameRef.current = username;
           setShowUsernameModal(false);
         } else {
-          console.log('ℹ️ No session found - showing auth modal');
+          // No session - show modal
+          console.log('ℹ️ No session - showing auth modal');
           setShowUsernameModal(true);
         }
         
-        setIsAuthenticating(false);
-        setAuthChecked(true);
+        setIsCheckingAuth(false);
+        setIsAuthReady(true);
         
       } catch (error) {
-        console.error('Error checking session:', error);
-        setIsAuthenticating(false);
-        setAuthChecked(true);
+        console.error('❌ Auth check error:', error);
+        if (mounted) {
+          setIsCheckingAuth(false);
+          setIsAuthReady(true);
+          setShowUsernameModal(true);
+        }
       }
     };
-    
+
     // Check session immediately
     checkInitialSession();
-    
-    // Listen for auth changes (login, logout, token refresh)
+
+    // Set up real-time auth state listener
     const { data: { subscription } } = supabaseAuth.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 Auth state changed:', event, session?.user?.email);
+        console.log('🔔 Auth state changed:', event);
+        
+        if (!mounted) return;
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // User just logged in
+          // User just signed in
           const username = session.user.user_metadata.full_name || 
                           session.user.user_metadata.name || 
                           session.user.email?.split('@')[0] || 
                           'Player';
           
           console.log('✅ User signed in:', username);
+          
           setUserName(username);
           userNameRef.current = username;
           setShowUsernameModal(false);
+          setIsAuthReady(true);
+          
+          // Start background music if not muted
+          if (backgroundMusicRef.current && !isMuted) {
+            backgroundMusicRef.current.play().catch(console.warn);
+          }
           
         } else if (event === 'SIGNED_OUT') {
-          // User logged out
           console.log('👋 User signed out');
+          
           setUserName('');
           userNameRef.current = '';
           setShowUsernameModal(true);
@@ -170,11 +186,12 @@ export default function MergeGame() {
         }
       }
     );
-    
-    // Cleanup: unsubscribe when component unmounts
+
+    // Cleanup
     return () => {
-      console.log('🧹 Cleaning up auth listener');
+      mounted = false;
       subscription.unsubscribe();
+      console.log('🧹 Auth listener cleaned up');
     };
   }, []); // Run once on mount
 
@@ -1227,8 +1244,47 @@ export default function MergeGame() {
         </div>
       )}
 
+{/* Loading State - Show while checking auth */}
+      {isCheckingAuth && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.95)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                border: '4px solid rgba(64, 255, 175, 0.2)',
+                borderTop: '4px solid #40FFAF',
+                borderRadius: '50%',
+                margin: '0 auto 1rem',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+            <p
+              style={{
+                color: '#40FFAF',
+                fontSize: '1.1rem',
+                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+              }}
+            >
+              Checking session...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Auth Modal - Only show after auth check completes */}
-      {authChecked && showUsernameModal && (
+      {isAuthReady && showUsernameModal && (
         <AuthModal onGuestLogin={handleGuestLogin} />
       )}
 
