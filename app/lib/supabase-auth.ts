@@ -115,6 +115,19 @@ export async function getCurrentUser(): Promise<User | null> {
   };
 }
 
+// Create a guest user object
+export function createGuestUser(username: string): User {
+  return {
+    id: `guest_${Date.now()}`,
+    username,
+    authMode: 'guest',
+    email: null,
+    avatar: null,
+    provider_id: null,
+    created_at: new Date().toISOString(),
+  };
+}
+
 // Save guest user to localStorage
 export function saveGuestUser(user: User) {
   localStorage.setItem('guest_user', JSON.stringify(user));
