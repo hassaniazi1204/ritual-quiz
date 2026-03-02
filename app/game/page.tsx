@@ -79,6 +79,10 @@ export default function MergeGame() {
   // OAuth username flow states
   const [oauthUserId, setOauthUserId] = useState<string | null>(null);
   const [needsUsername, setNeedsUsername] = useState(false);
+  
+  // Profile states
+  const [userProfileImage, setUserProfileImage] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Audio refs - created once and reused
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -123,10 +127,16 @@ export default function MergeGame() {
             const userId = session.user.id;
             const savedUsername = localStorage.getItem(`username_${userId}`);
             
+            // Load profile data from OAuth provider
+            const metadata = session.user.user_metadata;
+            setUserProfileImage(metadata?.avatar_url || metadata?.picture || null);
+            setUserEmail(session.user.email || null);
+            
             console.log('✅ Session found:', {
               userId,
               savedUsername: savedUsername || 'NOT SET',
               provider: session.user.app_metadata.provider,
+              avatarUrl: metadata?.avatar_url || metadata?.picture,
               event
             });
             
@@ -163,6 +173,8 @@ export default function MergeGame() {
           setShowUsernameModal(true);
           setNeedsUsername(false);
           setOauthUserId(null);
+          setUserProfileImage(null);
+          setUserEmail(null);
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('🔄 Token refreshed');
         }
@@ -1214,6 +1226,17 @@ export default function MergeGame() {
     }
   };
 
+  // Handle logout
+  const handleLogout = async () => {
+    await supabaseAuth.auth.signOut();
+    // Clear local storage
+    if (oauthUserId) {
+      localStorage.removeItem(`username_${oauthUserId}`);
+    }
+    // Redirect to home
+    window.location.href = '/';
+  };
+
   return (
     <main 
       className="min-h-screen relative overflow-hidden"
@@ -1273,12 +1296,57 @@ export default function MergeGame() {
         />
       )}
 
+      {/* Profile Header - Only show when logged in and not in auth modal */}
+      {!showUsernameModal && userName && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-purple-500/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Left side - Logo/Title */}
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  SIGGYDROP
+                </span>
+              </div>
+              
+              {/* Right side - Profile */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 bg-gray-900/80 rounded-full px-4 py-2 border border-purple-500/30">
+                  {userProfileImage ? (
+                    <img 
+                      src={userProfileImage} 
+                      alt={userName}
+                      className="w-8 h-8 rounded-full border-2 border-purple-400 object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full border-2 border-purple-400 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                      {userName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-white font-semibold text-sm hidden sm:inline">
+                    {userName}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-semibold text-sm transition-colors border border-red-500/30 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dark overlay for better contrast */}
       <div className="fixed inset-0 bg-black/40" style={{ zIndex: 0 }}></div>
 
       {/* Content */}
-      <div className="relative z-10 p-4 md:p-8">
+      <div className={`relative z-10 p-4 md:p-8 ${!showUsernameModal && userName ? 'pt-20 md:pt-24' : ''}`}>
         {/* Header */}
         <div className="max-w-7xl mx-auto mb-8">
           <div className="flex justify-between items-center">
