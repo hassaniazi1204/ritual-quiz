@@ -141,16 +141,14 @@ export default function MergeGame() {
           setShowUsernameModal(true);
         }
         
-        // ✅ FIX: Always set these flags after check completes
+        // ✅ FIX: Set flag after check completes
         setIsCheckingAuth(false);
-        setIsAuthReady(true);
         
       } catch (error) {
         console.error('❌ Auth check error:', error);
         if (mounted) {
-          // ✅ FIX: Set flags even on error
+          // ✅ FIX: Set flag even on error
           setIsCheckingAuth(false);
-          setIsAuthReady(true);
           setShowUsernameModal(true);
         }
       }
@@ -1277,38 +1275,6 @@ export default function MergeGame() {
         fontFamily: "'Barlow', sans-serif",
       }}
     >
-      {/* Loading State */}
-      {isAuthenticating && !authChecked && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                width: '60px',
-                height: '60px',
-                border: '4px solid rgba(64, 255, 175, 0.2)',
-                borderTop: '4px solid #40FFAF',
-                borderRadius: '50%',
-                margin: '0 auto 1rem',
-                animation: 'spin 1s linear infinite',
-              }}
-            />
-            <p style={{ color: '#40FFAF', fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}>
-              Checking session...
-            </p>
-          </div>
-        </div>
-      )}
-
 {/* Loading State - Only while checking auth */}
       {isCheckingAuth && (
         <div
