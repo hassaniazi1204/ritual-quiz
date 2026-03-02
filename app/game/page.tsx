@@ -75,6 +75,10 @@ export default function MergeGame() {
   const [savingScore, setSavingScore] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // OAuth username flow states
+  const [oauthUserId, setOauthUserId] = useState<string | null>(null);
+  const [needsUsername, setNeedsUsername] = useState(false);
 
   // Audio refs - created once and reused
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -107,35 +111,46 @@ export default function MergeGame() {
         if (!mounted) return;
         
         if (session?.user) {
-          // User is logged in
-          const username = session.user.user_metadata.full_name || 
-                          session.user.user_metadata.name || 
-                          session.user.email?.split('@')[0] || 
-                          'Player';
+          // User is logged in - check if they have a saved username
+          const userId = session.user.id;
+          const savedUsername = localStorage.getItem(`username_${userId}`);
           
           console.log('✅ Session found:', {
             email: session.user.email,
-            username,
+            userId,
+            savedUsername: savedUsername || 'NOT SET',
             provider: session.user.app_metadata.provider
           });
           
-          setUserName(username);
-          userNameRef.current = username;
-          setShowUsernameModal(false);
+          if (savedUsername) {
+            // User has already set username - load game
+            setUserName(savedUsername);
+            userNameRef.current = savedUsername;
+            setShowUsernameModal(false);
+            setNeedsUsername(false);
+          } else {
+            // OAuth user needs to set username
+            console.log('⚠️ OAuth user needs username');
+            setOauthUserId(userId);
+            setNeedsUsername(true);
+            setShowUsernameModal(true);
+          }
         } else {
           // No session
           console.log('ℹ️ No session - showing auth modal');
           setShowUsernameModal(true);
         }
         
-        // ✅ FIX: Set flag after check completes
+        // ✅ FIX: Always set these flags after check completes
         setIsCheckingAuth(false);
+        setIsAuthReady(true);
         
       } catch (error) {
         console.error('❌ Auth check error:', error);
         if (mounted) {
-          // ✅ FIX: Set flag even on error
+          // ✅ FIX: Set flags even on error
           setIsCheckingAuth(false);
+          setIsAuthReady(true);
           setShowUsernameModal(true);
         }
       }
@@ -154,37 +169,49 @@ export default function MergeGame() {
         // ✅ FIX: Handle INITIAL_SESSION event
         if (event === 'INITIAL_SESSION') {
           console.log('📍 Initial session event');
-          // Ensure UI state is set
           setIsCheckingAuth(false);
           
           if (session?.user) {
-            const username = session.user.user_metadata.full_name || 
-                            session.user.user_metadata.name || 
-                            session.user.email?.split('@')[0] || 
-                            'Player';
-            setUserName(username);
-            userNameRef.current = username;
-            setShowUsernameModal(false);
+            const userId = session.user.id;
+            const savedUsername = localStorage.getItem(`username_${userId}`);
+            
+            if (savedUsername) {
+              setUserName(savedUsername);
+              userNameRef.current = savedUsername;
+              setShowUsernameModal(false);
+              setNeedsUsername(false);
+            } else {
+              setOauthUserId(userId);
+              setNeedsUsername(true);
+              setShowUsernameModal(true);
+            }
           } else {
             setShowUsernameModal(true);
           }
         }
         else if (event === 'SIGNED_IN' && session?.user) {
-          // User just signed in
-          const username = session.user.user_metadata.full_name || 
-                          session.user.user_metadata.name || 
-                          session.user.email?.split('@')[0] || 
-                          'Player';
+          // User just signed in via OAuth
+          const userId = session.user.id;
+          const savedUsername = localStorage.getItem(`username_${userId}`);
           
-          console.log('✅ User signed in:', username);
+          console.log('✅ User signed in:', { userId, savedUsername });
           
-          setUserName(username);
-          userNameRef.current = username;
-          setShowUsernameModal(false);
-          
-          // Start background music if not muted
-          if (backgroundMusicRef.current && !isMuted) {
-            backgroundMusicRef.current.play().catch(console.warn);
+          if (savedUsername) {
+            // Returning user
+            setUserName(savedUsername);
+            userNameRef.current = savedUsername;
+            setShowUsernameModal(false);
+            setNeedsUsername(false);
+            
+            if (backgroundMusicRef.current && !isMuted) {
+              backgroundMusicRef.current.play().catch(console.warn);
+            }
+          } else {
+            // New OAuth user - needs username
+            console.log('⚠️ New OAuth user - needs username');
+            setOauthUserId(userId);
+            setNeedsUsername(true);
+            setShowUsernameModal(true);
           }
         } 
         else if (event === 'SIGNED_OUT') {
@@ -1156,6 +1183,31 @@ export default function MergeGame() {
       backgroundMusicRef.current.play().catch(console.warn);
     }
   };
+
+  // OAuth username handler
+  const handleOAuthUsername = (username: string) => {
+    console.log('🎮 OAuth user setting username:', username);
+    
+    if (!oauthUserId) {
+      console.error('❌ No OAuth user ID');
+      return;
+    }
+    
+    // Save username with user ID key
+    localStorage.setItem(`username_${oauthUserId}`, username);
+    
+    setUserName(username);
+    userNameRef.current = username;
+    setShowUsernameModal(false);
+    setNeedsUsername(false);
+    
+    console.log('✅ Username saved');
+    
+    if (backgroundMusicRef.current && !isMuted) {
+      backgroundMusicRef.current.play().catch(console.warn);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await supabaseAuth.auth.signOut();
@@ -1225,6 +1277,38 @@ export default function MergeGame() {
         fontFamily: "'Barlow', sans-serif",
       }}
     >
+      {/* Loading State */}
+      {isAuthenticating && !authChecked && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                border: '4px solid rgba(64, 255, 175, 0.2)',
+                borderTop: '4px solid #40FFAF',
+                borderRadius: '50%',
+                margin: '0 auto 1rem',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+            <p style={{ color: '#40FFAF', fontFamily: "'Barlow-Bold', 'Barlow', sans-serif" }}>
+              Checking session...
+            </p>
+          </div>
+        </div>
+      )}
+
 {/* Loading State - Only while checking auth */}
       {isCheckingAuth && (
         <div
@@ -1266,7 +1350,11 @@ export default function MergeGame() {
 
       {/* Auth Modal - Show after check completes AND no session */}
       {!isCheckingAuth && showUsernameModal && (
-        <AuthModal onGuestLogin={handleGuestLogin} />
+        <AuthModal 
+          onGuestLogin={handleGuestLogin}
+          onOAuthUsername={handleOAuthUsername}
+          needsUsername={needsUsername}
+        />
       )}
 
 
