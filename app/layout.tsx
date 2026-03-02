@@ -9,16 +9,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body>
+      <body className={barlow.variable}>
         <SessionProvider>
           {children}
         </SessionProvider>
       </body>
     </html>
-  );
+  )
 }
+
