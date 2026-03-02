@@ -2,9 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
-import AuthModal from '../components/AuthModal';
-import { createGuestUser, saveGuestUser, supabaseAuth } from '../lib/supabase-auth';
-import type { User } from '../lib/auth-types';
+import { useSession, signOut } from 'next-auth/react';
+import NextAuthModal from '../components/NextAuthModal';
 
 // Ball level configuration
 const BALL_CONFIG = [
@@ -40,6 +39,7 @@ const getRandomBallLevel = (): number => {
 };
 
 export default function MergeGame() {
+  const { data: session, status } = useSession();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const worldRef = useRef<Matter.World | null>(null);
@@ -69,20 +69,14 @@ export default function MergeGame() {
   const [canDropBall, setCanDropBall] = useState(true);
   const [dropPosition, setDropPosition] = useState(180);
   const [userName, setUserName] = useState('');
-  const [showUsernameModal, setShowUsernameModal] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [tempUsername, setTempUsername] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+ 
+  
   const [savingScore, setSavingScore] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  
-  // OAuth username flow states
-  const [oauthUserId, setOauthUserId] = useState<string | null>(null);
-  const [needsUsername, setNeedsUsername] = useState(false);
   
   // Profile states
   const [userProfileImage, setUserProfileImage] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Audio refs - created once and reused
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -98,102 +92,28 @@ export default function MergeGame() {
 
 // ✅ FIXED AUTH STATE LISTENER
 
-  // ✅ COMPLETE FIX: Unified Auth State Listener
-  useEffect(() => {
-    console.log('🔐 Initializing auth listener...');
+// NextAuth session handler
+useEffect(() => {
+  if (status === 'loading') return;
+
+  if (session?.user) {
+    // User is logged in with OAuth
+    const name = session.user.name || session.user.email || 'Player';
+    setUserName(name);
+    userNameRef.current = name;
+    setUserProfileImage(session.user.image || null);
+    setShowAuthModal(false);
     
-    let mounted = true;
-    let sessionChecked = false;
+    // Start music
+    if (backgroundMusicRef.current && !isMuted) {
+      backgroundMusicRef.current.play().catch(console.warn);
+    }
+  } else if (!userName) {
+    // No session and no guest username - show auth modal
+    setShowAuthModal(true);
+  }
+}, [session, status, userName, isMuted]);
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabaseAuth.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔔 Auth event:', event);
-        
-        if (!mounted) return;
-        
-        // Handle INITIAL_SESSION and SIGNED_IN events
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          if (sessionChecked) {
-            console.log('⏭️ Session already processed, skipping');
-            return;
-          }
-          
-          sessionChecked = true;
-          console.log('📍 Processing session...');
-          setIsCheckingAuth(false);
-          
-          if (session?.user) {
-            const userId = session.user.id;
-            const savedUsername = localStorage.getItem(`username_${userId}`);
-            
-            // Load profile data from OAuth provider
-            const metadata = session.user.user_metadata;
-            setUserProfileImage(metadata?.avatar_url || metadata?.picture || null);
-            setUserEmail(session.user.email || null);
-            
-            console.log('✅ Session found:', {
-              userId,
-              savedUsername: savedUsername || 'NOT SET',
-              provider: session.user.app_metadata.provider,
-              avatarUrl: metadata?.avatar_url || metadata?.picture,
-              event
-            });
-            
-            if (savedUsername) {
-              // User has username - load game
-              console.log('✅ Loading game with username:', savedUsername);
-              setUserName(savedUsername);
-              userNameRef.current = savedUsername;
-              setShowUsernameModal(false);
-              setNeedsUsername(false);
-              
-              // Start music
-              if (backgroundMusicRef.current && !isMuted) {
-                backgroundMusicRef.current.play().catch(console.warn);
-              }
-            } else {
-              // OAuth user needs username
-              console.log('⚠️ OAuth user needs to set username');
-              setOauthUserId(userId);
-              setNeedsUsername(true);
-              setShowUsernameModal(true);
-            }
-          } else {
-            // No session - show auth options
-            console.log('ℹ️ No session found');
-            setShowUsernameModal(true);
-            setNeedsUsername(false);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out');
-          sessionChecked = false;
-          setUserName('');
-          userNameRef.current = '';
-          setShowUsernameModal(true);
-          setNeedsUsername(false);
-          setOauthUserId(null);
-          setUserProfileImage(null);
-          setUserEmail(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('🔄 Token refreshed');
-        }
-      }
-    );
-
-    // Trigger initial session check
-    supabaseAuth.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      console.log('📋 Initial session check complete');
-    });
-
-    // Cleanup
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-      console.log('🧹 Auth listener cleaned up');
-    };
-  }, [isMuted]);
 
   // Handle mute toggle
   useEffect(() => {
@@ -1128,64 +1048,33 @@ export default function MergeGame() {
     }
   };
 
-    const handleGuestLogin = (username: string) => {
-    console.log('🎮 Guest login:', username);
-    
-    const guestUser = createGuestUser(username);
-    saveGuestUser(guestUser);
-    setUser(guestUser);
-    setUserName(username);
-    userNameRef.current = username;
-    setShowUsernameModal(false);
-    
-    // Start background music
-    if (backgroundMusicRef.current && !isMuted) {
-      backgroundMusicRef.current.play().catch(console.warn);
-    }
-  };
+const handleGuestLogin = (username: string) => {
+  setUserName(username);
+  userNameRef.current = username;
+  setShowAuthModal(false);
+  
+  // Start music for guest
+  if (backgroundMusicRef.current && !isMuted) {
+    backgroundMusicRef.current.play().catch(console.warn);
+  }
+};
 
-  // OAuth username handler
-  const handleOAuthUsername = (username: string) => {
-    console.log('🎮 OAuth user setting username:', username);
-    
-    if (!oauthUserId) {
-      console.error('❌ No OAuth user ID');
-      return;
-    }
-    
-    // Save username with user ID key
-    localStorage.setItem(`username_${oauthUserId}`, username);
-    
-    setUserName(username);
-    userNameRef.current = username;
-    setShowUsernameModal(false);
-    setNeedsUsername(false);
-    
-    console.log('✅ Username saved');
-    
-    if (backgroundMusicRef.current && !isMuted) {
-      backgroundMusicRef.current.play().catch(console.warn);
-    }
-  };
 
-  const handleLogout = async () => {
-    try {
-      await supabaseAuth.auth.signOut();
-      localStorage.clear(); // Clear guest sessions too
-      setUserName('');
-      userNameRef.current = '';
-      setShowUsernameModal(true);
-      // Clear profile data
-      setUserProfileImage(null);
-      setUserEmail(null);
-      setOauthUserId(null);
-      console.log('✅ Logged out successfully');
-      // Redirect to home
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+
+
+const handleLogout = async () => {
+  if (session) {
+    // OAuth user - sign out with NextAuth
+    await signOut({ callbackUrl: '/' });
+  } else {
+    // Guest user - just clear state
+    setUserName('');
+    userNameRef.current = '';
+    setUserProfileImage(null);
+    setShowAuthModal(true);
+  }
+};
+
 
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
@@ -1244,56 +1133,51 @@ export default function MergeGame() {
       }}
     >
 {/* Loading State - Only while checking auth */}
-      {isCheckingAuth && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.95)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                width: '60px',
-                height: '60px',
-                border: '4px solid rgba(64, 255, 175, 0.2)',
-                borderTop: '4px solid #40FFAF',
-                borderRadius: '50%',
-                margin: '0 auto 1rem',
-                animation: 'spin 1s linear infinite',
-              }}
-            />
-            <p
-              style={{
-                color: '#40FFAF',
-                fontSize: '1.1rem',
-                fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
-              }}
-            >
-              Checking session...
-            </p>
-          </div>
-        </div>
-      )}
+      {status === 'loading' && (
+  <div style={{
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0, 0, 0, 0.95)',
+    backdropFilter: 'blur(10px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10000,
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '60px',
+        height: '60px',
+        border: '4px solid rgba(64, 255, 175, 0.2)',
+        borderTop: '4px solid #40FFAF',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+        margin: '0 auto 20px',
+      }} />
+      <p style={{
+        color: '#FFFFFF',
+        fontSize: '1.1rem',
+        fontFamily: "'Barlow-Bold', 'Barlow', sans-serif",
+      }}>
+        Loading...
+      </p>
+    </div>
+  </div>
+)}
+
 
       {/* Auth Modal - Show after check completes AND no session */}
-      {!isCheckingAuth && showUsernameModal && (
-        <AuthModal 
-          onGuestLogin={handleGuestLogin}
-          onOAuthUsername={handleOAuthUsername}
-          needsUsername={needsUsername}
-        />
-      )}
+      {showAuthModal && (
+  <NextAuthModal
+    isOpen={showAuthModal}
+    onGuestLogin={handleGuestLogin}
+  />
+)}
+
 
       {/* Profile Header - Only show when logged in and not in auth modal */}
-      {!showUsernameModal && userName && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-purple-500/30">
+      {!showAuthModal && userName && (
+  <div className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-purple-500/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               {/* Left side - Logo/Title */}
