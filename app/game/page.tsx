@@ -93,128 +93,100 @@ export default function MergeGame() {
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
 // ✅ FIXED AUTH STATE LISTENER
+
+  // ✅ COMPLETE FIX: Unified Auth State Listener
   useEffect(() => {
     console.log('🔐 Initializing auth listener...');
     
     let mounted = true;
+    let sessionChecked = false;
 
-    // Check initial session
-    const checkInitialSession = async () => {
-      try {
-        console.log('🔍 Checking for existing session...');
-        const { data: { session }, error } = await supabaseAuth.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Session check error:', error);
-        }
-        
-        if (!mounted) return;
-        
-        if (session?.user) {
-          // User is logged in - check if they have a saved username
-          const userId = session.user.id;
-          const savedUsername = localStorage.getItem(`username_${userId}`);
-          
-          console.log('✅ Session found:', {
-            email: session.user.email,
-            userId,
-            savedUsername: savedUsername || 'NOT SET',
-            provider: session.user.app_metadata.provider
-          });
-          
-          if (savedUsername) {
-            // User has already set username - load game
-            setUserName(savedUsername);
-            userNameRef.current = savedUsername;
-            setShowUsernameModal(false);
-            setNeedsUsername(false);
-          } else {
-            // OAuth user needs to set username
-            console.log('⚠️ OAuth user needs username');
-            setOauthUserId(userId);
-            setNeedsUsername(true);
-            setShowUsernameModal(true);
-          }
-        } else {
-          // No session
-          console.log('ℹ️ No session - showing auth modal');
-          setShowUsernameModal(true);
-        }
-        
-        // ✅ FIX: Set flag after check completes
-        setIsCheckingAuth(false);
-        
-      } catch (error) {
-        console.error('❌ Auth check error:', error);
-        if (mounted) {
-          // ✅ FIX: Set flag even on error
-          setIsCheckingAuth(false);
-          setShowUsernameModal(true);
-        }
-      }
-    };
-
-    // Run initial check
-    checkInitialSession();
-
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabaseAuth.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 Auth state changed:', event);
+        console.log('🔔 Auth event:', event);
         
         if (!mounted) return;
         
-        // ✅ FIX: Handle INITIAL_SESSION event
-        if (event === 'INITIAL_SESSION') {
-          console.log('📍 Initial session event');
+        // Handle all auth events
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          if (sessionChecked) {
+            console.log('⏭️ Session already processed, skipping');
+            return;
+          }
+          
+          sessionChecked = true;
+          console.log('📍 Processing session...');
           setIsCheckingAuth(false);
           
           if (session?.user) {
             const userId = session.user.id;
             const savedUsername = localStorage.getItem(`username_${userId}`);
             
+            console.log('✅ Session found:', {
+              userId,
+              savedUsername: savedUsername || 'NOT SET',
+              provider: session.user.app_metadata.provider,
+              event
+            });
+            
             if (savedUsername) {
+              // User has username - load game
+              console.log('✅ Loading game with username:', savedUsername);
               setUserName(savedUsername);
               userNameRef.current = savedUsername;
               setShowUsernameModal(false);
               setNeedsUsername(false);
+              
+              // Start music
+              if (backgroundMusicRef.current && !isMuted) {
+                backgroundMusicRef.current.play().catch(console.warn);
+              }
             } else {
+              // OAuth user needs username
+              console.log('⚠️ OAuth user needs to set username');
               setOauthUserId(userId);
               setNeedsUsername(true);
               setShowUsernameModal(true);
             }
           } else {
+            // No session - show auth options
+            console.log('ℹ️ No session found');
             setShowUsernameModal(true);
+            setNeedsUsername(false);
           }
         }
-        else if (event === 'SIGNED_IN' && session?.user) {
-          // User just signed in via OAuth
-          const userId = session.user.id;
-          const savedUsername = localStorage.getItem(`username_${userId}`);
-          
-          console.log('✅ User signed in:', { userId, savedUsername });
-          
-          if (savedUsername) {
-            // Returning user
-            setUserName(savedUsername);
-            userNameRef.current = savedUsername;
-            setShowUsernameModal(false);
-            setNeedsUsername(false);
-            
-            if (backgroundMusicRef.current && !isMuted) {
-              backgroundMusicRef.current.play().catch(console.warn);
-            }
-          } else {
-            // New OAuth user - needs username
-            console.log('⚠️ New OAuth user - needs username');
-            setOauthUserId(userId);
-            setNeedsUsername(true);
-            setShowUsernameModal(true);
-          }
-        } 
         else if (event === 'SIGNED_OUT') {
           console.log('👋 User signed out');
-          
+          sessionChecked = false;
+          setUserName('');
+          userNameRef.current = '';
+          setShowUsernameModal(true);
+          setNeedsUsername(false);
+          setOauthUserId(null);
+        }
+        else if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed');
+        }
+      }
+    );
+
+    // Trigger initial session check
+    supabaseAuth.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
+      // Auth listener will handle this via INITIAL_SESSION event
+      console.log('📋 Initial session check complete');
+    });
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      console.log('🧹 Auth listener cleaned up');
+    };
+  }, [isMuted]);
+
           setUserName('');
           userNameRef.current = '';
           setShowUsernameModal(true);
