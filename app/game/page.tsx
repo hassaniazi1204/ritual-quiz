@@ -1047,7 +1047,7 @@ useEffect(() => {
     }
   };
 
-const handleGuestLogin = (username: string) => {
+  const handleGuestLogin = (username: string) => {
   setUserName(username);
   userNameRef.current = username;
   setShowAuthModal(false);
@@ -1061,7 +1061,7 @@ const handleGuestLogin = (username: string) => {
 
 
 
-const handleLogout = async () => {
+  const handleLogout = async () => {
   if (session) {
     // OAuth user - sign out with NextAuth
     await signOut({ callbackUrl: '/' });
