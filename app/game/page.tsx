@@ -90,29 +90,29 @@ export default function MergeGame() {
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
 
-// ✅ FIXED AUTH STATE LISTENER
+  // ✅ FIXED AUTH STATE LISTENER
 
-// NextAuth session handler
-useEffect(() => {
-  if (status === 'loading') return;
+  // NextAuth session handler
+  useEffect(() => {
+    if (status === 'loading') return;
 
-  if (session?.user) {
-    // User is logged in with OAuth
-    const name = session.user.name || session.user.email || 'Player';
-    setUserName(name);
-    userNameRef.current = name;
-    setUserProfileImage(session.user.image || null);
-    setShowAuthModal(false);
-    
-    // Start music
-    if (backgroundMusicRef.current && !isMuted) {
-      backgroundMusicRef.current.play().catch(console.warn);
+    if (session?.user) {
+      // User is logged in with OAuth
+      const name = session.user.name || session.user.email || 'Player';
+      setUserName(name);
+      userNameRef.current = name;
+      setUserProfileImage(session.user.image || null);
+      setShowAuthModal(false);
+      
+      // Start music
+      if (backgroundMusicRef.current && !isMuted) {
+        backgroundMusicRef.current.play().catch(console.warn);
+      }
+    } else if (!userName) {
+      // No session and no guest username - show auth modal
+      setShowAuthModal(true);
     }
-  } else if (!userName) {
-    // No session and no guest username - show auth modal
-    setShowAuthModal(true);
-  }
-}, [session, status, userName, isMuted]);
+  }, [session, status, userName, isMuted]);
 
 
   // Handle mute toggle
@@ -1213,6 +1213,7 @@ useEffect(() => {
                   {/* logout icon */}
                   <span className="hidden sm:inline">Logout</span>
                 </button>
+              )}
               </div>
             </div>
           </div>
