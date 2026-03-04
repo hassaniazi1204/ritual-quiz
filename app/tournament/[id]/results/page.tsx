@@ -63,8 +63,8 @@ export default function TournamentResults() {
         setResults(resultsData);
         
         // Find current user's result
-        if (session?.user?.id) {
-          const myData = resultsData.find(r => r.user_id === session.user.id);
+        if ((session?.user as any)?.id) {
+          const myData = resultsData.find(r => r.user_id === (session.user as any).id);
           if (myData) {
             setMyResult(myData);
           }
@@ -238,7 +238,7 @@ export default function TournamentResults() {
           
           <div className="space-y-2">
             {results.map((result) => {
-              const isCurrentUser = result.user_id === session?.user?.id;
+              const isCurrentUser = result.user_id === (session?.user as any)?.id;
               const isTop3 = result.rank <= 3;
 
               return (
