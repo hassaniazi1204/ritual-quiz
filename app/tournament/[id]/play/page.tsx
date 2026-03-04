@@ -5,19 +5,16 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import LiveLeaderboard from '@/components/LiveLeaderboard';
-// In app/tournament/[id]/play/page.tsx
-import MergeGame from '@/app/game/page';
+// Import your existing game component
+import MergeGame from '@/components/MergeGame';
 
-export default function TournamentPlay() {
-  return (
-    <MergeGame
-      tournamentMode={true}
-      onScoreChange={handleScore}
-      onBallDropped={handleDrop}
-      onMerge={handleMerge}
-      disabled={gameEnded}
-    />
-  );
+interface Tournament {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  actual_start_time: string;
+  end_time: string;
+  status: string;
 }
 
 export default function TournamentGamePage() {
