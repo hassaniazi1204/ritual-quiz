@@ -131,11 +131,28 @@ export default function MergeGame(props?: GameProps) {
       if (backgroundMusicRef.current && !isMuted) {
         backgroundMusicRef.current.play().catch(console.warn);
       }
-    } else if (!userName) {
-      // No session and no guest username - show auth modal
-      setShowAuthModal(true);
+    } else {
+      // Check for guest username in localStorage
+      const guestUsername = localStorage.getItem('guestUsername');
+      
+      if (guestUsername) {
+        // User is playing as guest
+        setUserName(guestUsername);
+        userNameRef.current = guestUsername;
+        setShowAuthModal(false);
+        
+        // Start music
+        if (backgroundMusicRef.current && !isMuted) {
+          backgroundMusicRef.current.play().catch(console.warn);
+        }
+      } else if (!userName) {
+        // No session and no guest username - show auth modal (only in non-tournament mode)
+        if (!tournamentMode) {
+          setShowAuthModal(true);
+        }
+      }
     }
-  }, [session, status, userName, isMuted]);
+  }, [session, status, userName, isMuted, tournamentMode]);
 
 
   // Handle mute toggle
