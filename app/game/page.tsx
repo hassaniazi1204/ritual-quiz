@@ -38,7 +38,22 @@ const getRandomBallLevel = (): number => {
   return 5;
 };
 
-export default function MergeGame() {
+// Tournament mode props interface
+interface GameProps {
+  tournamentMode?: boolean;
+  onScoreChange?: (score: number) => void;
+  onBallDropped?: () => void;
+  onMerge?: () => void;
+  disabled?: boolean;
+}
+
+export default function MergeGame({ 
+  tournamentMode = false,
+  onScoreChange,
+  onBallDropped,
+  onMerge,
+  disabled = false 
+}: GameProps = {}) {
   const { data: session, status } = useSession();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -89,6 +104,13 @@ export default function MergeGame() {
   const topBoundary = 380;  // Game over line - moved up for better difficulty (was 450)
   const wallThickness = 5;
   const spawnY = 310;  // Below larger Siggy (Siggy: y=100, height=200, so bottom=300, +10px spacing)
+
+  // Tournament mode: Notify parent component of score changes
+  useEffect(() => {
+    if (tournamentMode && onScoreChange) {
+      onScoreChange(score);
+    }
+  }, [score, tournamentMode, onScoreChange]);
 
   // ✅ FIXED AUTH STATE LISTENER
 
@@ -735,6 +757,12 @@ export default function MergeGame() {
             scoreRef.current = newScore;
             return newScore;
           });
+          
+          // Tournament mode: Track merges
+          if (tournamentMode && onMerge) {
+            onMerge();
+          }
+          
           processingMergeRef.current.delete(mergeKey);
         }, 50);
       });
@@ -867,7 +895,7 @@ export default function MergeGame() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver || !canDropBall) return;
+    if (gameOver || disabled || !canDropBall) return;
 
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -908,11 +936,16 @@ export default function MergeGame() {
       setCanDropBall(true);
       canDropBallRef.current = true;
     }, 500);
+    
+    // Tournament mode: Track ball drops
+    if (tournamentMode && onBallDropped) {
+      onBallDropped();
+    }
   };
 
   // Touch handlers - separate movement from drop
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (gameOver || !canDropBall) return;
+    if (gameOver || disabled || !canDropBall) return;
     e.preventDefault(); // Prevent scrolling
     
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -967,10 +1000,15 @@ export default function MergeGame() {
       setCanDropBall(true);
       canDropBallRef.current = true;
     }, 500);
+    
+    // Tournament mode: Track ball drops
+    if (tournamentMode && onBallDropped) {
+      onBallDropped();
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameOver || !canDropBall) return;
+    if (gameOver || disabled || !canDropBall) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
@@ -988,7 +1026,7 @@ export default function MergeGame() {
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (gameOver || !canDropBall) return;
+    if (gameOver || disabled || !canDropBall) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect || e.touches.length === 0) return;
     
@@ -1201,6 +1239,17 @@ export default function MergeGame() {
                     {userName}
                   </span>
                 </div>
+                
+                {/* Tournament Button */}
+                <button
+                  onClick={() => window.location.href = '/tournaments'}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                  title="Play Tournaments"
+                >
+                  <span className="text-xl">🏆</span>
+                  <span className="hidden sm:inline">Tournaments</span>
+                </button>
+                
                 {/* Only show logout for OAuth users (those with session) */}
     {session && (
                 <button
