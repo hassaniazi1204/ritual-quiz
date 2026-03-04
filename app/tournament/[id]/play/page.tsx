@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import LiveLeaderboard from '@/components/LiveLeaderboard';
-// Import your existing game component
 import MergeGame from '@/components/MergeGame';
 
 interface Tournament {
@@ -28,7 +27,7 @@ export default function TournamentGamePage() {
   const [currentScore, setCurrentScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(true);
 
   // Game metrics for anti-cheat
   const gameMetrics = useRef({
@@ -54,7 +53,6 @@ export default function TournamentGamePage() {
       if (data) {
         setTournament(data);
         
-        // Calculate time remaining
         if (data.end_time) {
           const endTime = new Date(data.end_time).getTime();
           const now = Date.now();
@@ -65,7 +63,7 @@ export default function TournamentGamePage() {
     };
 
     fetchTournament();
-  }, [tournamentId]);
+  }, [tournamentId, supabase]);
 
   // Tournament timer
   useEffect(() => {
@@ -75,7 +73,6 @@ export default function TournamentGamePage() {
       setTimeRemaining(prev => {
         const newTime = prev - 1;
         
-        // Auto-end game when time runs out
         if (newTime <= 0) {
           handleGameEnd(true);
           return 0;
@@ -96,7 +93,6 @@ export default function TournamentGamePage() {
       setGameStarted(true);
       gameMetrics.current.game_start_time = Date.now();
       
-      // Update participant status
       supabase
         .from('tournament_participants')
         .update({
@@ -106,9 +102,9 @@ export default function TournamentGamePage() {
         .eq('tournament_id', tournamentId)
         .eq('user_id', session?.user?.id);
     }
-  }, [tournament?.status]);
+  }, [tournament?.status, gameStarted, tournamentId, session, supabase]);
 
-  // Submit score periodically (every 10 seconds)
+  // Submit score periodically
   useEffect(() => {
     if (!gameStarted || gameEnded || currentScore === 0) return;
 
@@ -123,7 +119,6 @@ export default function TournamentGamePage() {
   const submitScore = async (isFinal: boolean) => {
     if (!session || !tournamentId) return;
 
-    // Rate limiting
     const now = Date.now();
     if (!isFinal && now - lastScoreSubmission.current < 2000) {
       return;
@@ -157,24 +152,21 @@ export default function TournamentGamePage() {
     if (gameEnded) return;
     
     setGameEnded(true);
-    
-    // Submit final score
     await submitScore(true);
     
-    // Show results after brief delay
     setTimeout(() => {
       router.push(`/tournament/${tournamentId}/results`);
     }, 3000);
   };
 
-  // Format time as MM:SS
+  // Format time
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Game callbacks (connect to your existing game)
+  // Game callbacks
   const onScoreChange = (newScore: number) => {
     setCurrentScore(newScore);
   };
@@ -209,15 +201,13 @@ export default function TournamentGamePage() {
       )}
 
       {/* Tournament Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 bg-black/50 backdrop-blur-md border-b border-purple-500/30">
+      <div className="fixed top-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-md border-b border-purple-500/30">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          {/* Tournament Name */}
           <div>
             <h1 className="text-xl font-black text-white">{tournament.name}</h1>
             <p className="text-xs text-gray-400">Tournament Mode</p>
           </div>
 
-          {/* Timer */}
           <div className={`px-6 py-3 rounded-xl font-mono text-3xl font-black ${
             timeRemaining <= 60 ? 'bg-red-500/20 text-red-400 animate-pulse' :
             timeRemaining <= 300 ? 'bg-yellow-500/20 text-yellow-400' :
@@ -226,7 +216,6 @@ export default function TournamentGamePage() {
             ⏱️ {formatTime(timeRemaining)}
           </div>
 
-          {/* Current Score */}
           <div className="text-right">
             <div className="text-3xl font-black text-purple-400">
               {currentScore.toLocaleString()}
@@ -234,12 +223,11 @@ export default function TournamentGamePage() {
             <p className="text-xs text-gray-400">Your Score</p>
           </div>
 
-          {/* Toggle Leaderboard */}
           <button
             onClick={() => setShowLeaderboard(!showLeaderboard)}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors text-sm"
           >
-            {showLeaderboard ? 'Hide' : 'Show'} Leaderboard
+            {showLeaderboard ? 'Hide' : 'Show'} Ranks
           </button>
         </div>
       </div>
@@ -248,27 +236,13 @@ export default function TournamentGamePage() {
       <div className="pt-20 flex h-screen">
         {/* Game Area */}
         <div className={`transition-all duration-300 ${showLeaderboard ? 'w-2/3' : 'w-full'}`}>
-          {/* 
-            Replace this with your actual MergeGame component
-            Pass these props to integrate:
-            - onScoreChange={onScoreChange}
-            - onBallDropped={onBallDropped}
-            - onMerge={onMerge}
-            - tournamentMode={true}
-            - disabled={gameEnded}
-          */}
-          
-          {/* PLACEHOLDER - Replace with your actual game */}
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-white text-2xl mb-4">
-                🎮 Your SiggyDrop Game Goes Here
-              </p>
-              <p className="text-gray-400">
-                Integrate your existing game component with the callbacks above
-              </p>
-            </div>
-          </div>
+          <MergeGame
+            tournamentMode={true}
+            onScoreChange={onScoreChange}
+            onBallDropped={onBallDropped}
+            onMerge={onMerge}
+            disabled={gameEnded}
+          />
         </div>
 
         {/* Leaderboard Sidebar */}
