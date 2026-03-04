@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import { useSession, signOut } from 'next-auth/react';
-import NextAuthModal from '../components/NextAuthModal';
+import NextAuthModal from './NextAuthModal';
 
 // Ball level configuration
 const BALL_CONFIG = [
