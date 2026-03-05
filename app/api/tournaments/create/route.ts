@@ -55,8 +55,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info from NextAuth session
-    const userId = (session.user as any).id || session.user.email; // Use email as fallback ID
+    // Try to get ID from session, or create one from email
+    let userId = (session.user as any).id;
+    
+    if (!userId && session.user.email) {
+      // Create a deterministic ID from email using a simple hash
+      // This ensures the same user always gets the same ID
+      userId = session.user.email;
+    }
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unable to identify user. Please sign in again.' },
+        { status: 401 }
+      );
+    }
+    
     const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
+
+    console.log('Creating tournament for user:', { userId, username });
 
     // Generate unique tournament code
     const { data: codeData, error: codeError } = await supabase
@@ -94,7 +111,18 @@ export async function POST(request: NextRequest) {
     if (tournamentError) {
       console.error('Error creating tournament:', tournamentError);
       return NextResponse.json(
-        { error: 'Failed to create tournament' },
+        { 
+          error: 'Failed to create tournament',
+          details: tournamentError.message || 'Unknown error',
+          code: tournamentError.code 
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!tournament) {
+      return NextResponse.json(
+        { error: 'Tournament was not created' },
         { status: 500 }
       );
     }
@@ -133,8 +161,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Tournament creation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: errorMessage 
+      },
       { status: 500 }
     );
   }
