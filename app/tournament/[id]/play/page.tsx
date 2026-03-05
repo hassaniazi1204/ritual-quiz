@@ -28,6 +28,7 @@ export default function TournamentGamePage() {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
+  const [isCreator, setIsCreator] = useState(false);
 
   // Game metrics for anti-cheat
   const gameMetrics = useRef({
@@ -52,6 +53,10 @@ export default function TournamentGamePage() {
 
       if (data) {
         setTournament(data);
+        
+        // Check if current user is creator
+        const userId = (session?.user as any)?.id || session?.user?.email || localStorage.getItem('guestUserId');
+        setIsCreator(userId === data.created_by);
         
         if (data.end_time) {
           const endTime = new Date(data.end_time).getTime();
@@ -179,6 +184,28 @@ export default function TournamentGamePage() {
     gameMetrics.current.merges_completed++;
   };
 
+  // End tournament (host only)
+  const handleEndTournament = async () => {
+    const confirmed = window.confirm('Are you sure you want to end this tournament now? All players will be redirected to results.');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch('/api/tournaments/end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournament_id: tournamentId,
+        }),
+      });
+
+      if (response.ok) {
+        router.push(`/tournament/${tournamentId}/results`);
+      }
+    } catch (error) {
+      console.error('Error ending tournament:', error);
+    }
+  };
+
   if (!tournament) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -229,6 +256,16 @@ export default function TournamentGamePage() {
           >
             {showLeaderboard ? 'Hide' : 'Show'} Ranks
           </button>
+
+          {/* End Tournament Button (Host Only) */}
+          {isCreator && !gameEnded && (
+            <button
+              onClick={handleEndTournament}
+              className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg font-bold transition-colors text-sm border-2 border-red-500/30 hover:border-red-500"
+            >
+              🛑 End Now
+            </button>
+          )}
         </div>
       </div>
 
