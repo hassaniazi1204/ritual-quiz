@@ -47,6 +47,28 @@ function TournamentJoinContent() {
             return;
           }
 
+          // Add guest to tournament participants
+          const guestUserId = `guest_${guestUsername}_${Date.now()}`;
+          const { error: insertError } = await supabase
+            .from('tournament_participants')
+            .insert({
+              tournament_id: tournament.id,
+              user_id: guestUserId,
+              username: guestUsername,
+              profile_image: null,
+              status: 'joined',
+            });
+
+          if (insertError) {
+            console.error('Error adding guest participant:', insertError);
+            setError('Failed to join tournament as guest');
+            setLoading(false);
+            return;
+          }
+
+          // Store guest user ID for later use
+          localStorage.setItem('guestUserId', guestUserId);
+
           router.push(`/tournament/${tournament.id}?guest=true&username=${guestUsername}`);
         } else if (session) {
           const response = await fetch('/api/tournaments/join', {
