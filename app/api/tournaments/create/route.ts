@@ -2,21 +2,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
-
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Check NextAuth session
+    const session = await getServerSession(authOptions);
     
-    if (authError || !user) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized - Please log in' },
         { status: 401 }
       );
     }
+
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
 
     // Parse request body
     const body = await request.json();
@@ -52,8 +54,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's username from session or profile
-    const username = user.user_metadata?.name || user.email?.split('@')[0] || 'Player';
+    // Get user info from NextAuth session
+    const userId = (session.user as any).id || session.user.email; // Use email as fallback ID
+    const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
 
     // Generate unique tournament code
     const { data: codeData, error: codeError } = await supabase
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
         description,
         duration_minutes,
         max_players,
-        created_by: user.id,
+        created_by: userId,
         creator_username: username,
         status: 'waiting',
         auto_start_enabled,
@@ -101,9 +104,9 @@ export async function POST(request: NextRequest) {
       .from('tournament_participants')
       .insert({
         tournament_id: tournament.id,
-        user_id: user.id,
+        user_id: userId,
         username: username,
-        profile_image: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+        profile_image: session.user.image || null,
         status: 'joined',
       });
 
