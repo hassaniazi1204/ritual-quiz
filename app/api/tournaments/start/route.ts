@@ -2,21 +2,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
-
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Check NextAuth session
+    const session = await getServerSession(authOptions);
     
-    if (authError || !user) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const userId = (session.user as any).id || session.user.email;
+
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
 
     // Parse request body
     const body = await request.json();
@@ -44,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is the creator
-    if (tournament.created_by !== user.id) {
+    if (tournament.created_by !== userId) {
       return NextResponse.json(
         { error: 'Only the tournament creator can start the tournament' },
         { status: 403 }
