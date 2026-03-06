@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import LiveLeaderboard from '@/components/LiveLeaderboard';
 import MergeGame from '@/components/MergeGame';
+import TournamentWaitingScreen from '@/components/TournamentWaitingScreen';
 
 interface Tournament {
   id: string;
@@ -29,6 +30,9 @@ export default function TournamentGamePage() {
   const [gameEnded, setGameEnded] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
+  const [playerFinished, setPlayerFinished] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
+  const [playerUsername, setPlayerUsername] = useState('');
 
   // Game metrics for anti-cheat
   const gameMetrics = useRef({
@@ -152,16 +156,36 @@ export default function TournamentGamePage() {
     }
   };
 
-  // Handle game end
+  // Handle game end (player finishes early)
   const handleGameEnd = async (timeExpired: boolean) => {
     if (gameEnded) return;
     
     setGameEnded(true);
     await submitScore(true);
     
-    setTimeout(() => {
-      router.push(`/tournament/${tournamentId}/results`);
-    }, 3000);
+    // If time expired for everyone, redirect to results
+    if (timeExpired || timeRemaining <= 0) {
+      setTimeout(() => {
+        router.push(`/tournament/${tournamentId}/results`);
+      }, 3000);
+    } else {
+      // Player finished early - show waiting screen
+      setPlayerFinished(true);
+      setFinalScore(currentScore);
+      
+      // Get username
+      const username = (session?.user as any)?.name || 
+                      (session?.user as any)?.email?.split('@')[0] ||
+                      localStorage.getItem('guestUsername') ||
+                      'Player';
+      setPlayerUsername(username);
+    }
+  };
+
+  // Handle when player's game is over (from MergeGame)
+  const handlePlayerGameOver = () => {
+    console.log('Player game over in tournament mode');
+    handleGameEnd(false);
   };
 
   // Format time
@@ -211,6 +235,17 @@ export default function TournamentGamePage() {
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-white text-2xl">Loading tournament...</div>
       </div>
+    );
+  }
+
+  // If player finished early, show waiting screen
+  if (playerFinished) {
+    return (
+      <TournamentWaitingScreen
+        tournamentId={tournamentId}
+        playerScore={finalScore}
+        playerUsername={playerUsername}
+      />
     );
   }
 
@@ -324,6 +359,7 @@ export default function TournamentGamePage() {
               onScoreChange={onScoreChange}
               onBallDropped={onBallDropped}
               onMerge={onMerge}
+              onGameOver={handlePlayerGameOver}
               disabled={gameEnded}
             />
           </div>
