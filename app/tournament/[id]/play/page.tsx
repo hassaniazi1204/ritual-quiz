@@ -229,67 +229,127 @@ export default function TournamentGamePage() {
 
       {/* Tournament Header */}
       <div className="fixed top-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-md border-b border-purple-500/30">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-black text-white">{tournament.name}</h1>
-            <p className="text-xs text-gray-400">Tournament Mode</p>
-          </div>
-
-          <div className={`px-6 py-3 rounded-xl font-mono text-3xl font-black ${
-            timeRemaining <= 60 ? 'bg-red-500/20 text-red-400 animate-pulse' :
-            timeRemaining <= 300 ? 'bg-yellow-500/20 text-yellow-400' :
-            'bg-green-500/20 text-green-400'
-          }`}>
-            ⏱️ {formatTime(timeRemaining)}
-          </div>
-
-          <div className="text-right">
-            <div className="text-3xl font-black text-purple-400">
-              {currentScore.toLocaleString()}
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
+          {/* Mobile Layout */}
+          <div className="flex sm:hidden items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-black text-white truncate">{tournament.name}</h1>
+              <div className="flex items-center gap-2">
+                <div className={`px-2 py-1 rounded text-xs font-mono font-black ${
+                  timeRemaining <= 60 ? 'bg-red-500/20 text-red-400' :
+                  timeRemaining <= 300 ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  ⏱️ {formatTime(timeRemaining)}
+                </div>
+                <div className="text-base font-black text-purple-400">
+                  {currentScore.toLocaleString()}
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-400">Your Score</p>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowLeaderboard(!showLeaderboard)}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors text-xs"
+              >
+                {showLeaderboard ? '🎮' : '🏆'}
+              </button>
+              
+              {isCreator && !gameEnded && (
+                <button
+                  onClick={handleEndTournament}
+                  className="px-2 py-2 bg-red-600/20 text-red-400 rounded-lg font-bold transition-colors text-xs border border-red-500/30"
+                >
+                  🛑
+                </button>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowLeaderboard(!showLeaderboard)}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors text-sm"
-          >
-            {showLeaderboard ? 'Hide' : 'Show'} Ranks
-          </button>
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-black text-white">{tournament.name}</h1>
+              <p className="text-xs text-gray-400">Tournament Mode</p>
+            </div>
 
-          {/* End Tournament Button (Host Only) */}
-          {isCreator && !gameEnded && (
+            <div className={`px-6 py-3 rounded-xl font-mono text-3xl font-black ${
+              timeRemaining <= 60 ? 'bg-red-500/20 text-red-400 animate-pulse' :
+              timeRemaining <= 300 ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-green-500/20 text-green-400'
+            }`}>
+              ⏱️ {formatTime(timeRemaining)}
+            </div>
+
+            <div className="text-right">
+              <div className="text-3xl font-black text-purple-400">
+                {currentScore.toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-400">Your Score</p>
+            </div>
+
             <button
-              onClick={handleEndTournament}
-              className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg font-bold transition-colors text-sm border-2 border-red-500/30 hover:border-red-500"
+              onClick={() => setShowLeaderboard(!showLeaderboard)}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors text-sm"
             >
-              🛑 End Now
+              {showLeaderboard ? 'Hide' : 'Show'} Ranks
             </button>
-          )}
+
+            {/* End Tournament Button (Host Only) */}
+            {isCreator && !gameEnded && (
+              <button
+                onClick={handleEndTournament}
+                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg font-bold transition-colors text-sm border-2 border-red-500/30 hover:border-red-500"
+              >
+                🛑 End Now
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="pt-20 flex h-screen">
+      <div className="pt-16 sm:pt-20 h-screen flex flex-col sm:flex-row">
         {/* Game Area */}
-        <div className={`transition-all duration-300 ${showLeaderboard ? 'w-2/3' : 'w-full'}`}>
-          <MergeGame
-            tournamentMode={true}
-            onScoreChange={onScoreChange}
-            onBallDropped={onBallDropped}
-            onMerge={onMerge}
-            disabled={gameEnded}
-          />
+        <div className={`
+          flex-1 
+          ${showLeaderboard ? 'hidden sm:block sm:w-2/3' : 'w-full'} 
+          transition-all duration-300
+          overflow-hidden
+        `}>
+          <div className="h-full flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
+            <MergeGame
+              tournamentMode={true}
+              onScoreChange={onScoreChange}
+              onBallDropped={onBallDropped}
+              onMerge={onMerge}
+              disabled={gameEnded}
+            />
+          </div>
         </div>
 
-        {/* Leaderboard Sidebar */}
+        {/* Leaderboard Sidebar - Desktop */}
         {showLeaderboard && (
-          <div className="w-1/3 border-l border-purple-500/30 bg-gray-900/50 backdrop-blur-md overflow-y-auto">
-            <div className="p-6">
+          <div className="hidden sm:block sm:w-1/3 border-l border-purple-500/30 bg-gray-900/50 backdrop-blur-md overflow-y-auto">
+            <div className="h-full p-4">
               <LiveLeaderboard 
                 tournamentId={tournamentId}
-                currentUserId={(session?.user as any)?.id}
+                currentUserId={(session?.user as any)?.id || localStorage.getItem('guestUserId')}
                 compact={true}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Leaderboard Full Screen - Mobile */}
+        {showLeaderboard && (
+          <div className="sm:hidden fixed inset-0 top-16 bg-gray-900 z-50 overflow-y-auto">
+            <div className="h-full p-4">
+              <LiveLeaderboard 
+                tournamentId={tournamentId}
+                currentUserId={(session?.user as any)?.id || localStorage.getItem('guestUserId')}
+                compact={false}
               />
             </div>
           </div>
