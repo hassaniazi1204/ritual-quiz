@@ -101,6 +101,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create initial leaderboard entries for all participants with score 0
+    // This ensures the leaderboard shows all players immediately
+    const { data: participants, error: participantsError } = await supabase
+      .from('tournament_participants')
+      .select('user_id, username')
+      .eq('tournament_id', tournament_id);
+
+    if (!participantsError && participants) {
+      // Insert initial scores for all participants
+      const initialScores = participants.map(p => ({
+        tournament_id: tournament_id,
+        user_id: p.user_id,
+        current_score: 0,
+        best_score: 0,
+        game_duration_seconds: 0,
+        balls_dropped: 0,
+        merges_completed: 0,
+        last_update: new Date().toISOString(),
+      }));
+
+      const { error: scoresError } = await supabase
+        .from('tournament_scores')
+        .upsert(initialScores, { 
+          onConflict: 'tournament_id,user_id',
+          ignoreDuplicates: false 
+        });
+
+      if (scoresError) {
+        console.error('Error creating initial leaderboard:', scoresError);
+        // Don't fail the tournament start, just log the error
+      } else {
+        console.log(`Created initial leaderboard entries for ${participants.length} participants`);
+      }
+    }
+
     // The status will automatically change from 'starting' to 'active' after 5 seconds
     // This will be handled by the frontend or a separate cron job
     // For now, we'll schedule it with a setTimeout equivalent via database trigger
