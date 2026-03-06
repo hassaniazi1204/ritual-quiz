@@ -1157,9 +1157,9 @@ export default function MergeGame(props?: GameProps) {
 
       console.log('Score saved successfully! Redirecting to leaderboard...');
       
-      // Only redirect on success
+      // Only redirect on success - go to SOLO leaderboard
       setTimeout(() => {
-        window.location.href = `/leaderboard?username=${encodeURIComponent(username)}&score=${finalScore}`;
+        window.location.href = `/leaderboard/solo?username=${encodeURIComponent(username)}&score=${finalScore}`;
       }, 1500);
     } catch (error) {
       console.error('Error saving score to leaderboard:', error);
