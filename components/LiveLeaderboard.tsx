@@ -8,6 +8,7 @@ interface LeaderboardEntry {
   user_id: string;
   username: string;
   profile_image: string | null;
+  current_score: number;
   best_score: number;
   last_update: string;
 }
@@ -28,15 +29,40 @@ export default function LiveLeaderboard({
   const [myRank, setMyRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch leaderboard
+  // Fetch leaderboard from live view
   const fetchLeaderboard = async () => {
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/leaderboard`);
-      const data = await response.json();
+      // Query the live_tournament_leaderboards view
+      const { data, error } = await supabase
+        .from('live_tournament_leaderboards')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('rank', { ascending: true })
+        .limit(10);
 
-      if (data.success) {
-        setLeaderboard(data.leaderboard);
-        setMyRank(data.my_rank);
+      if (error) {
+        console.error('Leaderboard fetch error:', error);
+        return;
+      }
+
+      if (data) {
+        const entries: LeaderboardEntry[] = data.map((entry: any) => ({
+          rank: entry.rank || 0,
+          user_id: entry.user_id || '',
+          username: entry.username || 'Unknown',
+          profile_image: entry.profile_image || null,
+          current_score: entry.current_score || 0,
+          best_score: entry.current_score || 0,
+          last_update: entry.last_update || new Date().toISOString(),
+        }));
+
+        setLeaderboard(entries);
+
+        // Find current user's rank
+        if (currentUserId) {
+          const myEntry = entries.find(e => e.user_id === currentUserId);
+          setMyRank(myEntry?.rank || null);
+        }
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -48,9 +74,12 @@ export default function LiveLeaderboard({
   // Initial fetch
   useEffect(() => {
     fetchLeaderboard();
-  }, [tournamentId]);
+    const interval = setInterval(fetchLeaderboard, 3000); // Refresh every 3 seconds
+    
+    return () => clearInterval(interval);
+  }, [tournamentId, currentUserId]);
 
-  // Real-time updates
+  // Real-time subscription
   useEffect(() => {
     const channel = supabase
       .channel(`leaderboard:${tournamentId}`)
@@ -63,7 +92,6 @@ export default function LiveLeaderboard({
           filter: `tournament_id=eq.${tournamentId}`,
         },
         () => {
-          // Refetch leaderboard on any score update
           fetchLeaderboard();
         }
       )
@@ -74,137 +102,127 @@ export default function LiveLeaderboard({
     };
   }, [tournamentId]);
 
-  if (loading) {
+  if (loading && leaderboard.length === 0) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-white">Loading leaderboard...</div>
+      <div className="flex items-center justify-center h-full bg-black/40 backdrop-blur-sm rounded-xl p-4">
+        <div className="text-white text-center">
+          <div className="text-4xl mb-2">🏆</div>
+          <div className="text-sm">Loading leaderboard...</div>
+        </div>
       </div>
     );
   }
 
-  const getRankColor = (rank: number) => {
-    if (rank === 1) return 'from-yellow-400 to-yellow-600';
-    if (rank === 2) return 'from-gray-300 to-gray-400';
-    if (rank === 3) return 'from-orange-400 to-orange-600';
-    return 'from-purple-400 to-pink-400';
-  };
-
-  const getRankEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return '🎮';
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col bg-black/40 backdrop-blur-sm rounded-xl border-2 border-purple-500/30 overflow-hidden">
       {/* Header */}
-      {!compact && (
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-black text-white">Live Leaderboard</h2>
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 sm:p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg sm:text-xl font-black text-white">🏆 LIVE RANKS</h2>
+            <p className="text-xs text-white/80 hidden sm:block">Top 10 Players</p>
+          </div>
           {myRank && (
-            <div className="px-4 py-2 bg-purple-500/20 border border-purple-500 rounded-lg">
-              <span className="text-purple-400 font-bold">Your Rank: #{myRank}</span>
+            <div className="bg-white/20 px-3 py-1 rounded-lg">
+              <div className="text-xs text-white/80">Your Rank</div>
+              <div className="text-2xl font-black text-white">#{myRank}</div>
             </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* Leaderboard */}
-      <div className={`space-y-2 ${compact ? 'max-h-96 overflow-y-auto' : ''}`}>
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2">
         {leaderboard.length === 0 ? (
-          <div className="text-center p-8 bg-gray-800/50 rounded-xl">
-            <p className="text-gray-400">No scores yet. Be the first to play!</p>
+          <div className="text-center text-gray-400 py-8">
+            <div className="text-4xl mb-2">👥</div>
+            <p>No scores yet. Be the first!</p>
           </div>
         ) : (
-          leaderboard.map((entry, index) => {
+          leaderboard.map((entry) => {
             const isCurrentUser = entry.user_id === currentUserId;
-            const isTop3 = entry.rank <= 3;
+            const rank = entry.rank;
 
             return (
               <div
                 key={entry.user_id}
-                className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
+                className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl transition-all ${
                   isCurrentUser
-                    ? 'bg-purple-500/20 border-2 border-purple-500 scale-105'
-                    : isTop3
-                    ? 'bg-gradient-to-r from-gray-800 to-gray-900 border-2 border-yellow-500/30'
-                    : 'bg-gray-800/50 border border-gray-700'
+                    ? 'bg-purple-600/40 border-2 border-purple-400 scale-105'
+                    : 'bg-gray-800/50 border border-gray-700 hover:bg-gray-800/70'
                 }`}
               >
                 {/* Rank */}
-                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center">
-                  {isTop3 ? (
-                    <div className={`w-full h-full rounded-full bg-gradient-to-br ${getRankColor(entry.rank)} flex items-center justify-center text-2xl`}>
-                      {getRankEmoji(entry.rank)}
-                    </div>
+                <div className="w-8 sm:w-12 text-center flex-shrink-0">
+                  {rank === 1 ? (
+                    <div className="text-2xl sm:text-3xl">🥇</div>
+                  ) : rank === 2 ? (
+                    <div className="text-2xl sm:text-3xl">🥈</div>
+                  ) : rank === 3 ? (
+                    <div className="text-2xl sm:text-3xl">🥉</div>
                   ) : (
-                    <div className="text-2xl font-black text-gray-400">
-                      #{entry.rank}
+                    <div className="text-lg sm:text-2xl font-black text-gray-400">
+                      #{rank}
                     </div>
                   )}
                 </div>
 
                 {/* Avatar */}
-                <div className="flex-shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                   {entry.profile_image ? (
                     <img
                       src={entry.profile_image}
                       alt={entry.username}
-                      className="w-12 h-12 rounded-full border-2 border-purple-400 object-cover"
+                      className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
-                      {entry.username.charAt(0).toUpperCase()}
+                    <div className="text-white font-bold text-sm sm:text-base">
+                      {entry.username?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                   )}
                 </div>
 
                 {/* Username */}
                 <div className="flex-1 min-w-0">
-                  <div className={`font-bold truncate ${isCurrentUser ? 'text-purple-400' : 'text-white'}`}>
-                    {entry.username}
+                  <div className={`font-bold text-sm sm:text-base truncate ${
+                    isCurrentUser ? 'text-purple-300' : 'text-white'
+                  }`}>
+                    {entry.username || 'Unknown Player'}
                     {isCurrentUser && (
-                      <span className="ml-2 text-xs bg-purple-500/30 px-2 py-0.5 rounded">YOU</span>
+                      <span className="ml-1 text-xs bg-purple-500/50 px-2 py-0.5 rounded">
+                        YOU
+                      </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 hidden sm:block">
                     {new Date(entry.last_update).toLocaleTimeString()}
                   </div>
                 </div>
 
                 {/* Score */}
-                <div className="text-right">
-                  <div className={`text-2xl font-black ${
-                    isCurrentUser ? 'text-purple-400' : 
-                    isTop3 ? 'text-yellow-400' : 'text-white'
-                  }`}>
-                    {entry.best_score.toLocaleString()}
+                <div className={`text-right flex-shrink-0 ${
+                  rank === 1 ? 'text-yellow-400' :
+                  rank === 2 ? 'text-gray-300' :
+                  rank === 3 ? 'text-orange-400' :
+                  isCurrentUser ? 'text-purple-400' : 'text-white'
+                }`}>
+                  <div className="text-lg sm:text-2xl font-black">
+                    {entry.best_score?.toLocaleString() || 0}
                   </div>
-                  <div className="text-xs text-gray-400">points</div>
+                  <div className="text-xs text-gray-400 hidden sm:block">points</div>
                 </div>
-
-                {/* Movement Indicator (optional enhancement) */}
-                {!compact && (
-                  <div className="flex-shrink-0 w-8">
-                    {/* Add movement arrows here if tracking position changes */}
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
 
-      {/* Show More (if compact) */}
-      {compact && leaderboard.length > 10 && (
-        <div className="text-center">
-          <button className="text-purple-400 hover:text-purple-300 text-sm font-semibold">
-            View Full Leaderboard →
-          </button>
+      {/* Footer */}
+      <div className="bg-gray-900/50 p-2 sm:p-3 text-center border-t border-gray-700">
+        <div className="text-xs text-gray-400">
+          Updates every 3 seconds
         </div>
-      )}
+      </div>
     </div>
   );
 }
-
