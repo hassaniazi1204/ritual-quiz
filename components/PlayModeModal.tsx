@@ -2,14 +2,14 @@
 
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 
 interface PlayModeModalProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
 
-export default function PlayModeModal({ isOpen = true, onClose }: PlayModeModalProps) {
+function PlayModeModalContent({ isOpen = true, onClose }: PlayModeModalProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [guestUsername, setGuestUsername] = useState('');
@@ -179,5 +179,13 @@ export default function PlayModeModal({ isOpen = true, onClose }: PlayModeModalP
         )}
       </div>
     </div>
+  );
+}
+
+export default function PlayModeModal(props: PlayModeModalProps) {
+  return (
+    <Suspense fallback={null}>
+      <PlayModeModalContent {...props} />
+    </Suspense>
   );
 }
