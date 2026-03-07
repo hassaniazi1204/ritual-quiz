@@ -2,297 +2,278 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
-import CreateTournamentModal from '@/components/CreateTournamentModal';
-import JoinTournamentModal from '@/components/JoinTournamentModal';
 
-interface Tournament {
-  id: string;
-  tournament_code: string;
-  name: string;
-  description: string;
-  duration_minutes: number;
-  max_players: number;
-  status: string;
-  creator_username: string;
-  created_at: string;
-  current_players?: number;
-}
-
-export default function TournamentsPage() {
+export default function TournamentHubPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const supabase = createClient();
+  const { data: session, status } = useSession();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'waiting' | 'active'>('all');
+  // Tournament creation form
+  const [tournamentName, setTournamentName] = useState('');
+  const [duration, setDuration] = useState(5);
+  const [maxPlayers, setMaxPlayers] = useState(10);
 
-  // Fetch tournaments
-  const fetchTournaments = async () => {
-    const { data, error } = await supabase
-      .from('active_tournaments')
-      .select('*')
-      .order('created_at', { ascending: false });
+  // Tournament join form
+  const [tournamentCode, setTournamentCode] = useState('');
 
-    if (data) {
-      setTournaments(data);
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
     }
-    setLoading(false);
+  }, [status, router]);
+
+  const handleCreateTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/tournaments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: tournamentName,
+          duration_minutes: duration,
+          max_players: maxPlayers,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create tournament');
+        setLoading(false);
+        return;
+      }
+
+      // Redirect to tournament lobby
+      router.push(`/tournament/${data.tournament.id}`);
+    } catch (err) {
+      console.error('Create error:', err);
+      setError('Failed to create tournament');
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    fetchTournaments();
-  }, []);
+  const handleJoinTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-  // Real-time updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('tournaments-list')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tournaments',
-        },
-        () => {
-          fetchTournaments();
-        }
-      )
-      .subscribe();
+    try {
+      const response = await fetch('/api/tournaments/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournament_code: tournamentCode.toUpperCase() }),
+      });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      const data = await response.json();
 
-  const filteredTournaments = tournaments.filter(t => {
-    // Always hide finished and cancelled tournaments
-    if (t.status === 'finished' || t.status === 'cancelled') return false;
-    
-    if (filter === 'all') return true;
-    return t.status === filter;
-  });
+      if (!response.ok) {
+        setError(data.error || 'Failed to join tournament');
+        setLoading(false);
+        return;
+      }
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      waiting: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Waiting' },
-      starting: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Starting Soon' },
-      active: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Active' },
-    };
+      // Redirect based on tournament status
+      router.push(`/tournament/${data.tournament_id}`);
+    } catch (err) {
+      console.error('Join error:', err);
+      setError('Failed to join tournament');
+      setLoading(false);
+    }
+  };
 
-    const badge = badges[status as keyof typeof badges] || badges.waiting;
-
+  if (status === 'loading') {
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>
-        {badge.label}
-      </span>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
+        <div className="text-white text-2xl">Loading...</div>
+      </div>
     );
-  };
-
-  const handleJoinTournament = (tournamentId: string) => {
-    if (!session) {
-      alert('Please log in to join tournaments');
-      return;
-    }
-    router.push(`/tournament/${tournamentId}`);
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 p-8">
-      {/* Modals */}
-      <CreateTournamentModal 
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-      />
-      
-      <JoinTournamentModal
-        isOpen={showJoinModal}
-        onClose={() => setShowJoinModal(false)}
-      />
-
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 p-4 flex items-center justify-center">
+      <div className="max-w-4xl w-full">
         {/* Header */}
-        <div className="mb-12">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-5xl font-black text-white mb-2">
-                🏆 Tournaments
-              </h1>
-              <p className="text-xl text-gray-400">
-                Compete against players worldwide in real-time tournaments
+        <div className="text-center mb-12">
+          <h1 className="text-5xl sm:text-6xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
+            🏆 Tournaments
+          </h1>
+          <p className="text-gray-400 text-lg">Create or join a tournament to compete</p>
+        </div>
+
+        {/* Main Options */}
+        {!showCreateForm && !showJoinForm && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Create Tournament Card */}
+            <div
+              onClick={() => setShowCreateForm(true)}
+              className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-2 border-purple-500/30 hover:border-purple-500 rounded-3xl p-8 cursor-pointer transition-all hover:scale-105 group"
+            >
+              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">🎮</div>
+              <h2 className="text-3xl font-black text-white mb-2">Create Tournament</h2>
+              <p className="text-gray-400 mb-6">
+                Host a new tournament and invite players with a code
               </p>
+              <div className="flex items-center text-purple-400 font-bold">
+                <span>Get Started</span>
+                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
             </div>
 
-            <button
-              onClick={() => router.push('/game')}
-              className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold transition-colors"
+            {/* Join Tournament Card */}
+            <div
+              onClick={() => setShowJoinForm(true)}
+              className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border-2 border-blue-500/30 hover:border-blue-500 rounded-3xl p-8 cursor-pointer transition-all hover:scale-105 group"
             >
-              ← Back to Game
-            </button>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <button
-              onClick={() => {
-                if (!session) {
-                  alert('Please log in to create tournaments');
-                  return;
-                }
-                setShowCreateModal(true);
-              }}
-              className="flex-1 px-8 py-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-black text-xl transition-all hover:scale-105 shadow-lg"
-            >
-              ➕ Create Tournament
-            </button>
-
-            <button
-              onClick={() => {
-                if (!session) {
-                  alert('Please log in to join tournaments');
-                  return;
-                }
-                setShowJoinModal(true);
-              }}
-              className="flex-1 px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-black text-xl transition-all hover:scale-105 shadow-lg"
-            >
-              🎮 Join with Code
-            </button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="mb-8 flex gap-4">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors ${
-              filter === 'all'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-          >
-            All Tournaments
-          </button>
-          <button
-            onClick={() => setFilter('waiting')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors ${
-              filter === 'waiting'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-          >
-            Open to Join
-          </button>
-          <button
-            onClick={() => setFilter('active')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors ${
-              filter === 'active'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-          >
-            In Progress
-          </button>
-        </div>
-
-        {/* Tournaments Grid */}
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="text-white text-2xl">Loading tournaments...</div>
-          </div>
-        ) : filteredTournaments.length === 0 ? (
-          <div className="text-center py-20 bg-gray-900/50 rounded-2xl border-2 border-gray-700">
-            <div className="text-6xl mb-4">🎮</div>
-            <h3 className="text-2xl font-black text-white mb-2">No Tournaments Found</h3>
-            <p className="text-gray-400 mb-6">Be the first to create one!</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors"
-            >
-              Create Tournament
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTournaments.map((tournament) => (
-              <div
-                key={tournament.id}
-                className="bg-gray-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl p-6 hover:border-purple-500 transition-all hover:scale-105 cursor-pointer"
-                onClick={() => handleJoinTournament(tournament.id)}
-              >
-                {/* Status Badge */}
-                <div className="flex justify-between items-start mb-4">
-                  {getStatusBadge(tournament.status)}
-                  <div className="text-right">
-                    <div className="text-sm text-gray-400">Code</div>
-                    <div className="text-lg font-mono font-black text-purple-400">
-                      {tournament.tournament_code}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tournament Name */}
-                <h3 className="text-2xl font-black text-white mb-2 truncate">
-                  {tournament.name}
-                </h3>
-
-                {/* Description */}
-                {tournament.description && (
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                    {tournament.description}
-                  </p>
-                )}
-
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-black/30 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-black text-purple-400">
-                      {tournament.duration_minutes}
-                    </div>
-                    <div className="text-xs text-gray-400">Minutes</div>
-                  </div>
-
-                  <div className="bg-black/30 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-black text-green-400">
-                      {tournament.current_players || 0}/{tournament.max_players}
-                    </div>
-                    <div className="text-xs text-gray-400">Players</div>
-                  </div>
-                </div>
-
-                {/* Host */}
-                <div className="text-sm text-gray-400 mb-4">
-                  Host: <span className="text-white font-semibold">{tournament.creator_username}</span>
-                </div>
-
-                {/* Join Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleJoinTournament(tournament.id);
-                  }}
-                  className={`w-full py-3 rounded-xl font-bold transition-all ${
-                    tournament.status === 'waiting'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : tournament.status === 'active'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  }`}
-                  disabled={tournament.status !== 'waiting' && tournament.status !== 'active'}
-                >
-                  {tournament.status === 'waiting' ? 'Join Tournament' :
-                   tournament.status === 'active' ? 'Watch Live' :
-                   'Starting Soon'}
-                </button>
+              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">🎯</div>
+              <h2 className="text-3xl font-black text-white mb-2">Join Tournament</h2>
+              <p className="text-gray-400 mb-6">
+                Enter a tournament code to join an existing tournament
+              </p>
+              <div className="flex items-center text-blue-400 font-bold">
+                <span>Enter Code</span>
+                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
-            ))}
+            </div>
           </div>
         )}
+
+        {/* Create Tournament Form */}
+        {showCreateForm && (
+          <div className="bg-gray-900/80 backdrop-blur-lg border-2 border-purple-500/30 rounded-3xl p-8 max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-black text-white">Create Tournament</h2>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTournament} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Tournament Name</label>
+                <input
+                  type="text"
+                  value={tournamentName}
+                  onChange={(e) => setTournamentName(e.target.value)}
+                  placeholder="Enter tournament name"
+                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Duration (minutes)</label>
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value))}
+                  min={1}
+                  max={60}
+                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Max Players</label>
+                <input
+                  type="number"
+                  value={maxPlayers}
+                  onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+                  min={2}
+                  max={50}
+                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {loading ? 'Creating...' : 'Create Tournament'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Join Tournament Form */}
+        {showJoinForm && (
+          <div className="bg-gray-900/80 backdrop-blur-lg border-2 border-blue-500/30 rounded-3xl p-8 max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-black text-white">Join Tournament</h2>
+              <button
+                onClick={() => setShowJoinForm(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleJoinTournament} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Tournament Code</label>
+                <input
+                  type="text"
+                  value={tournamentCode}
+                  onChange={(e) => setTournamentCode(e.target.value.toUpperCase().slice(0, 8))}
+                  placeholder="Enter 8-digit code"
+                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-blue-500 rounded-xl text-white text-center text-2xl font-mono font-bold outline-none transition-colors uppercase"
+                  maxLength={8}
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || tournamentCode.length !== 8}
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {loading ? 'Joining...' : 'Join Tournament'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Back Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={() => router.push('/')}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            ← Back to Home
+          </button>
+        </div>
       </div>
     </div>
   );
