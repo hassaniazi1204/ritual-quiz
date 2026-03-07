@@ -75,20 +75,19 @@ function TournamentJoinContent() {
         return;
       }
 
-      // Get tournament details to redirect appropriately
-      const { data: tournament } = await supabase
-        .from('tournaments')
-        .select('id, status')
-        .eq('tournament_code', code.toUpperCase())
-        .single();
-
+      // Use tournament data from API response
+      const tournament = data.tournament;
+      
       if (tournament) {
         // Redirect based on tournament status
-        if (tournament.status === 'active') {
+        if (tournament.status === 'active' || tournament.status === 'starting') {
           router.push(`/tournament/${tournament.id}/play`);
         } else {
           router.push(`/tournament/${tournament.id}`);
         }
+      } else {
+        setError('Tournament data not found');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Join error:', err);
