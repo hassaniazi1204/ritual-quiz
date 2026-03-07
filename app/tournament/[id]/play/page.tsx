@@ -183,9 +183,57 @@ export default function TournamentGamePage() {
   };
 
   // Handle when player's game is over (from MergeGame)
-  const handlePlayerGameOver = () => {
+  const handlePlayerGameOver = async () => {
     console.log('Player game over in tournament mode');
-    handleGameEnd(false);
+    await handleGameEnd(false);
+    
+    // Check if all players have finished (for host)
+    if (isCreator) {
+      setTimeout(async () => {
+        await checkIfAllPlayersFinished();
+      }, 2000);
+    }
+  };
+
+  // Check if all players have finished their games
+  const checkIfAllPlayersFinished = async () => {
+    try {
+      // Get total participant count
+      const { count: totalParticipants } = await supabase
+        .from('tournament_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId);
+
+      // Get count of players who have submitted final scores (game_duration_seconds > 0 means they finished)
+      const { count: finishedPlayers } = await supabase
+        .from('tournament_scores')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+        .gt('game_duration_seconds', 0);
+
+      console.log(`Tournament ${tournamentId}: ${finishedPlayers}/${totalParticipants} players finished`);
+
+      // If all players have finished, auto-end the tournament
+      if (finishedPlayers && totalParticipants && finishedPlayers >= totalParticipants) {
+        console.log('All players finished! Auto-ending tournament...');
+        
+        // End the tournament
+        const response = await fetch('/api/tournaments/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tournament_id: tournamentId }),
+        });
+
+        if (response.ok) {
+          // Redirect to results
+          setTimeout(() => {
+            router.push(`/tournament/${tournamentId}/results`);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking if all players finished:', error);
+    }
   };
 
   // Format time
