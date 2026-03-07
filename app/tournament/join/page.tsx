@@ -68,26 +68,34 @@ function TournamentJoinContent() {
       });
 
       const data = await response.json();
+      
+      console.log('Join API response:', data);
 
       if (!response.ok) {
+        console.error('Join failed:', data);
         setError(data.error || 'Failed to join tournament');
         setLoading(false);
         return;
       }
 
-      // Use tournament data from API response
+      // Use tournament_id or tournament.id from API response
+      const tournamentId = data.tournament_id || data.tournament?.id;
       const tournament = data.tournament;
       
-      if (tournament) {
-        // Redirect based on tournament status
-        if (tournament.status === 'active' || tournament.status === 'starting') {
-          router.push(`/tournament/${tournament.id}/play`);
-        } else {
-          router.push(`/tournament/${tournament.id}`);
-        }
-      } else {
-        setError('Tournament data not found');
+      if (!tournamentId) {
+        console.error('No tournament ID in response:', data);
+        setError('Invalid response from server');
         setLoading(false);
+        return;
+      }
+
+      console.log('Joining tournament successful, redirecting to:', tournamentId);
+      
+      // Redirect based on tournament status
+      if (tournament && (tournament.status === 'active' || tournament.status === 'starting')) {
+        router.push(`/tournament/${tournamentId}/play`);
+      } else {
+        router.push(`/tournament/${tournamentId}`);
       }
     } catch (err) {
       console.error('Join error:', err);
