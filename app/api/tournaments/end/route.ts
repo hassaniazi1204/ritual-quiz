@@ -72,24 +72,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all scores with participant info
+    // Get all scores
     const { data: scores, error: scoresError } = await supabase
       .from('tournament_scores')
-      .select(`
-        user_id,
-        current_score,
-        balls_dropped,
-        merges_completed,
-        game_duration_seconds,
-        tournament_participants!inner(username, profile_image)
-      `)
+      .select('*')
       .eq('tournament_id', tournament_id)
       .order('current_score', { ascending: false });
 
     if (scoresError) {
       console.error('Error fetching scores:', scoresError);
       return NextResponse.json(
-        { error: 'Failed to fetch tournament scores' },
+        { error: 'Failed to fetch tournament scores', details: scoresError.message },
         { status: 500 }
       );
     }
@@ -102,18 +95,40 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Get participant info separately
+    const { data: participants, error: participantsError } = await supabase
+      .from('tournament_participants')
+      .select('user_id, username, profile_image')
+      .eq('tournament_id', tournament_id);
+
+    if (participantsError) {
+      console.error('Error fetching participants:', participantsError);
+      return NextResponse.json(
+        { error: 'Failed to fetch participants', details: participantsError.message },
+        { status: 500 }
+      );
+    }
+
+    // Create a map of participants
+    const participantMap = new Map(
+      participants?.map(p => [p.user_id, p]) || []
+    );
+
     // Create tournament results with rankings
-    const results = scores.map((score: any, index: number) => ({
-      tournament_id: tournament_id,
-      user_id: score.user_id,
-      username: score.tournament_participants?.username || 'Unknown',
-      profile_image: score.tournament_participants?.profile_image || null,
-      rank: index + 1,
-      final_score: score.current_score || 0,
-      balls_dropped: score.balls_dropped || 0,
-      merges_completed: score.merges_completed || 0,
-      total_game_time_seconds: score.game_duration_seconds || 0,
-    }));
+    const results = scores.map((score: any, index: number) => {
+      const participant = participantMap.get(score.user_id);
+      return {
+        tournament_id: tournament_id,
+        user_id: score.user_id,
+        username: participant?.username || 'Unknown',
+        profile_image: participant?.profile_image || null,
+        rank: index + 1,
+        final_score: score.current_score || 0,
+        balls_dropped: score.balls_dropped || 0,
+        merges_completed: score.merges_completed || 0,
+        total_game_time_seconds: score.game_duration_seconds || 0,
+      };
+    });
 
     console.log('Creating tournament results:', results);
 
