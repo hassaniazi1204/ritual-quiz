@@ -31,6 +31,8 @@ export default function LiveLeaderboard({
   // Fetch and rank scores
   const fetchLeaderboard = useCallback(async () => {
     try {
+      console.log('Fetching leaderboard for tournament:', tournamentId);
+      
       // Query tournament_scores with participant info
       const { data, error } = await supabase
         .from('tournament_scores')
@@ -45,10 +47,13 @@ export default function LiveLeaderboard({
 
       if (error) {
         console.error('Leaderboard fetch error:', error);
+        setLoading(false);
         return;
       }
 
-      if (data) {
+      console.log('Leaderboard data received:', data?.length || 0, 'entries');
+
+      if (data && data.length > 0) {
         // Transform and rank
         const entries: LeaderboardEntry[] = data.map((entry: any, index: number) => ({
           rank: index + 1,
@@ -66,9 +71,12 @@ export default function LiveLeaderboard({
           const myEntry = entries.find(e => e.user_id === currentUserId);
           setMyRank(myEntry?.rank || null);
         }
-
-        setLoading(false);
+      } else {
+        // No data yet - set empty array
+        setLeaderboard([]);
       }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
       setLoading(false);
