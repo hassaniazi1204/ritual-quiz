@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,8 @@ export async function POST(request: Request) {
 
     console.log('🏁 Ending tournament:', tournamentId);
 
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
 
     // STEP 1: Get all scores (separate query)
     const { data: scores, error: scoresError } = await supabase
