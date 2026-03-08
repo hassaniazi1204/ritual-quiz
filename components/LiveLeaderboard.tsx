@@ -28,54 +28,75 @@ export default function LiveLeaderboard({
   const [myRank, setMyRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch and rank scores
+  // Fetch and rank scores - NO NESTED SELECTS
   const fetchLeaderboard = useCallback(async () => {
     try {
       console.log('Fetching leaderboard for tournament:', tournamentId);
       
-      // Query tournament_scores with participant info
-      const { data, error } = await supabase
+      // Step 1: Get scores (NO nested select)
+      const { data: scores, error: scoresError } = await supabase
         .from('tournament_scores')
-        .select(`
-          user_id,
-          current_score,
-          last_update,
-          tournament_participants!inner(username, profile_image)
-        `)
+        .select('user_id, current_score, last_update')
         .eq('tournament_id', tournamentId)
         .order('current_score', { ascending: false });
 
-      if (error) {
-        console.error('Leaderboard fetch error:', error);
+      if (scoresError) {
+        console.error('Leaderboard scores fetch error:', scoresError);
         setLoading(false);
         return;
       }
 
-      console.log('Leaderboard data received:', data?.length || 0, 'entries');
+      console.log('Scores fetched:', scores?.length || 0);
 
-      if (data && data.length > 0) {
-        // Transform and rank
-        const entries: LeaderboardEntry[] = data.map((entry: any, index: number) => ({
-          rank: index + 1,
-          user_id: entry.user_id || '',
-          username: entry.tournament_participants?.username || 'Unknown',
-          profile_image: entry.tournament_participants?.profile_image || null,
-          current_score: entry.current_score || 0,
-          last_update: entry.last_update || new Date().toISOString(),
-        }));
-
-        setLeaderboard(entries);
-
-        // Find current user's rank
-        if (currentUserId) {
-          const myEntry = entries.find(e => e.user_id === currentUserId);
-          setMyRank(myEntry?.rank || null);
-        }
-      } else {
-        // No data yet - set empty array
+      if (!scores || scores.length === 0) {
+        console.log('No scores yet');
         setLeaderboard([]);
+        setLoading(false);
+        return;
       }
-      
+
+      // Step 2: Get participants separately
+      const { data: participants, error: participantsError } = await supabase
+        .from('tournament_participants')
+        .select('user_id, username, profile_image')
+        .eq('tournament_id', tournamentId);
+
+      if (participantsError) {
+        console.error('Participants fetch error:', participantsError);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Participants fetched:', participants?.length || 0);
+
+      // Step 3: Manual join
+      const participantMap = new Map(
+        participants?.map(p => [p.user_id, p]) || []
+      );
+
+      // Step 4: Create leaderboard entries
+      const entries: LeaderboardEntry[] = scores.map((score, index) => {
+        const participant = participantMap.get(score.user_id);
+        return {
+          rank: index + 1,
+          user_id: score.user_id || '',
+          username: participant?.username || 'Unknown',
+          profile_image: participant?.profile_image || null,
+          current_score: score.current_score || 0,
+          last_update: score.last_update || new Date().toISOString(),
+        };
+      });
+
+      console.log('Leaderboard entries created:', entries.length);
+      setLeaderboard(entries);
+
+      // Find current user's rank
+      if (currentUserId) {
+        const myEntry = entries.find(e => e.user_id === currentUserId);
+        setMyRank(myEntry?.rank || null);
+        console.log('My rank:', myEntry?.rank);
+      }
+
       setLoading(false);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -97,14 +118,13 @@ export default function LiveLeaderboard({
       .on(
         'postgres_changes',
         {
-          event: '*',  // Listen to INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'tournament_scores',
           filter: `tournament_id=eq.${tournamentId}`,
         },
         (payload) => {
           console.log('Realtime update received:', payload);
-          // Immediately refetch leaderboard when any score changes
           fetchLeaderboard();
         }
       )
@@ -211,7 +231,7 @@ export default function LiveLeaderboard({
                     )}
                   </div>
                   <div className="text-xs text-gray-400 hidden sm:block">
-                    {new Date(entry.last_update).toLocaleTimeString()}
+                    Updated {new Date(entry.last_update).toLocaleTimeString()}
                   </div>
                 </div>
 
