@@ -3,149 +3,113 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 
-interface TournamentResult {
-  rank: number;
+interface Result {
   user_id: string;
   username: string;
   profile_image: string | null;
+  rank: number;
   final_score: number;
   balls_dropped: number;
   merges_completed: number;
-  total_game_time_seconds: number;
-}
-
-interface Tournament {
-  id: string;
-  name: string;
-  description: string;
-  duration_minutes: number;
-  created_at: string;
+  game_duration_seconds: number;
 }
 
 export default function TournamentResults() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const supabase = createClient();
-
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [results, setResults] = useState<TournamentResult[]>([]);
-  const [myResult, setMyResult] = useState<TournamentResult | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const tournamentId = params.id as string;
+
+  const [results, setResults] = useState<Result[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tournamentCode, setTournamentCode] = useState<string>('');
+
+  const supabase = createClient();
+  const currentUserId = session?.user ? ((session.user as any).id || session.user.email) : null;
 
   useEffect(() => {
     if (!tournamentId) return;
 
     const fetchResults = async () => {
       try {
-        // Fetch tournament
-        const { data: tournamentData, error: tournamentError } = await supabase
+        console.log('📊 Fetching results for tournament:', tournamentId);
+
+        // Get tournament info
+        const { data: tournament, error: tournamentError } = await supabase
           .from('tournaments')
-          .select('*')
+          .select('tournament_code, status')
           .eq('id', tournamentId)
           .single();
 
-        if (tournamentError) {
-          console.error('Error fetching tournament:', tournamentError);
-        } else if (tournamentData) {
-          setTournament(tournamentData);
+        if (tournamentError) throw tournamentError;
+
+        setTournamentCode(tournament.tournament_code);
+
+        // Check if tournament is finished
+        if (tournament.status !== 'finished') {
+          setError('Tournament has not ended yet');
+          setLoading(false);
+          return;
         }
 
-        // Fetch final results from tournament_results table
-        const { data: resultsData, error: resultsError } = await supabase
+        // Get results
+        const { data, error: resultsError } = await supabase
           .from('tournament_results')
           .select('*')
           .eq('tournament_id', tournamentId)
           .order('rank', { ascending: true });
 
-        if (resultsError) {
-          console.error('Error fetching results:', resultsError);
-          
-          // Fallback: If tournament_results is empty, fetch from tournament_scores
-          const { data: scoresData, error: scoresError } = await supabase
-            .from('tournament_scores')
-            .select(`
-              user_id,
-              current_score,
-              balls_dropped,
-              merges_completed,
-              game_duration_seconds,
-              tournament_participants!inner(username, profile_image)
-            `)
-            .eq('tournament_id', tournamentId)
-            .order('current_score', { ascending: false });
+        if (resultsError) throw resultsError;
 
-          if (!scoresError && scoresData) {
-            // Transform to results format
-            const transformedResults = scoresData.map((score: any, index: number) => ({
-              rank: index + 1,
-              user_id: score.user_id,
-              username: score.tournament_participants?.username || 'Unknown',
-              profile_image: score.tournament_participants?.profile_image || null,
-              final_score: score.current_score || 0,
-              balls_dropped: score.balls_dropped || 0,
-              merges_completed: score.merges_completed || 0,
-              total_game_time_seconds: score.game_duration_seconds || 0,
-            }));
-            
-            setResults(transformedResults);
-            
-            // Find current user's result
-            const userId = (session?.user as any)?.id || session?.user?.email;
-            if (userId) {
-              const myData = transformedResults.find(r => r.user_id === userId);
-              if (myData) {
-                setMyResult(myData);
-              }
-            }
-          }
-        } else if (resultsData && resultsData.length > 0) {
-          setResults(resultsData);
-          
-          // Find current user's result
-          const userId = (session?.user as any)?.id || session?.user?.email;
-          if (userId) {
-            const myData = resultsData.find(r => r.user_id === userId);
-            if (myData) {
-              setMyResult(myData);
-            }
-          }
+        if (!data || data.length === 0) {
+          setError('No results found for this tournament');
+          setLoading(false);
+          return;
         }
 
-        setLoading(false);
-      } catch (error) {
-        console.error('Error in fetchResults:', error);
+        console.log('✅ Fetched results:', data);
+        setResults(data);
+        setError(null);
+      } catch (err: any) {
+        console.error('❌ Error fetching results:', err);
+        setError(err.message || 'Failed to load results');
+      } finally {
         setLoading(false);
       }
     };
 
     fetchResults();
-    
-    // Poll for results every 3 seconds (in case tournament just ended)
-    const interval = setInterval(fetchResults, 3000);
-    
-    return () => clearInterval(interval);
-  }, [tournamentId, session, supabase]);
 
-  const getRankColor = (rank: number) => {
-    if (rank === 1) return 'from-yellow-400 to-yellow-600';
-    if (rank === 2) return 'from-gray-300 to-gray-400';
-    if (rank === 3) return 'from-orange-400 to-orange-600';
-    return 'from-purple-400 to-pink-400';
-  };
+    // Subscribe to tournament status changes (in case it ends while we're waiting)
+    const channel = supabase
+      .channel(`results-${tournamentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tournaments',
+          filter: `id=eq.${tournamentId}`
+        },
+        (payload: any) => {
+          console.log('📡 Tournament updated:', payload);
+          if (payload.new.status === 'finished') {
+            fetchResults();
+          }
+        }
+      )
+      .subscribe();
 
-  const getRankEmoji = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return '🎮';
-  };
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tournamentId]);
 
-  const formatTime = (seconds: number) => {
+  const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -153,234 +117,153 @@ export default function TournamentResults() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
-        <div className="text-white text-2xl">Loading results...</div>
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-300 mx-auto mb-4"></div>
+          <p className="text-purple-200 text-lg">Loading results...</p>
+        </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 flex items-center justify-center p-4">
+        <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-8 max-w-md text-center">
+          <h2 className="text-2xl font-bold text-red-300 mb-4">Error</h2>
+          <p className="text-red-200 mb-6">{error}</p>
+          <button
+            onClick={() => router.push('/tournaments')}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
+          >
+            Back to Tournaments
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const userResult = results.find(r => r.user_id === currentUserId);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 p-4">
+      <div className="max-w-4xl mx-auto pt-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-6xl font-black text-white mb-4">
-            🏆 Tournament Complete!
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            🏆 Tournament Results
           </h1>
-          {tournament && (
-            <p className="text-2xl text-purple-400 font-bold">{tournament.name}</p>
-          )}
+          <p className="text-purple-200 text-lg">
+            Code: <span className="font-mono font-bold">{tournamentCode}</span>
+          </p>
         </div>
 
-        {/* Your Result */}
-        {myResult && (
-          <div className="mb-12 bg-gradient-to-r from-purple-900/50 to-pink-900/50 backdrop-blur-md border-2 border-purple-500 rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-black text-white mb-6 text-center">
-              Your Performance
-            </h2>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className={`text-5xl font-black bg-gradient-to-r ${getRankColor(myResult.rank)} bg-clip-text text-transparent mb-2`}>
-                  {getRankEmoji(myResult.rank)}
-                </div>
-                <div className="text-3xl font-black text-white mb-1">#{myResult.rank}</div>
-                <div className="text-sm text-gray-400">Rank</div>
+        {/* User's Result Highlight (if they participated) */}
+        {userResult && (
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg p-6 mb-8 border-2 border-purple-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-200 text-sm mb-1">Your Result</p>
+                <p className="text-white text-3xl font-bold">
+                  #{userResult.rank} Place
+                </p>
               </div>
-
-              <div className="text-center">
-                <div className="text-4xl font-black text-purple-400 mb-1">
-                  {myResult?.final_score?.toLocaleString() || 0}
-                </div>
-                <div className="text-sm text-gray-400">Final Score</div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-4xl font-black text-blue-400 mb-1">
-                  {myResult.balls_dropped}
-                </div>
-                <div className="text-sm text-gray-400">Balls Dropped</div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-4xl font-black text-green-400 mb-1">
-                  {myResult.merges_completed}
-                </div>
-                <div className="text-sm text-gray-400">Merges</div>
+              <div className="text-right">
+                <p className="text-purple-200 text-sm mb-1">Final Score</p>
+                <p className="text-white text-3xl font-bold">
+                  {userResult.final_score.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Top 3 Podium */}
-        {results.length >= 3 && results[0] && results[1] && results[2] && (
-          <div className="mb-12 flex justify-center items-end gap-4">
-            {/* 2nd Place */}
-            <div className="flex flex-col items-center">
-              <div className="text-6xl mb-2">🥈</div>
-              {results[1].profile_image ? (
-                <img
-                  src={results[1].profile_image}
-                  alt={results[1].username}
-                  className="w-20 h-20 rounded-full border-4 border-gray-400 object-cover mb-2"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center text-white font-bold text-2xl mb-2 border-4 border-gray-400">
-                  {results[1].username.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="text-white font-bold text-xl mb-1">{results[1].username}</div>
-              <div className="text-3xl font-black text-gray-400 mb-2">
-                {results[1]?.final_score?.toLocaleString() || 0}
-              </div>
-              <div className="w-32 h-24 bg-gradient-to-br from-gray-300 to-gray-500 rounded-t-xl flex items-center justify-center">
-                <div className="text-4xl font-black text-white">2</div>
-              </div>
-            </div>
-
-            {/* 1st Place */}
-            <div className="flex flex-col items-center -mt-8">
-              <div className="text-7xl mb-2">🥇</div>
-              {results[0].profile_image ? (
-                <img
-                  src={results[0].profile_image}
-                  alt={results[0].username}
-                  className="w-24 h-24 rounded-full border-4 border-yellow-400 object-cover mb-2"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-3xl mb-2 border-4 border-yellow-400">
-                  {results[0].username.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="text-white font-bold text-2xl mb-1">{results[0].username}</div>
-              <div className="text-4xl font-black text-yellow-400 mb-2">
-                {results[0]?.final_score?.toLocaleString() || 0}
-              </div>
-              <div className="w-32 h-32 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-t-xl flex items-center justify-center">
-                <div className="text-5xl font-black text-white">1</div>
-              </div>
-            </div>
-
-            {/* 3rd Place */}
-            <div className="flex flex-col items-center">
-              <div className="text-6xl mb-2">🥉</div>
-              {results[2].profile_image ? (
-                <img
-                  src={results[2].profile_image}
-                  alt={results[2].username}
-                  className="w-20 h-20 rounded-full border-4 border-orange-400 object-cover mb-2"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-2xl mb-2 border-4 border-orange-400">
-                  {results[2].username.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="text-white font-bold text-xl mb-1">{results[2].username}</div>
-              <div className="text-3xl font-black text-orange-400 mb-2">
-                {results[2]?.final_score?.toLocaleString() || 0}
-              </div>
-              <div className="w-32 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-t-xl flex items-center justify-center">
-                <div className="text-4xl font-black text-white">3</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Full Results Table */}
-        <div className="bg-gray-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl p-8">
-          <h2 className="text-3xl font-black text-white mb-6">Full Rankings</h2>
+        {/* Full Leaderboard */}
+        <div className="bg-purple-900/50 rounded-lg p-6 border border-purple-500/30 backdrop-blur">
+          <h2 className="text-2xl font-bold text-purple-200 mb-6">Final Rankings</h2>
           
-          <div className="space-y-2">
-            {results.map((result) => {
-              const isCurrentUser = result.user_id === (session?.user as any)?.id;
-              const isTop3 = result.rank <= 3;
+          <div className="space-y-3">
+            {results.map((result) => (
+              <div
+                key={result.user_id}
+                className={`
+                  flex items-center gap-4 p-4 rounded-lg transition-all
+                  ${result.user_id === currentUserId 
+                    ? 'bg-purple-600/40 border-2 border-purple-400' 
+                    : 'bg-purple-800/30 border border-purple-700/50'
+                  }
+                `}
+              >
+                {/* Rank Badge */}
+                <div className={`
+                  w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg
+                  ${result.rank === 1 ? 'bg-yellow-500 text-black' : 
+                    result.rank === 2 ? 'bg-gray-300 text-black' :
+                    result.rank === 3 ? 'bg-amber-600 text-white' :
+                    'bg-purple-700 text-purple-200'}
+                `}>
+                  {result.rank}
+                </div>
 
-              return (
-                <div
-                  key={result.user_id}
-                  className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-                    isCurrentUser
-                      ? 'bg-purple-500/20 border-2 border-purple-500'
-                      : isTop3
-                      ? 'bg-gradient-to-r from-gray-800 to-gray-900 border border-yellow-500/30'
-                      : 'bg-gray-800/50 border border-gray-700'
-                  }`}
-                >
-                  {/* Rank */}
-                  <div className="flex-shrink-0 w-16 text-center">
-                    {isTop3 ? (
-                      <div className="text-4xl">{getRankEmoji(result.rank)}</div>
-                    ) : (
-                      <div className="text-2xl font-black text-gray-400">#{result.rank}</div>
+                {/* Profile Image */}
+                {result.profile_image ? (
+                  <Image
+                    src={result.profile_image}
+                    alt={result.username}
+                    width={48}
+                    height={48}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                    {result.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+
+                {/* Username and Stats */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-lg truncate">
+                    {result.username}
+                    {result.user_id === currentUserId && (
+                      <span className="ml-2 text-sm text-purple-300">(You)</span>
                     )}
                   </div>
-
-                  {/* Avatar */}
-                  <div className="flex-shrink-0">
-                    {result.profile_image ? (
-                      <img
-                        src={result.profile_image}
-                        alt={result.username}
-                        className="w-12 h-12 rounded-full border-2 border-purple-400 object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                        {result.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Username */}
-                  <div className="flex-1">
-                    <div className={`font-bold ${isCurrentUser ? 'text-purple-400' : 'text-white'}`}>
-                      {result.username}
-                      {isCurrentUser && (
-                        <span className="ml-2 text-xs bg-purple-500/30 px-2 py-0.5 rounded">YOU</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex gap-6 text-sm">
-                    <div className="text-center">
-                      <div className="text-white font-bold">{result.balls_dropped}</div>
-                      <div className="text-gray-400 text-xs">Balls</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-white font-bold">{result.merges_completed}</div>
-                      <div className="text-gray-400 text-xs">Merges</div>
-                    </div>
-                  </div>
-
-                  {/* Score */}
-                  <div className="text-right">
-                    <div className={`text-2xl font-black ${
-                      isCurrentUser ? 'text-purple-400' : 
-                      isTop3 ? 'text-yellow-400' : 'text-white'
-                    }`}>
-                      {result?.final_score?.toLocaleString() || 0}
-                    </div>
+                  <div className="text-purple-300 text-sm">
+                    {result.balls_dropped} balls • {result.merges_completed} merges • {formatDuration(result.game_duration_seconds)}
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Final Score */}
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-white">
+                    {result.final_score.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-purple-300">points</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="mt-12 flex gap-4 justify-center">
+        <div className="mt-8 flex gap-4 justify-center">
           <button
             onClick={() => router.push('/tournaments')}
-            className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-bold transition-colors"
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
           >
             Back to Tournaments
           </button>
           <button
             onClick={() => router.push('/game')}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-bold transition-colors"
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition"
           >
-            Play Again
+            Play Solo
           </button>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-purple-300 text-sm">
+          Thanks for playing! 🎮
         </div>
       </div>
     </div>
