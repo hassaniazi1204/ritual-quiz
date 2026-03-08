@@ -1,163 +1,134 @@
-// app/api/tournaments/end/route.ts
-import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Check NextAuth session
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { tournamentId } = await request.json();
 
-    const userId = (session.user as any).id || session.user.email;
-
-    const cookieStore = cookies();
-    const supabase = createClient(cookieStore);
-
-    // Parse request body
-    const body = await request.json();
-    const { tournament_id } = body;
-
-    if (!tournament_id) {
+    if (!tournamentId) {
       return NextResponse.json(
         { error: 'Tournament ID is required' },
         { status: 400 }
       );
     }
 
-    // Get tournament
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournament_id)
-      .single();
+    console.log('🏁 Ending tournament:', tournamentId);
 
-    if (tournamentError || !tournament) {
-      return NextResponse.json(
-        { error: 'Tournament not found' },
-        { status: 404 }
-      );
-    }
+    const supabase = await createClient();
 
-    // Check if user is the creator
-    if (tournament.created_by !== userId) {
-      return NextResponse.json(
-        { error: 'Only the tournament creator can end the tournament' },
-        { status: 403 }
-      );
-    }
-
-    // Update tournament status to finished
-    const { error: updateError } = await supabase
-      .from('tournaments')
-      .update({ 
-        status: 'finished',
-        end_time: new Date().toISOString(),
-      })
-      .eq('id', tournament_id);
-
-    if (updateError) {
-      console.error('Error ending tournament:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to end tournament' },
-        { status: 500 }
-      );
-    }
-
-    // Get all scores
+    // STEP 1: Get all scores (separate query)
     const { data: scores, error: scoresError } = await supabase
       .from('tournament_scores')
-      .select('*')
-      .eq('tournament_id', tournament_id)
+      .select('user_id, current_score, balls_dropped, merges_completed, game_duration_seconds')
+      .eq('tournament_id', tournamentId)
       .order('current_score', { ascending: false });
 
     if (scoresError) {
-      console.error('Error fetching scores:', scoresError);
+      console.error('❌ Error fetching scores:', scoresError);
       return NextResponse.json(
-        { error: 'Failed to fetch tournament scores', details: scoresError.message },
+        { error: 'Failed to fetch scores', details: scoresError.message },
         { status: 500 }
       );
     }
 
     if (!scores || scores.length === 0) {
-      console.log('No scores found, returning success anyway');
-      return NextResponse.json({
-        success: true,
-        message: 'Tournament ended (no scores recorded)',
-      });
+      console.log('⚠️ No scores found for tournament');
+      return NextResponse.json(
+        { error: 'No scores found for this tournament' },
+        { status: 404 }
+      );
     }
 
-    // Get participant info separately
+    console.log('✅ Fetched scores:', scores);
+
+    // STEP 2: Get participant details (separate query)
     const { data: participants, error: participantsError } = await supabase
       .from('tournament_participants')
       .select('user_id, username, profile_image')
-      .eq('tournament_id', tournament_id);
+      .eq('tournament_id', tournamentId);
 
     if (participantsError) {
-      console.error('Error fetching participants:', participantsError);
+      console.error('❌ Error fetching participants:', participantsError);
       return NextResponse.json(
         { error: 'Failed to fetch participants', details: participantsError.message },
         { status: 500 }
       );
     }
 
-    // Create a map of participants
-    const participantMap = new Map(
+    console.log('✅ Fetched participants:', participants);
+
+    // STEP 3: Manually join in JavaScript
+    const participantsMap = new Map(
       participants?.map(p => [p.user_id, p]) || []
     );
 
-    // Create tournament results with rankings
-    const results = scores.map((score: any, index: number) => {
-      const participant = participantMap.get(score.user_id);
+    const results = scores.map((score, index) => {
+      const participant = participantsMap.get(score.user_id);
       return {
-        tournament_id: tournament_id,
+        tournament_id: tournamentId,
         user_id: score.user_id,
-        username: participant?.username || 'Unknown',
+        username: participant?.username || 'Unknown Player',
         profile_image: participant?.profile_image || null,
         rank: index + 1,
-        final_score: score.current_score || 0,
+        final_score: score.current_score,
         balls_dropped: score.balls_dropped || 0,
         merges_completed: score.merges_completed || 0,
-        total_game_time_seconds: score.game_duration_seconds || 0,
+        game_duration_seconds: score.game_duration_seconds || 0
       };
     });
 
-    console.log('Creating tournament results:', results);
+    console.log('✅ Prepared results:', results);
 
-    // Insert results (upsert to handle duplicates)
+    // STEP 4: Save results
     const { error: resultsError } = await supabase
       .from('tournament_results')
-      .upsert(results, {
-        onConflict: 'tournament_id,user_id',
-        ignoreDuplicates: false,
+      .upsert(results, { 
+        onConflict: 'tournament_id,user_id'
       });
 
     if (resultsError) {
-      console.error('Error creating tournament results:', resultsError);
+      console.error('❌ Error saving results:', resultsError);
       return NextResponse.json(
-        { error: 'Failed to save tournament results' },
+        { error: 'Failed to save results', details: resultsError.message },
         { status: 500 }
       );
     }
 
+    console.log('✅ Results saved successfully');
+
+    // STEP 5: Update tournament status
+    const { error: updateError } = await supabase
+      .from('tournaments')
+      .update({ 
+        status: 'finished',
+        ended_at: new Date().toISOString()
+      })
+      .eq('id', tournamentId);
+
+    if (updateError) {
+      console.error('❌ Error updating tournament status:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update tournament', details: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Tournament status updated to finished');
+
     return NextResponse.json({
       success: true,
-      results_count: results.length,
-      tournament_id: tournament_id,
+      message: 'Tournament ended successfully',
+      results
     });
 
-  } catch (error) {
-    console.error('Tournament end error:', error);
+  } catch (error: any) {
+    console.error('❌ Unexpected error in end tournament API:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
