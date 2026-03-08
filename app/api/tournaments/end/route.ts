@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     console.log('🏁 Ending tournament:', tournamentId);
 
-    const supabase = await createClient();
+    const supabase = createClient();
 
     // STEP 1: Get all scores (separate query)
     const { data: scores, error: scoresError } = await supabase
