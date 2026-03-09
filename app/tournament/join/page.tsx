@@ -158,10 +158,10 @@ function TournamentJoinContent() {
               <input
                 type="text"
                 value={tournamentCode}
-                onChange={(e) => setTournamentCode(e.target.value.toUpperCase().slice(0, 8))}
-                placeholder="Enter 8-digit code"
+                onChange={(e) => setTournamentCode(e.target.value.toUpperCase().slice(0, 6))}
+                placeholder="Enter 6-digit code"
                 className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white text-center text-2xl font-mono font-bold placeholder-gray-600 outline-none transition-colors uppercase"
-                maxLength={8}
+                maxLength={6}
                 disabled={loading}
                 autoFocus
               />
@@ -177,7 +177,7 @@ function TournamentJoinContent() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || tournamentCode.length !== 8}
+              disabled={loading || tournamentCode.length !== 6}
               className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? 'Joining...' : 'Join Tournament'}
