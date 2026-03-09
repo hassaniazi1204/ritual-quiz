@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 
 interface Result {
   user_id: string;
   username: string;
-  profile_image: string | null;
   rank: number;
   final_score: number;
   balls_dropped: number;
@@ -49,14 +47,7 @@ export default function TournamentResults() {
 
         setTournamentCode(tournament.tournament_code);
 
-        // Check if tournament is finished
-        if (tournament.status !== 'finished') {
-          setError('Tournament has not ended yet');
-          setLoading(false);
-          return;
-        }
-
-        // Get results
+        // Get results (don't require 'finished' status - just check if results exist)
         const { data, error: resultsError } = await supabase
           .from('tournament_results')
           .select('*')
@@ -66,7 +57,12 @@ export default function TournamentResults() {
         if (resultsError) throw resultsError;
 
         if (!data || data.length === 0) {
-          setError('No results found for this tournament');
+          // Only show error if tournament isn't finished yet
+          if (tournament.status !== 'finished') {
+            setError('Tournament has not ended yet');
+          } else {
+            setError('No results found for this tournament');
+          }
           setLoading(false);
           return;
         }
@@ -205,20 +201,10 @@ export default function TournamentResults() {
                   {result.rank}
                 </div>
 
-                {/* Profile Image */}
-                {result.profile_image ? (
-                  <Image
-                    src={result.profile_image}
-                    alt={result.username}
-                    width={48}
-                    height={48}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                    {result.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                {/* Avatar Initial */}
+                <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                  {result.username.charAt(0).toUpperCase()}
+                </div>
 
                 {/* Username and Stats */}
                 <div className="flex-1 min-w-0">
