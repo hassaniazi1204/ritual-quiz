@@ -5,26 +5,19 @@ import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
-// Anti-cheat validation constants
-const MAX_SCORE_PER_MINUTE = 2000;
-const MAX_SCORE_PER_BALL = 150;
-const MAX_DURATION_VARIANCE = 30; // seconds
-const MIN_SUBMISSION_INTERVAL = 2; // seconds
-
 export async function POST(request: NextRequest) {
   try {
-    // Check NextAuth session (allow guests too)
+    // Check NextAuth session
     const session = await getServerSession(authOptions);
-    const guestUserId = request.headers.get('x-guest-user-id');
     
-    if (!session && !guestUserId) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = guestUserId || (session?.user as any)?.id || session?.user?.email;
+    const userId = (session.user as any).id || session.user.email;
 
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
@@ -53,14 +46,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('📊 Submitting score:', {
+      tournament_id,
+      userId,
+      score,
+      final_score,
+      game_metrics
+    });
+
     // Get tournament to verify it's active
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('status, duration_minutes, actual_start_time')
+      .select('status')
       .eq('id', tournament_id)
       .single();
 
     if (tournamentError || !tournament) {
+      console.error('Tournament not found:', tournamentError);
       return NextResponse.json(
         { error: 'Tournament not found' },
         { status: 404 }
@@ -74,90 +76,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Anti-cheat validation
-    const validationFlags: any = {};
     const {
       balls_dropped = 0,
       merges_completed = 0,
       game_duration_seconds = 0,
     } = game_metrics;
 
-    // Check 1: Score vs Duration
-    const expectedMaxScore = (game_duration_seconds / 60) * MAX_SCORE_PER_MINUTE;
-    if (score > expectedMaxScore * 1.2) { // 20% tolerance
-      validationFlags.SCORE_TOO_HIGH_FOR_DURATION = true;
-    }
-
-    // Check 2: Score per Ball
-    if (balls_dropped > 0) {
-      const scorePerBall = score / balls_dropped;
-      if (scorePerBall > MAX_SCORE_PER_BALL) {
-        validationFlags.SCORE_PER_BALL_TOO_HIGH = true;
-      }
-    }
-
-    // Check 3: Duration matches tournament
-    if (tournament.actual_start_time && final_score) {
-      const tournamentDuration = Math.floor(
-        (new Date().getTime() - new Date(tournament.actual_start_time).getTime()) / 1000
-      );
-      const durationDiff = Math.abs(game_duration_seconds - tournamentDuration);
-      
-      if (durationDiff > MAX_DURATION_VARIANCE) {
-        validationFlags.DURATION_MISMATCH = true;
-      }
-    }
-
-    // Check 4: Activity check
-    if (final_score && (balls_dropped === 0 || merges_completed === 0)) {
-      validationFlags.NO_GAME_ACTIVITY = true;
-    }
-
-    // Insert score
-    const { data: scoreData, error: scoreError } = await supabase
+    // UPSERT score (update if exists, insert if not)
+    const { error: scoreError } = await supabase
       .from('tournament_scores')
-      .insert({
+      .upsert({
         tournament_id,
         user_id: userId,
-        score,
+        current_score: score,
         balls_dropped,
         merges_completed,
         game_duration_seconds,
-        final_score,
-        validation_flags: Object.keys(validationFlags).length > 0 ? validationFlags : null,
-      })
-      .select()
-      .single();
+        last_update: new Date().toISOString(),
+      }, {
+        onConflict: 'tournament_id,user_id'
+      });
 
     if (scoreError) {
-      console.error('Error submitting score:', scoreError);
+      console.error('❌ Error submitting score:', scoreError);
       return NextResponse.json(
-        { error: 'Failed to submit score' },
+        { error: 'Failed to submit score', details: scoreError.message },
         { status: 500 }
       );
     }
 
-    // Update participant's last heartbeat
+    console.log('✅ Score submitted successfully');
+
+    // Update participant's status
     await supabase
       .from('tournament_participants')
       .update({ 
         last_heartbeat: new Date().toISOString(),
         status: final_score ? 'finished' : 'playing',
         game_ended_at: final_score ? new Date().toISOString() : null,
+        game_duration_seconds: final_score ? game_duration_seconds : null,
       })
       .eq('tournament_id', tournament_id)
       .eq('user_id', userId);
 
     return NextResponse.json({
       success: true,
-      score: scoreData,
-      validation_flags: validationFlags,
+      message: 'Score submitted successfully',
     });
 
   } catch (error) {
-    console.error('Submit score error:', error);
+    console.error('❌ Submit score error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }
