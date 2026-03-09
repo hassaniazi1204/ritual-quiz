@@ -240,10 +240,10 @@ export default function TournamentHubPage() {
                 <input
                   type="text"
                   value={tournamentCode}
-                  onChange={(e) => setTournamentCode(e.target.value.toUpperCase().slice(0, 8))}
-                  placeholder="Enter 8-digit code"
+                  onChange={(e) => setTournamentCode(e.target.value.toUpperCase().slice(0, 6))}
+                  placeholder="Enter 6-digit code"
                   className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-blue-500 rounded-xl text-white text-center text-2xl font-mono font-bold outline-none transition-colors uppercase"
-                  maxLength={8}
+                  maxLength={6}
                   required
                 />
               </div>
@@ -256,7 +256,7 @@ export default function TournamentHubPage() {
 
               <button
                 type="submit"
-                disabled={loading || tournamentCode.length !== 8}
+                disabled={loading || tournamentCode.length !== 6}
                 className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {loading ? 'Joining...' : 'Join Tournament'}
