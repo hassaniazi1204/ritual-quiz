@@ -5,6 +5,16 @@ import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
+// Simple function to generate a 6-character tournament code
+function generateTournamentCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check NextAuth session
@@ -23,44 +33,13 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json();
     const {
-      name,
-      description,
-      duration_minutes,
-      max_players = 100,
-      auto_start_enabled = false,
-      auto_start_player_count,
-      scheduled_start_time,
+      max_players = 10,
     } = body;
 
-    // Validation
-    if (!name || !duration_minutes) {
-      return NextResponse.json(
-        { error: 'Tournament name and duration are required' },
-        { status: 400 }
-      );
-    }
-
-    if (duration_minutes < 1 || duration_minutes > 120) {
-      return NextResponse.json(
-        { error: 'Duration must be between 1 and 120 minutes' },
-        { status: 400 }
-      );
-    }
-
-    if (max_players < 2 || max_players > 1000) {
-      return NextResponse.json(
-        { error: 'Max players must be between 2 and 1000' },
-        { status: 400 }
-      );
-    }
-
     // Get user info from NextAuth session
-    // Try to get ID from session, or create one from email
     let userId = (session.user as any).id;
     
     if (!userId && session.user.email) {
-      // Create a deterministic ID from email using a simple hash
-      // This ensures the same user always gets the same ID
       userId = session.user.email;
     }
     
@@ -75,35 +54,42 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating tournament for user:', { userId, username });
 
-    // Generate unique tournament code
-    const { data: codeData, error: codeError } = await supabase
-      .rpc('generate_tournament_code');
+    // Generate unique tournament code (retry if collision)
+    let tournament_code = '';
+    let codeExists = true;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    if (codeError) {
-      console.error('Error generating code:', codeError);
+    while (codeExists && attempts < maxAttempts) {
+      tournament_code = generateTournamentCode();
+      
+      const { data: existingTournament } = await supabase
+        .from('tournaments')
+        .select('id')
+        .eq('tournament_code', tournament_code)
+        .single();
+
+      codeExists = !!existingTournament;
+      attempts++;
+    }
+
+    if (codeExists) {
       return NextResponse.json(
-        { error: 'Failed to generate tournament code' },
+        { error: 'Failed to generate unique tournament code. Please try again.' },
         { status: 500 }
       );
     }
 
-    const tournament_code = codeData;
+    console.log('Generated tournament code:', tournament_code);
 
-    // Create tournament
+    // Create tournament with ONLY the fields that exist in the new schema
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .insert({
         tournament_code,
-        name,
-        description,
-        duration_minutes,
-        max_players,
         created_by: userId,
-        creator_username: username,
+        max_players,
         status: 'waiting',
-        auto_start_enabled,
-        auto_start_player_count,
-        scheduled_start_time: scheduled_start_time || null,
       })
       .select()
       .single();
@@ -127,6 +113,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Tournament created:', tournament);
+
     // Add creator as first participant
     const { error: participantError } = await supabase
       .from('tournament_participants')
@@ -148,14 +136,9 @@ export async function POST(request: NextRequest) {
       tournament: {
         id: tournament.id,
         tournament_code: tournament.tournament_code,
-        name: tournament.name,
-        description: tournament.description,
-        duration_minutes: tournament.duration_minutes,
         max_players: tournament.max_players,
         status: tournament.status,
         created_at: tournament.created_at,
-        auto_start_enabled: tournament.auto_start_enabled,
-        auto_start_player_count: tournament.auto_start_player_count,
       },
     });
 
