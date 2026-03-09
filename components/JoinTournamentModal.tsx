@@ -106,15 +106,15 @@ export default function JoinTournamentModal({ isOpen, onClose }: JoinTournamentM
               type="text"
               value={tournamentCode}
               onChange={handleCodeChange}
-              placeholder="ABCD1234"
-              maxLength={8}
+              placeholder="ABC123"
+              maxLength={6}
               required
               autoFocus
               className="w-full px-6 py-4 bg-black/50 border-2 border-gray-700 rounded-xl text-white text-center font-mono text-2xl font-bold placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors tracking-widest"
               style={{ letterSpacing: '0.2em' }}
             />
             <p className="text-xs text-gray-400 mt-2 text-center">
-              {tournamentCode.length}/8 characters
+              {tournamentCode.length}/6 characters
             </p>
           </div>
 
@@ -148,4 +148,3 @@ export default function JoinTournamentModal({ isOpen, onClose }: JoinTournamentM
     </div>
   );
 }
-
