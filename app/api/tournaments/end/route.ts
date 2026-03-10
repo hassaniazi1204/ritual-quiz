@@ -1,12 +1,15 @@
 // app/api/tournaments/end/route.ts
+// Accepts both `tournament_id` and `tournamentId` for compatibility with all callers
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const { tournamentId } = await request.json();
-    if (!tournamentId) return NextResponse.json({ error: 'tournamentId required' }, { status: 400 });
+    const body = await request.json();
+    // Accept both naming conventions used across the codebase
+    const tournamentId = body.tournament_id || body.tournamentId;
+    if (!tournamentId) return NextResponse.json({ error: 'tournament_id required' }, { status: 400 });
 
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
     if (tournament.status === 'finished') return NextResponse.json({ success: true, message: 'Already finished' });
     if (tournament.status !== 'active') return NextResponse.json({ error: 'Tournament not active' }, { status: 400 });
 
-    // Fetch scores ordered by rank
+    // Fetch all scores ordered by rank
     const { data: scores } = await supabase
       .from('tournament_scores')
       .select('user_id, score, balls_dropped, merges_completed, game_duration_seconds')
@@ -25,12 +28,11 @@ export async function POST(request: Request) {
 
     if (!scores?.length) return NextResponse.json({ error: 'No scores found' }, { status: 404 });
 
-    // Fetch usernames from users table (uuid join — proper FK)
+    // Fetch usernames via uuid FK join
     const userIds = scores.map(s => s.user_id);
     const { data: users } = await supabase.from('users').select('id, username').in('id', userIds);
     const usernameMap = new Map((users || []).map(u => [u.id, u.username]));
 
-    // Build results with rank
     const results = scores.map((s, i) => ({
       tournament_id:         tournamentId,
       user_id:               s.user_id,
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, results });
   } catch (err: any) {
+    console.error('tournament end error:', err);
     return NextResponse.json({ error: 'Internal server error', details: err.message }, { status: 500 });
   }
 }
