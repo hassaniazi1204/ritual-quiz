@@ -1,16 +1,32 @@
 'use client';
+// app/page.tsx
+// Landing page — checks session state so logged-in users go straight
+// to the Play modal without being shown the login screen again.
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import PlayModeModal from '@/components/PlayModeModal';
 
 export default function LandingPage() {
   const [loaded, setLoaded] = useState(false);
   const [showPlayModal, setShowPlayModal] = useState(false);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     setLoaded(true);
   }, []);
+
+  // If user was redirected here with ?play=true after auth, open the modal automatically
+  useEffect(() => {
+    if (status === 'loading') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('play') === 'true') {
+      setShowPlayModal(true);
+      // Clean up the URL without a full reload
+      window.history.replaceState({}, '', '/');
+    }
+  }, [status]);
 
   return (
     <main
@@ -31,15 +47,8 @@ export default function LandingPage() {
         overflow: 'hidden',
       }}
     >
-      {/* Dark overlay so text pops over the wormhole */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.45)',
-          zIndex: 0,
-        }}
-      />
+      {/* Dark overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.45)', zIndex: 0 }} />
 
       {/* MAIN CONTENT */}
       <div
@@ -129,6 +138,26 @@ export default function LandingPage() {
           </p>
         </div>
 
+        {/* Session-aware greeting */}
+        {status === 'authenticated' && session?.user && (
+          <div
+            style={{
+              opacity: loaded ? 1 : 0,
+              transition: 'opacity 0.8s ease 0.4s',
+              marginBottom: '24px',
+              padding: '10px 24px',
+              background: 'rgba(64,255,175,0.1)',
+              border: '1px solid rgba(64,255,175,0.3)',
+              borderRadius: '12px',
+              color: '#40FFAF',
+              fontSize: '1rem',
+              fontWeight: 600,
+            }}
+          >
+            Welcome back, {session.user.name || session.user.email?.split('@')[0]} 👋
+          </div>
+        )}
+
         {/* CTA Buttons */}
         <div
           style={{
@@ -171,7 +200,6 @@ export default function LandingPage() {
             </button>
           </Link>
 
-          {/* Updated Play Game button to open modal */}
           <button
             onClick={() => setShowPlayModal(true)}
             style={{
@@ -240,22 +268,19 @@ export default function LandingPage() {
               letterSpacing: '0.02em',
               transition: 'color 0.2s ease',
             }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLAnchorElement).style.color = '#40FFAF';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)';
-            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#40FFAF'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)'; }}
           >
             {link.label}
           </a>
         ))}
       </footer>
 
-      {/* Play Mode Modal */}
-      <PlayModeModal 
+      {/* Play Mode Modal - passes session so it can skip login screens */}
+      <PlayModeModal
         isOpen={showPlayModal}
         onClose={() => setShowPlayModal(false)}
+        isAuthenticated={status === 'authenticated'}
       />
     </main>
   );
