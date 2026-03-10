@@ -1,4 +1,5 @@
 // app/api/tournaments/submit-score/route.ts
+// Accepts both `is_final` and `final_score` field names for compatibility
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
@@ -11,8 +12,15 @@ const MAX_GAME_DURATION_SECONDS = 600;
 async function resolveUserId(supabase: any, session: any): Promise<string | null> {
   const nextauthId = (session.user as any).id || session.user.email;
   if (!nextauthId) return null;
-  const { data } = await supabase.from('users').select('id').eq('nextauth_id', nextauthId).single();
-  return data?.id ?? null;
+  const { data: existing } = await supabase.from('users').select('id').eq('nextauth_id', nextauthId).single();
+  if (existing) return existing.id;
+  const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
+  const { data: created, error } = await supabase
+    .from('users')
+    .insert({ nextauth_id: nextauthId, username, email: session.user.email, avatar: session.user.image })
+    .select('id').single();
+  if (error) { console.error('resolveUserId error:', error); return null; }
+  return created.id;
 }
 
 export async function POST(request: NextRequest) {
@@ -22,11 +30,13 @@ export async function POST(request: NextRequest) {
 
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
-
     const userId = await resolveUserId(supabase, session);
     if (!userId) return NextResponse.json({ error: 'Failed to resolve user' }, { status: 500 });
 
-    const { tournament_id, score, is_final = false, game_metrics = {} } = await request.json();
+    const body = await request.json();
+    const { tournament_id, score, game_metrics = {} } = body;
+    // Accept both field names from different callers
+    const isFinal: boolean = body.is_final ?? body.final_score ?? false;
 
     if (!tournament_id || typeof score !== 'number' || score < 0)
       return NextResponse.json({ error: 'tournament_id and valid score required' }, { status: 400 });
@@ -46,28 +56,33 @@ export async function POST(request: NextRequest) {
 
     await supabase.from('tournament_scores').upsert({
       tournament_id, user_id: userId, score, balls_dropped,
-      merges_completed, game_duration_seconds, finished: is_final,
+      merges_completed, game_duration_seconds, finished: isFinal,
       last_update: new Date().toISOString(),
     }, { onConflict: 'tournament_id,user_id' });
 
     await supabase.from('tournament_participants')
-      .update({ status: is_final ? 'finished' : 'playing', game_ended_at: is_final ? new Date().toISOString() : null })
+      .update({
+        status: isFinal ? 'finished' : 'playing',
+        game_ended_at: isFinal ? new Date().toISOString() : null,
+      })
       .eq('tournament_id', tournament_id).eq('user_id', userId);
 
-    if (is_final) {
+    // Auto-end when all players finished
+    if (isFinal) {
       const { count: total }    = await supabase.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', tournament_id);
       const { count: finished } = await supabase.from('tournament_scores').select('*', { count: 'exact', head: true }).eq('tournament_id', tournament_id).eq('finished', true);
       if (total !== null && finished !== null && finished >= total) {
         await fetch(`${process.env.NEXTAUTH_URL}/api/tournaments/end`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tournamentId: tournament_id }),
+          body: JSON.stringify({ tournament_id }),
         });
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
+    console.error('submit-score error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
