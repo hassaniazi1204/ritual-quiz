@@ -1,6 +1,6 @@
 // app/api/leaderboard/route.ts
 // Solo play leaderboard — top 20 enforced server-side.
-// user_id is uuid (proper FK to users.id).
+// Resolves user via session → nextauth_id → users.id (uuid).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
@@ -8,25 +8,37 @@ import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
-// Helper: get or create the users.id (uuid) for the current NextAuth session
+// Get or create users row, return users.id (uuid)
 async function resolveUserId(supabase: any, session: any): Promise<string | null> {
   const nextauthId = (session.user as any).id || session.user.email;
-  const username   = session.user.name || session.user.email?.split('@')[0] || 'Player';
+  if (!nextauthId) return null;
 
-  const { data, error } = await supabase
+  const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
+
+  // Try to find existing user first
+  const { data: existing } = await supabase
     .from('users')
-    .upsert(
-      { nextauth_id: nextauthId, username, email: session.user.email, avatar: session.user.image },
-      { onConflict: 'nextauth_id' }
-    )
+    .select('id')
+    .eq('nextauth_id', nextauthId)
+    .single();
+
+  if (existing) return existing.id;
+
+  // Create new user row
+  const { data: created, error } = await supabase
+    .from('users')
+    .insert({ nextauth_id: nextauthId, username, email: session.user.email, avatar: session.user.image })
     .select('id')
     .single();
 
-  if (error || !data) { console.error('resolveUserId error:', error); return null; }
-  return data.id;
+  if (error) {
+    console.error('Failed to create user:', error);
+    return null;
+  }
+  return created.id;
 }
 
-// ─── GET: Fetch top 20 solo scores ───────────────────────────────────────────
+// ─── GET: Fetch top 20 ───────────────────────────────────────────────────────
 export async function GET() {
   try {
     const cookieStore = cookies();
@@ -34,12 +46,7 @@ export async function GET() {
 
     const { data: scores, error } = await supabase
       .from('solo_scores')
-      .select(`
-        id,
-        score,
-        created_at,
-        users ( username )
-      `)
+      .select(`id, score, created_at, users ( username )`)
       .order('score', { ascending: false })
       .limit(20);
 
@@ -58,7 +65,7 @@ export async function GET() {
   }
 }
 
-// ─── POST: Submit a solo score ────────────────────────────────────────────────
+// ─── POST: Submit solo score ─────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -67,7 +74,10 @@ export async function POST(request: NextRequest) {
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
 
-    const { score, game_metrics = {} } = await request.json();
+    const body = await request.json();
+    // Support both new format { score, game_metrics } and MergeGame's { username, score }
+    const score       = body.score;
+    const game_metrics = body.game_metrics || {};
 
     if (typeof score !== 'number' || score < 0)
       return NextResponse.json({ error: 'Valid score required' }, { status: 400 });
@@ -92,20 +102,19 @@ export async function POST(request: NextRequest) {
     if (score <= lowestTop20Score && isTop20Full)
       return NextResponse.json({ success: true, ranked: false, threshold: lowestTop20Score });
 
-    // Insert new score
     const { error: insertError } = await supabase
       .from('solo_scores')
       .insert({ user_id: userId, score });
 
     if (insertError) throw insertError;
 
-    // Drop the old 20th entry if top-20 was full
     if (isTop20Full) {
       await supabase.from('solo_scores').delete().eq('id', currentTop20![currentTop20!.length - 1].id);
     }
 
     return NextResponse.json({ success: true, ranked: true }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err: any) {
+    console.error('Leaderboard POST error:', err);
+    return NextResponse.json({ error: 'Internal server error', details: err.message }, { status: 500 });
   }
 }
