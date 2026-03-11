@@ -1,12 +1,12 @@
 'use client';
 // LiveLeaderboard.tsx
-// ChatGPT Steps 1 + 6: Supabase Realtime patch-only updates with rank animation.
-// Subscribes to tournament_scores INSERT/UPDATE.
-// On each event: patches only the changed player, re-sorts, recomputes ranks.
-// Does NOT reload the entire list on every update.
+// Improvement 1: framer-motion `layout` + `AnimatePresence` for smooth rank transitions.
+// Rows physically slide to their new position instead of jumping.
+// All realtime patch logic preserved from previous version.
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Entry {
   user_id:  string;
@@ -21,19 +21,52 @@ interface Props {
   compact?:       boolean;
 }
 
-export default function LiveLeaderboard({ tournamentId, currentUserId, compact = false }: Props) {
-  const [entries, setEntries]       = useState<Entry[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState<string | null>(null);
-  // Track which user_ids just changed rank so we can animate them
-  const [flashIds, setFlashIds]     = useState<Set<string>>(new Set());
-  const prevRanks                   = useRef<Map<string, number>>(new Map());
-  const supabase                    = createClient();
+// Score counter that animates from old value to new value
+function AnimatedScore({ value, compact }: { value: number; compact: boolean }) {
+  const [display, setDisplay] = useState(value);
+  const prev = useRef(value);
 
-  // Initial full load — needed once at mount
+  useEffect(() => {
+    if (value === prev.current) return;
+    const start   = prev.current;
+    const end     = value;
+    const delta   = end - start;
+    const duration = Math.min(600, Math.abs(delta) / 10 + 200); // faster for bigger jumps
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed  = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(start + delta * eased));
+      if (progress < 1) requestAnimationFrame(tick);
+      else prev.current = value;
+    };
+
+    requestAnimationFrame(tick);
+  }, [value]);
+
+  return (
+    <span className={`font-bold tabular-nums flex-shrink-0 transition-colors duration-300
+      ${compact ? 'text-base' : 'text-xl'}
+      ${display !== prev.current ? 'text-yellow-300' : 'text-purple-200'}
+    `}>
+      {display.toLocaleString()}
+    </span>
+  );
+}
+
+export default function LiveLeaderboard({ tournamentId, currentUserId, compact = false }: Props) {
+  const [entries, setEntries]   = useState<Entry[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
+  const prevRanks               = useRef<Map<string, number>>(new Map());
+  const supabase                = createClient();
+
+  // ── Initial load ──────────────────────────────────────────────────────────
   const initialLoad = useCallback(async () => {
     try {
-      // ChatGPT Step 2: SELECT username, score only
       const { data: scores, error: scoresError } = await supabase
         .from('tournament_scores')
         .select('user_id, score, finished')
@@ -43,7 +76,6 @@ export default function LiveLeaderboard({ tournamentId, currentUserId, compact =
       if (scoresError) throw scoresError;
       if (!scores?.length) { setLoading(false); return; }
 
-      // Fetch usernames via uuid FK join
       const userIds = scores.map(s => s.user_id);
       const { data: users } = await supabase
         .from('users').select('id, username').in('id', userIds);
@@ -60,19 +92,18 @@ export default function LiveLeaderboard({ tournamentId, currentUserId, compact =
       list.forEach((e, i) => prevRanks.current.set(e.user_id, i));
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to load');
+      setError(err.message || 'Failed to load leaderboard');
     } finally {
       setLoading(false);
     }
-  }, [tournamentId, supabase]);
+  }, [tournamentId]);
 
-  // ChatGPT Step 1: patch only the changed player, re-sort
+  // ── Realtime patch: only touch the changed player ─────────────────────────
   const patchEntry = useCallback((payload: any) => {
     const updated = payload.new;
     if (!updated) return;
 
     setEntries(prev => {
-      // Find & patch the changed entry
       let found = false;
       const patched = prev.map(e => {
         if (e.user_id === updated.user_id) {
@@ -82,7 +113,7 @@ export default function LiveLeaderboard({ tournamentId, currentUserId, compact =
         return e;
       });
 
-      // New player joined mid-game — fetch their username then re-render
+      // Brand-new player: fetch username async then insert
       if (!found) {
         supabase.from('users').select('id, username').eq('id', updated.user_id).single()
           .then(({ data }) => {
@@ -99,114 +130,136 @@ export default function LiveLeaderboard({ tournamentId, currentUserId, compact =
         return prev;
       }
 
-      // Re-sort by score descending
+      // Re-sort and update prevRanks
       const sorted = [...patched].sort((a, b) => b.score - a.score);
-
-      // Detect rank changes for flash animation (ChatGPT Step 6)
-      const changed = new Set<string>();
-      sorted.forEach((e, i) => {
-        const old = prevRanks.current.get(e.user_id);
-        if (old !== undefined && old !== i) changed.add(e.user_id);
-        prevRanks.current.set(e.user_id, i);
-      });
-
-      if (changed.size > 0) {
-        setFlashIds(changed);
-        setTimeout(() => setFlashIds(new Set()), 800);
-      }
-
+      sorted.forEach((e, i) => prevRanks.current.set(e.user_id, i));
       return sorted;
     });
   }, [supabase]);
 
   useEffect(() => {
     initialLoad();
-
-    // ChatGPT Step 1: subscribe to INSERT and UPDATE on tournament_scores
     const channel = supabase
       .channel(`leaderboard:${tournamentId}`)
-      .on('postgres_changes', {
-        event:  'INSERT',
-        schema: 'public',
-        table:  'tournament_scores',
-        filter: `tournament_id=eq.${tournamentId}`,
-      }, patchEntry)
-      .on('postgres_changes', {
-        event:  'UPDATE',
-        schema: 'public',
-        table:  'tournament_scores',
-        filter: `tournament_id=eq.${tournamentId}`,
-      }, patchEntry)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tournament_scores', filter: `tournament_id=eq.${tournamentId}` }, patchEntry)
+      .on('postgres_changes', { event: 'UPDATE',  schema: 'public', table: 'tournament_scores', filter: `tournament_id=eq.${tournamentId}` }, patchEntry)
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, initialLoad, patchEntry]);
 
-  const medal = (i: number) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
+  // ── Rank badge colours ─────────────────────────────────────────────────────
+  const rankStyle = (i: number) =>
+    i === 0 ? 'bg-yellow-500 text-black shadow-yellow-500/40' :
+    i === 1 ? 'bg-slate-300 text-black shadow-slate-300/30' :
+    i === 2 ? 'bg-amber-600 text-white shadow-amber-600/30' :
+              'bg-purple-800 text-purple-300';
 
+  // ── States ─────────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className={`bg-purple-900/30 rounded-lg border border-purple-500/30 ${compact ? 'p-3' : 'p-6'}`}>
-      <h3 className={`font-bold text-purple-300 mb-4 ${compact ? 'text-lg' : 'text-xl'}`}>🔴 Live Leaderboard</h3>
-      <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" /></div>
+    <div className={`bg-purple-900/30 rounded-xl border border-purple-500/20 ${compact ? 'p-3' : 'p-6'}`}>
+      <Header compact={compact} />
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+      </div>
     </div>
   );
 
   if (error) return (
-    <div className={`bg-purple-900/30 rounded-lg border border-purple-500/30 ${compact ? 'p-3' : 'p-6'}`}>
-      <h3 className={`font-bold text-purple-300 mb-4 ${compact ? 'text-lg' : 'text-xl'}`}>🔴 Live Leaderboard</h3>
+    <div className={`bg-purple-900/30 rounded-xl border border-purple-500/20 ${compact ? 'p-3' : 'p-6'}`}>
+      <Header compact={compact} />
       <div className="text-center text-red-400 py-4 text-sm">
         {error}
-        <br /><button onClick={initialLoad} className="mt-2 px-4 py-2 bg-purple-600 rounded text-white text-sm">Retry</button>
+        <br />
+        <button onClick={initialLoad} className="mt-2 px-4 py-2 bg-purple-600 rounded-lg text-white text-sm hover:bg-purple-700 transition-colors">
+          Retry
+        </button>
       </div>
     </div>
   );
 
   return (
-    <div className={`bg-purple-900/30 rounded-lg border border-purple-500/30 ${compact ? 'p-3' : 'p-6'}`}>
-      <h3 className={`font-bold text-purple-300 mb-4 flex items-center gap-2 ${compact ? 'text-lg' : 'text-xl'}`}>
-        <span className="animate-pulse">🔴</span> Live Leaderboard
-      </h3>
+    <div className={`bg-purple-900/30 rounded-xl border border-purple-500/20 ${compact ? 'p-3' : 'p-6'}`}>
+      <Header compact={compact} />
 
-      {entries.length === 0
-        ? <p className={`text-center text-gray-400 ${compact ? 'py-4 text-sm' : 'py-8'}`}>Waiting for players to start...</p>
-        : <div className={compact ? 'space-y-1' : 'space-y-2'}>
+      {entries.length === 0 ? (
+        <p className={`text-center text-gray-400 ${compact ? 'py-4 text-sm' : 'py-8'}`}>
+          Waiting for players to start...
+        </p>
+      ) : (
+        // motion.div with layout on the container — children animate their own layout changes
+        <motion.div layout className={compact ? 'space-y-1' : 'space-y-2'}>
+          <AnimatePresence initial={false}>
             {entries.map((entry, i) => {
-              const isMe      = entry.user_id === currentUserId;
-              const isFlashing = flashIds.has(entry.user_id);
-              const m         = medal(i);
+              const isMe = entry.user_id === currentUserId;
               return (
-                <div key={entry.user_id} className={`
-                  flex items-center gap-3 rounded-lg transition-all duration-300
-                  ${compact ? 'p-2' : 'p-3'}
-                  ${isMe        ? 'bg-purple-600/40 border border-purple-400' : 'bg-purple-800/20'}
-                  ${isFlashing  ? 'ring-2 ring-yellow-400 scale-[1.02]' : ''}
-                `}>
-                  <div className={`rounded-full flex items-center justify-center font-bold flex-shrink-0
+                <motion.div
+                  key={entry.user_id}
+                  layout                          // ← This is the magic: Framer re-positions
+                  layoutId={entry.user_id}        //   each row smoothly when order changes
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{
+                    layout:  { type: 'spring', stiffness: 500, damping: 40 },
+                    opacity: { duration: 0.2 },
+                  }}
+                  className={`
+                    flex items-center gap-3 rounded-lg cursor-default select-none
+                    ${compact ? 'p-2' : 'p-3'}
+                    ${isMe
+                      ? 'bg-purple-600/40 border border-purple-400/60 shadow-lg shadow-purple-600/20'
+                      : 'bg-purple-800/20 border border-transparent'}
+                  `}
+                >
+                  {/* Rank badge */}
+                  <div className={`
+                    rounded-full flex items-center justify-center font-black flex-shrink-0 shadow-md
                     ${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'}
-                    ${i === 0 ? 'bg-yellow-500 text-black' : i === 1 ? 'bg-gray-300 text-black' : i === 2 ? 'bg-amber-600 text-white' : 'bg-purple-700 text-purple-200'}
+                    ${rankStyle(i)}
                   `}>
-                    {m ?? i + 1}
+                    {i + 1}
                   </div>
-                  <div className={`rounded-full bg-purple-600 flex items-center justify-center text-white font-bold flex-shrink-0
-                    ${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'}`}>
+
+                  {/* Avatar initial */}
+                  <div className={`
+                    rounded-full bg-gradient-to-br from-purple-500 to-pink-600
+                    flex items-center justify-center text-white font-bold flex-shrink-0
+                    ${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'}
+                  `}>
                     {entry.username.charAt(0).toUpperCase()}
                   </div>
+
+                  {/* Name */}
                   <div className="flex-1 min-w-0">
                     <div className={`text-white font-medium truncate ${compact ? 'text-sm' : 'text-base'}`}>
                       {entry.username}
-                      {isMe && <span className="ml-2 text-xs text-purple-300">(You)</span>}
-                      {entry.finished && <span className="ml-2 text-xs text-green-400">✓</span>}
+                      {isMe && <span className="ml-1 text-xs text-purple-300 font-normal">(You)</span>}
+                      {entry.finished && <span className="ml-1 text-xs text-green-400">✓</span>}
                     </div>
                   </div>
-                  <div className={`font-bold text-purple-200 flex-shrink-0 transition-all duration-300 ${compact ? 'text-base' : 'text-xl'} ${isFlashing ? 'text-yellow-300' : ''}`}>
-                    {entry.score.toLocaleString()}
-                  </div>
-                </div>
+
+                  {/* Animated score counter */}
+                  <AnimatedScore value={entry.score} compact={compact} />
+                </motion.div>
               );
             })}
-          </div>
-      }
-      <p className="mt-4 text-center text-xs text-gray-500">Updates automatically in real-time</p>
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      <p className="mt-4 text-center text-xs text-gray-600">Updates automatically in real-time</p>
     </div>
+  );
+}
+
+function Header({ compact }: { compact: boolean }) {
+  return (
+    <h3 className={`font-bold text-purple-300 mb-4 flex items-center gap-2 ${compact ? 'text-base' : 'text-xl'}`}>
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+      </span>
+      Live Leaderboard
+    </h3>
   );
 }
