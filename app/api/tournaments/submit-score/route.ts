@@ -66,19 +66,18 @@ export async function POST(request: NextRequest) {
     if (tournament.end_time && Date.now() > new Date(tournament.end_time).getTime())
       return NextResponse.json({ error: 'Tournament has finished' }, { status: 400 });
 
-    // ── Upsert score ──────────────────────────────────────────────────────────
-    const { error: scoreError } = await supabase
-      .from('tournament_scores')
-      .upsert({
-        tournament_id,
-        user_id:               userId,
-        score,
-        balls_dropped,
-        merges_completed,
-        game_duration_seconds,
-        finished:              isFinal,
-        last_update:           new Date().toISOString(),
-      }, { onConflict: 'tournament_id,user_id' });
+    // ── Upsert score with GREATEST protection ────────────────────────────────
+    // Uses raw SQL so score can only ever increase — never overwritten by a
+    // lower value from a late/stale submission (race condition protection).
+    const { error: scoreError } = await supabase.rpc('upsert_tournament_score', {
+      p_tournament_id:         tournament_id,
+      p_user_id:               userId,
+      p_score:                 score,
+      p_balls_dropped:         balls_dropped,
+      p_merges_completed:      merges_completed,
+      p_game_duration_seconds: game_duration_seconds,
+      p_finished:              isFinal,
+    });
 
     if (scoreError) {
       console.error('[submit-score] upsert:', scoreError.message);
