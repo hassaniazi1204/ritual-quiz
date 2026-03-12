@@ -1,18 +1,10 @@
 // app/api/tournaments/[id]/finalize/route.ts
-//
-// Industry-standard tournament finalization:
-//   1. Read live scores from tournament_scores (source of truth)
-//   2. Join users to get current usernames
-//   3. Sort by score DESC, assign ranks
-//   4. DELETE old results, INSERT fresh snapshot into tournament_results
-//   5. Mark tournament status = 'finished'
-//
-// Called by:
-//   - /api/tournaments/end  (admin ends early)
-//   - play page timer       (end_time reached)
-//   - submit-score route    (all players finished)
-//   - PATCH cron            (pg_cron safety net)
-
+// Finalizes a tournament:
+//   1. Guards: only finalizes 'running' tournaments (idempotent if already 'finished')
+//   2. Reads final scores from tournament_scores
+//   3. Joins users for username snapshot
+//   4. Assigns ranks, DELETEs old results, INSERTs fresh snapshot
+//   5. Sets status = 'finished', ended_at = now()
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
@@ -27,7 +19,6 @@ export async function POST(
   try {
     const supabase = createClient();
 
-    // ── Guard: only finalize active tournaments ───────────────────────────────
     const { data: tournament, error: tErr } = await supabase
       .from('tournaments')
       .select('status')
@@ -37,7 +28,7 @@ export async function POST(
     if (tErr || !tournament)
       return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
 
-    // Idempotent: already finished → return existing results
+    // Idempotent — already finished, return existing results
     if (tournament.status === 'finished') {
       const { data: existing } = await supabase
         .from('tournament_results')
@@ -47,67 +38,61 @@ export async function POST(
       return NextResponse.json({ success: true, already_finished: true, results: existing });
     }
 
-    // ── Step 2: Query final scores ────────────────────────────────────────────
+    // Only finalize running tournaments
+    if (tournament.status !== 'running')
+      return NextResponse.json(
+        { error: `Cannot finalize: tournament is ${tournament.status}` },
+        { status: 400 }
+      );
+
+    // Read final scores
     const { data: scores, error: scoresErr } = await supabase
       .from('tournament_scores')
       .select('user_id, score, balls_dropped, merges_completed, game_duration_seconds')
       .eq('tournament_id', tournamentId)
-      .order('score', { ascending: false });  // sort DESC
+      .order('score', { ascending: false });
 
     if (scoresErr) throw scoresErr;
     if (!scores?.length)
-      return NextResponse.json({ error: 'No scores found for this tournament' }, { status: 404 });
+      return NextResponse.json({ error: 'No scores found' }, { status: 404 });
 
-    // ── Step 2 cont: Join users to get usernames ──────────────────────────────
+    // Join usernames
     const userIds = scores.map(s => s.user_id);
     const { data: users, error: usersErr } = await supabase
-      .from('users')
-      .select('id, username')
-      .in('id', userIds);
-
+      .from('users').select('id, username').in('id', userIds);
     if (usersErr) throw usersErr;
+
     const usernameMap = new Map((users || []).map(u => [u.id, u.username]));
 
-    // ── Step 3: Assign ranks (1-based) ───────────────────────────────────────
+    // Build results with ranks
     const results = scores.map((s, index) => ({
       tournament_id:         tournamentId,
       user_id:               s.user_id,
-      username:              usernameMap.get(s.user_id) || 'Unknown',  // snapshot
-      rank:                  index + 1,                                 // 1, 2, 3…
+      username:              usernameMap.get(s.user_id) || 'Unknown',
+      rank:                  index + 1,
       final_score:           s.score,
       balls_dropped:         s.balls_dropped         ?? 0,
       merges_completed:      s.merges_completed      ?? 0,
       game_duration_seconds: s.game_duration_seconds ?? 0,
     }));
 
-    // ── Step 4: DELETE old results, INSERT fresh snapshot ────────────────────
-    // Delete first to avoid stale rows from previous (partial) finalizations
+    // DELETE old → INSERT fresh (avoids stale rows from partial previous runs)
     const { error: delErr } = await supabase
-      .from('tournament_results')
-      .delete()
-      .eq('tournament_id', tournamentId);
-
+      .from('tournament_results').delete().eq('tournament_id', tournamentId);
     if (delErr) throw delErr;
 
     const { error: insErr } = await supabase
-      .from('tournament_results')
-      .insert(results);
-
+      .from('tournament_results').insert(results);
     if (insErr) throw insErr;
 
-    // ── Step 5: Mark tournament finished ─────────────────────────────────────
+    // Mark finished — status is now the single source of truth
     const { error: updErr } = await supabase
       .from('tournaments')
-      .update({
-        status:    'finished',
-        ended_at:  new Date().toISOString(),
-      })
+      .update({ status: 'finished', ended_at: new Date().toISOString() })
       .eq('id', tournamentId);
-
     if (updErr) throw updErr;
 
-    console.log(`[finalize] Tournament ${tournamentId} finalized. ${results.length} results written.`);
-
+    console.log(`[finalize] ${tournamentId} finished. ${results.length} results written.`);
     return NextResponse.json({ success: true, results });
 
   } catch (err: any) {
