@@ -1,21 +1,22 @@
 // app/api/tournaments/start/route.ts
-// ChatGPT Step 3: sets start_time, end_time, status='active' on start
-// PATCH: starting → active (after countdown)
+// Lifecycle: waiting → running (single step, no 'starting' intermediate state)
+// POST: waiting → running (sets started_at, no end_time stored)
+// No PATCH needed — removed the two-step starting→active flow entirely.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
 async function resolveUserId(supabase: any, session: any): Promise<string | null> {
   const nextauthId = (session.user as any).id || session.user.email;
   if (!nextauthId) return null;
-  const { data } = await supabase.from('users').select('id').eq('nextauth_id', nextauthId).maybeSingle();
+  const { data } = await supabase
+    .from('users').select('id').eq('nextauth_id', nextauthId).maybeSingle();
   return data?.id ?? null;
 }
 
-// POST: waiting → starting (creator triggers countdown)
+// POST: waiting → running
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -29,60 +30,48 @@ export async function POST(request: NextRequest) {
     if (!tournament_id) return NextResponse.json({ error: 'tournament_id required' }, { status: 400 });
 
     const { data: tournament } = await supabase
-      .from('tournaments').select('*').eq('id', tournament_id).single();
+      .from('tournaments')
+      .select('*')
+      .eq('id', tournament_id)
+      .single();
 
-    if (!tournament) return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
+    if (!tournament)
+      return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
     if (tournament.created_by !== userId)
       return NextResponse.json({ error: 'Only the creator can start' }, { status: 403 });
     if (tournament.status !== 'waiting')
-      return NextResponse.json({ error: `Cannot start from status: ${tournament.status}` }, { status: 400 });
+      return NextResponse.json({ error: `Cannot start: tournament is ${tournament.status}` }, { status: 400 });
 
-    const { count } = await supabase.from('tournament_participants')
-      .select('*', { count: 'exact', head: true }).eq('tournament_id', tournament_id);
+    const { count } = await supabase
+      .from('tournament_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournament_id);
+
     if ((count ?? 0) < 2)
-      return NextResponse.json({ error: 'At least 2 players required' }, { status: 400 });
+      return NextResponse.json({ error: 'At least 2 players required to start' }, { status: 400 });
 
-    const { data: updated } = await supabase
-      .from('tournaments')
-      .update({ status: 'starting' })
-      .eq('id', tournament_id).select().single();
+    const now = new Date().toISOString();
 
-    return NextResponse.json({ success: true, tournament: updated, participant_count: count });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
-
-// PATCH: starting → active (after 5s countdown, also sets end_time)
-export async function PATCH(request: NextRequest) {
-  try {
-    const supabase = createClient();
-    const { tournament_id } = await request.json();
-    if (!tournament_id) return NextResponse.json({ error: 'tournament_id required' }, { status: 400 });
-
-    const { data: tournament } = await supabase
-      .from('tournaments').select('status, duration_minutes').eq('id', tournament_id).single();
-
-    if (!tournament || tournament.status !== 'starting')
-      return NextResponse.json({ error: `Cannot activate from status: ${tournament?.status}` }, { status: 400 });
-
-    const now = new Date();
-    const durationMinutes = tournament.duration_minutes || 10;
-    // ChatGPT Step 3: end_time = now + duration
-    const endTime = new Date(now.getTime() + durationMinutes * 60 * 1000);
-
-    const { data: updated } = await supabase
+    // Transition: waiting → running
+    // started_at is set here. end_time is NOT stored — computed as needed:
+    //   started_at + duration_minutes
+    const { data: updated, error: updateErr } = await supabase
       .from('tournaments')
       .update({
-        status:     'active',
-        started_at: now.toISOString(),
-        end_time:   endTime.toISOString(),  // ChatGPT Step 3
+        status:     'running',
+        started_at: now,
       })
-      .eq('id', tournament_id).select().single();
+      .eq('id', tournament_id)
+      .select()
+      .single();
 
-    // Create initial score rows for all participants
+    if (updateErr) throw updateErr;
+
+    // Seed zero-score rows for all participants so LiveLeaderboard shows everyone immediately
     const { data: participants } = await supabase
-      .from('tournament_participants').select('user_id').eq('tournament_id', tournament_id);
+      .from('tournament_participants')
+      .select('user_id')
+      .eq('tournament_id', tournament_id);
 
     if (participants?.length) {
       await supabase.from('tournament_scores').upsert(
@@ -94,14 +83,15 @@ export async function PATCH(request: NextRequest) {
           merges_completed:      0,
           game_duration_seconds: 0,
           finished:              false,
-          last_update:           now.toISOString(),
+          last_update:           now,
         })),
         { onConflict: 'tournament_id,user_id', ignoreDuplicates: true }
       );
     }
 
-    return NextResponse.json({ success: true, tournament: updated });
+    return NextResponse.json({ success: true, tournament: updated, participant_count: count });
   } catch (err: any) {
+    console.error('[start] error:', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
