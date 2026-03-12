@@ -1,237 +1,261 @@
 'use client';
-// ChatGPT Step 6: reads ONLY from tournament_results ordered by rank ASC
-// Auto-retries if tournament hasn't been finalized yet
+// Lobby page — lifecycle: waiting → running (no 'starting' intermediate)
+// Single POST to /api/tournaments/start transitions directly to running.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
-interface Result {
-  user_id:     string;
-  username:    string;
-  rank:        number;
-  final_score: number;
+
+interface Tournament {
+  id: string;
+  tournament_code: string;
+  status: string;
+  max_players: number;
+  created_by: string;
+  duration_minutes: number;
 }
 
-export default function TournamentResults() {
-  const params       = useParams();
-  const router       = useRouter();
-  const tournamentId = params.id as string;
-  const supabase     = createClient();
+interface Participant {
+  id: string;
+  user_id: string;
+  status: string;
+  joined_at: string;
+  users: { username: string; avatar: string | null } | null;
+}
 
-  const [results, setResults]               = useState<Result[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [error, setError]                   = useState<string | null>(null);
-  const [tournamentName, setTournamentName] = useState('');
-  const [tournamentCode, setTournamentCode] = useState('');
+export default function TournamentLobby() {
+  const params = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  // Stable supabase ref — avoids channel cleanup issues on re-render
+  const supabaseRef = useRef(createClient());
+  const supabase    = supabaseRef.current;
+
+  const [tournament, setTournament]       = useState<Tournament | null>(null);
+  const [participants, setParticipants]   = useState<Participant[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+  const [isCreator, setIsCreator]         = useState(false);
+  const [starting, setStarting]           = useState(false);
   const [currentUserDbId, setCurrentUserDbId] = useState<string | null>(null);
-  const [finalizing, setFinalizing]         = useState(false);
-
-  const { data: session, status: sessionStatus } = useSession();
+  const tournamentId = params.id as string;
 
   useEffect(() => {
-    // Fix 3: only call /api/user/me once session is confirmed loaded.
-    // Avoids ERR_TIMED_OUT retry loop caused by calling before NextAuth is ready.
-    if (sessionStatus !== 'authenticated') return;
+    if (!session?.user) return;
     fetch('/api/user/me').then(r => r.json()).then(d => { if (d.id) setCurrentUserDbId(d.id); });
-  }, [sessionStatus]);
+  }, [session]);
 
-  const fetchResults = async () => {
-    try {
-      // Get tournament info
-      const { data: tournament } = await supabase
-        .from('tournaments')
-        .select('tournament_code, status')
-        .eq('id', tournamentId)
-        .single();
-
-      if (!tournament) { setError('Tournament not found'); setLoading(false); return; }
-      setTournamentCode(tournament.tournament_code);
-
-      // ChatGPT Step 6: read ONLY from tournament_results, ordered by rank ASC
-      const { data, error: resultsError } = await supabase
-        .from('tournament_results')
-        .select('user_id, username, rank, final_score')
-        .eq('tournament_id', tournamentId)
-        .order('rank', { ascending: true });
-
-      if (resultsError) throw resultsError;
-
-      if (!data?.length) {
-        // Results not written yet — trigger finalization if tournament is active/finished
-        if (tournament.status === 'active' || tournament.status === 'finished') {
-          setFinalizing(true);
-          const res = await fetch(`/api/tournaments/${tournamentId}/finalize`, { method: 'POST' });
-          setFinalizing(false);
-          if (res.ok) {
-            // Re-fetch after finalization
-            const { data: fresh } = await supabase
-              .from('tournament_results')
-              .select('user_id, username, rank, final_score')
-              .eq('tournament_id', tournamentId)
-              .order('rank', { ascending: true });
-            setResults(fresh || []);
-          } else {
-            setError('Tournament has not ended yet');
-          }
-        } else {
-          setError('Tournament has not ended yet');
-        }
+  useEffect(() => {
+    if (!tournamentId) { setError('Invalid tournament ID'); setLoading(false); return; }
+    supabase.from('tournaments').select('*').eq('id', tournamentId).single()
+      .then(({ data, error }) => {
+        if (error || !data) setError('Tournament not found');
+        else setTournament(data);
         setLoading(false);
-        return;
-      }
+      });
+  }, [tournamentId]);
 
-      setResults(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load results');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    if (currentUserDbId && tournament)
+      setIsCreator(currentUserDbId === tournament.created_by);
+  }, [currentUserDbId, tournament]);
+
+  const fetchParticipants = async () => {
+    const { data } = await supabase
+      .from('tournament_participants')
+      .select('id, user_id, status, joined_at, users ( username, avatar )')
+      .eq('tournament_id', tournamentId)
+      .order('joined_at', { ascending: true });
+    if (data) setParticipants(data as any);
   };
 
+  useEffect(() => { if (tournamentId) fetchParticipants(); }, [tournamentId]);
+
+  // Realtime: watch tournament status + participant changes
   useEffect(() => {
     if (!tournamentId) return;
-    fetchResults();
-
-    // Listen for finalization in real-time
-    const ch = supabase
-      .channel(`results:${tournamentId}`)
+    const tCh = supabase.channel(`lobby-t:${tournamentId}`)
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'tournaments',
         filter: `id=eq.${tournamentId}`,
-      }, (payload) => {
-        if ((payload.new as any).status === 'finished') fetchResults();
+      }, (p) => {
+        const updated = p.new as Tournament;
+        setTournament(updated);
+        // Redirect all players when tournament goes running
+        if (updated.status === 'running')
+          router.push(`/tournament/${tournamentId}/play`);
+        if (updated.status === 'finished')
+          router.push(`/tournament/${tournamentId}/results`);
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(ch); };
+    const pCh = supabase.channel(`lobby-p:${tournamentId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'tournament_participants',
+        filter: `tournament_id=eq.${tournamentId}`,
+      }, () => fetchParticipants())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tCh);
+      supabase.removeChannel(pCh);
+    };
   }, [tournamentId]);
 
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const handleStartTournament = async () => {
+    if (!isCreator || starting) return;
+    setStarting(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/tournaments/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournament_id: tournamentId }),
+      });
+      const d = await r.json();
+      if (!r.ok) setError(d.error || 'Failed to start');
+      // On success, Realtime UPDATE will redirect all players
+    } finally {
+      setStarting(false);
+    }
+  };
 
-  if (loading || finalizing) return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 flex items-center justify-center">
+  const copyCode = () => {
+    if (tournament) navigator.clipboard.writeText(tournament.tournament_code);
+  };
+
+  const handleLeave = async () => {
+    if (!window.confirm('Leave this tournament?')) return;
+    const r = await fetch('/api/tournaments/leave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tournament_id: tournamentId }),
+    });
+    if (r.ok) router.push('/tournaments');
+    else { const d = await r.json(); setError(d.error || 'Failed to leave'); }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
+      <div className="text-white text-2xl">Loading tournament...</div>
+    </div>
+  );
+
+  if (error || !tournament) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-300 mx-auto mb-4" />
-        <p className="text-purple-200 text-lg">
-          {finalizing ? 'Calculating final standings...' : 'Loading results...'}
-        </p>
+        <h1 className="text-4xl font-black text-red-400 mb-4">Error</h1>
+        <p className="text-white text-xl mb-8">{error || 'Tournament not found'}</p>
+        <button onClick={() => router.push('/tournaments')} className="px-6 py-3 bg-purple-600 text-white rounded-lg font-bold">Back</button>
       </div>
     </div>
   );
 
-  if (error && !results.length) return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 flex items-center justify-center p-4">
-      <div className="bg-purple-900/50 border border-purple-500/30 rounded-2xl p-8 max-w-md text-center">
-        <div className="text-5xl mb-4">⏳</div>
-        <h2 className="text-2xl font-bold text-white mb-2">Tournament Still Running</h2>
-        <p className="text-purple-200 mb-6">{error}</p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={fetchResults} className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition">
-            Refresh
-          </button>
-          <button onClick={() => router.push('/tournaments')} className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition">
-            Back
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const myResult = results.find(r => r.user_id === currentUserDbId);
+  const statusColor =
+    tournament.status === 'waiting'  ? 'text-yellow-400' :
+    tournament.status === 'running'  ? 'text-green-400'  :
+                                       'text-gray-400';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 p-4">
-      <div className="max-w-2xl mx-auto pt-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">🏆 Final Results</h1>
-          <p className="text-purple-200">
-            Code: <span className="font-mono font-bold">{tournamentCode}</span>
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 p-8">
+      <div className="max-w-6xl mx-auto">
+        <button onClick={() => router.push('/tournaments')} className="mb-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg">← Back</button>
+
+        {/* Tournament info */}
+        <div className="bg-gray-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl p-8 mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-4xl font-black text-white mb-2">Tournament Lobby</h1>
+              <div className={`text-xl font-bold ${statusColor}`}>{tournament.status.toUpperCase()}</div>
+            </div>
+            <div className="text-right">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600/20 border-2 border-purple-500 rounded-lg mb-2">
+                <span className="text-white font-mono text-2xl font-bold">{tournament.tournament_code}</span>
+                <button onClick={copyCode} className="p-1 hover:bg-purple-500/20 rounded" title="Copy">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-400">Share this code to invite players</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-black/30 rounded-xl p-4 text-center">
+              <div className="text-3xl font-black text-green-400 mb-1">{participants.length}/{tournament.max_players}</div>
+              <div className="text-sm text-gray-400">Players</div>
+            </div>
+            <div className="bg-black/30 rounded-xl p-4 text-center">
+              <div className={`text-3xl font-black mb-1 ${statusColor}`}>{tournament.status.toUpperCase()}</div>
+              <div className="text-sm text-gray-400">Status</div>
+            </div>
+            <div className="bg-black/30 rounded-xl p-4 text-center">
+              <div className="text-3xl font-black text-purple-400 mb-1">{tournament.duration_minutes}m</div>
+              <div className="text-sm text-gray-400">Duration</div>
+            </div>
+          </div>
         </div>
 
-        {/* Your result highlight */}
-        {myResult && (
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-6 mb-6 border-2 border-purple-300/50 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-200 text-sm mb-1">Your Result</p>
-                <p className="text-white text-3xl font-black">#{myResult.rank} Place</p>
-              </div>
-              <div className="text-right">
-                <p className="text-purple-200 text-sm mb-1">Final Score</p>
-                <p className="text-white text-3xl font-black">{myResult.final_score.toLocaleString()}</p>
-              </div>
+        {/* Players */}
+        <div className="bg-gray-900/50 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl p-8 mb-8">
+          <h2 className="text-2xl font-black text-white mb-6">Players ({participants.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {participants.map(p => {
+              const username = p.users?.username || 'Unknown';
+              return (
+                <div key={p.id} className="flex items-center gap-3 p-4 bg-black/30 rounded-xl border border-gray-700 hover:border-purple-500/50 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                    {username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-white font-semibold">
+                      {username}
+                      {p.user_id === tournament.created_by && (
+                        <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">HOST</span>
+                      )}
+                      {p.user_id === currentUserDbId && (
+                        <span className="ml-2 text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">YOU</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400">Joined {new Date(p.joined_at).toLocaleTimeString()}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Actions */}
+        {tournament.status === 'waiting' && (
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              {isCreator ? (
+                <button
+                  onClick={handleStartTournament}
+                  disabled={participants.length < 2 || starting}
+                  className={`px-12 py-4 rounded-xl font-black text-xl transition-all ${
+                    participants.length < 2 || starting
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:scale-105 shadow-lg shadow-green-500/30'
+                  }`}
+                >
+                  {starting ? '🚀 Starting...' : participants.length < 2 ? 'Waiting for Players...' : '🚀 START TOURNAMENT'}
+                </button>
+              ) : (
+                <div className="text-white text-xl">Waiting for host to start...</div>
+              )}
             </div>
+            <button onClick={handleLeave} className="px-8 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-xl font-bold border-2 border-red-500/30">
+              ← Leave Tournament
+            </button>
           </div>
         )}
 
-        {/* ChatGPT Step 6: Rank, Username, Score ONLY — no stats columns */}
-        <div className="bg-purple-900/50 rounded-xl border border-purple-500/30 backdrop-blur overflow-hidden">
-          <div className="grid grid-cols-[auto_1fr_auto] text-xs font-bold text-purple-400 uppercase px-4 py-3 border-b border-purple-700/50 gap-4">
-            <span>Rank</span>
-            <span>Player</span>
-            <span>Score</span>
-          </div>
-
-          <div className="divide-y divide-purple-800/30">
-            {results.map(result => (
-              <div
-                key={result.user_id}
-                className={`grid grid-cols-[auto_1fr_auto] items-center px-4 py-4 gap-4 transition-colors ${
-                  result.user_id === currentUserDbId
-                    ? 'bg-purple-600/30'
-                    : 'hover:bg-purple-800/20'
-                }`}
-              >
-                {/* Rank badge */}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg flex-shrink-0 ${
-                  result.rank === 1 ? 'bg-yellow-500 text-black' :
-                  result.rank === 2 ? 'bg-slate-300 text-black' :
-                  result.rank === 3 ? 'bg-amber-600 text-white' :
-                  'bg-purple-700 text-purple-300'
-                }`}>
-                  {result.rank}
-                </div>
-
-                {/* Username */}
-                <div className="min-w-0">
-                  <div className="text-white font-semibold truncate">
-                    {result.username}
-                    {result.user_id === currentUserDbId && (
-                      <span className="ml-2 text-xs text-purple-300">(You)</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Final score */}
-                <div className="text-right">
-                  <span className="text-xl font-black text-white">
-                    {result.final_score.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-8 flex gap-4 justify-center">
-          <button
-            onClick={() => router.push('/tournaments')}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
-          >
-            Back to Tournaments
-          </button>
-          <button
-            onClick={() => router.push('/game')}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition"
-          >
-            Play Solo
-          </button>
-        </div>
+        {error && (
+          <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-center">{error}</div>
+        )}
       </div>
     </div>
   );
