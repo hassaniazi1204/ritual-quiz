@@ -65,7 +65,8 @@ export default function LiveLeaderboard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
   const updateBuffer = useRef<Map<string, any>>(new Map());
   const updateTimer = useRef<NodeJS.Timeout | null>(null);
