@@ -1149,6 +1149,80 @@ export default function MergeGame(props?: GameProps) {
     }
   };
 
+
+  // ── Tournament mode — canvas only ────────────────────────────────────────
+  // When tournamentMode=true the play page owns the full layout (header, timer,
+  // leaderboard). MergeGame must render ONLY the canvas so it doesn't cover them.
+  if (tournamentMode) {
+    return (
+      <div
+        className="relative w-full h-full flex items-center justify-center"
+        style={{ fontFamily: "'Barlow', sans-serif" }}
+      >
+        <div
+          className="relative"
+          style={{ width: '360px', height: '800px', maxWidth: '100%' }}
+        >
+          <canvas
+            ref={canvasRef}
+            width={gameWidth}
+            height={gameHeight}
+            onClick={handleCanvasClick}
+            onMouseMove={handleMouseMove}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="border-2 border-green-400/20 rounded-2xl cursor-crosshair bg-black shadow-inner"
+            style={{
+              width: '100%',
+              height: '100%',
+              touchAction: 'none',
+              display: 'block',
+              WebkitTapHighlightColor: 'transparent',
+              userSelect: 'none',
+            }}
+          />
+
+          {/* Siggy mascot overlay */}
+          {!gameOver && canvasRef.current && (() => {
+            const rect = canvasRef.current!.getBoundingClientRect();
+            const scaleX = rect.width / gameWidth;
+            const scaleY = rect.height / gameHeight;
+            const siggyCanvasSize = 200;
+            return (
+              <img
+                src="/avatars/siggy.png"
+                alt="Siggy"
+                style={{
+                  position: 'absolute',
+                  width:  `${siggyCanvasSize * scaleX}px`,
+                  height: `${siggyCanvasSize * scaleY}px`,
+                  top:    `${(spawnY - siggyCanvasSize) * scaleY}px`,
+                  left:   `${dropPosition * scaleX}px`,
+                  transform: 'translateX(-50%)',
+                  opacity: 0.95,
+                  pointerEvents: 'none',
+                  zIndex: 5,
+                }}
+              />
+            );
+          })()}
+
+          {/* Game-over overlay (tournament: just a brief flash, Realtime handles redirect) */}
+          {gameOver && (
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-5xl mb-3">🎮</div>
+                <p className="text-2xl font-black text-white">Game Over</p>
+                <p className="text-purple-400 mt-1">Final score: {score}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main 
       className="min-h-screen relative overflow-hidden"
