@@ -1,12 +1,16 @@
 'use client';
-// Play page — client responsibilities:
-//   - Submit score updates periodically and on game-over (submit-score only)
-//   - Listen for tournament status → 'finished' via Realtime and redirect
+// Play page — UI concerns only:
+//   - Timer above the game canvas, centered to canvas width
+//   - 5-second start countdown overlay
+//   - ⓘ info button (top-right)
+//   - No score display (canvas shows score)
+//   - No End button, no Hide Leaderboard button
+//   - Leaderboard always visible on the right
 //
-// Client does NOT:
-//   - Call /finalize directly
-//   - Control tournament state
-//   - Gate redirects behind a ref — all players redirect when server says finished
+// Architecture unchanged:
+//   - Only calls /api/tournaments/submit-score
+//   - Never calls /finalize directly
+//   - Realtime redirect when status → finished
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,7 +20,7 @@ import LiveLeaderboard from '@/components/LiveLeaderboard';
 import MergeGame from '@/components/MergeGame';
 import TournamentWaitingScreen from '@/components/TournamentWaitingScreen';
 
-// ── Info modal — shown when player clicks ⓘ ──────────────────────────────────
+// ── Info modal ────────────────────────────────────────────────────────────────
 function InfoModal({ onClose }: { onClose: () => void }) {
   return (
     <div
@@ -27,43 +31,32 @@ function InfoModal({ onClose }: { onClose: () => void }) {
         className="bg-gray-900 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-black text-white">How to Play</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl leading-none"
-          >
-            ×
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl leading-none">×</button>
         </div>
-
-        <div className="space-y-4 text-sm text-gray-300">
+        <div className="space-y-5 text-sm text-gray-300">
           <div>
             <h3 className="text-purple-400 font-bold mb-2">Basics</h3>
             <ul className="space-y-1 list-disc list-inside">
-              <li>Click or tap to drop a ball onto the playing field</li>
-              <li>Balls of the same number merge when they touch</li>
-              <li>Merged balls become the next number up</li>
+              <li>Click or tap to drop a ball onto the field</li>
+              <li>Balls of the same level merge when they touch</li>
+              <li>Merged balls become the next level up</li>
               <li>Score as high as possible before the timer runs out</li>
+              <li>Don't let balls cross the red line!</li>
             </ul>
           </div>
-
           <div>
             <h3 className="text-purple-400 font-bold mb-2">Merge Guide</h3>
-            <div className="grid grid-cols-2 gap-1 font-mono text-xs">
-              {[
-                ['1 + 1', '2'], ['2 + 2', '4'], ['4 + 4', '8'],
-                ['8 + 8', '16'], ['16 + 16', '32'], ['32 + 32', '64'],
-              ].map(([from, to]) => (
-                <div key={from} className="flex items-center gap-2 bg-black/30 rounded px-2 py-1">
-                  <span className="text-gray-400">{from}</span>
-                  <span className="text-purple-400">=</span>
-                  <span className="text-white font-bold">{to}</span>
-                </div>
-              ))}
+            <div className="flex justify-center">
+              <img
+                src="/avatars/Ritual wheel.png"
+                alt="Ritual Wheel"
+                className="w-full max-w-[200px] h-auto"
+                style={{ filter: 'drop-shadow(0 0 16px rgba(64,255,175,0.3))' }}
+              />
             </div>
           </div>
-
           <div>
             <h3 className="text-purple-400 font-bold mb-2">Tips</h3>
             <ul className="space-y-1 list-disc list-inside">
@@ -78,27 +71,65 @@ function InfoModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Start countdown overlay (5 → 1 → GO) ────────────────────────────────────
+function StartCountdown({ onDone }: { onDone: () => void }) {
+  const [count, setCount] = useState(5);
+
+  useEffect(() => {
+    if (count <= 0) { onDone(); return; }
+    const t = setTimeout(() => setCount(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [count, onDone]);
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+      <div className="text-center">
+        {count > 0 ? (
+          <div
+            key={count}
+            className="text-9xl font-black text-white drop-shadow-[0_0_40px_rgba(168,85,247,0.9)]"
+            style={{ animation: 'countdown-pop 0.9s ease-out forwards' }}
+          >
+            {count}
+          </div>
+        ) : (
+          <div className="text-7xl font-black text-purple-400 drop-shadow-[0_0_40px_rgba(168,85,247,0.9)]">
+            GO!
+          </div>
+        )}
+      </div>
+      <style>{`
+        @keyframes countdown-pop {
+          0%   { transform: scale(1.6); opacity: 0; }
+          20%  { transform: scale(1);   opacity: 1; }
+          80%  { transform: scale(1);   opacity: 1; }
+          100% { transform: scale(0.7); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function TournamentGamePage() {
-  const params = useParams();
-  const router = useRouter();
+  const params       = useParams();
+  const router       = useRouter();
   const { data: session } = useSession();
 
-  // Stable supabase ref — cleanup always targets same instance
-  const supabaseRef = useRef(createClient());
-  const supabase    = supabaseRef.current;
+  const supabaseRef  = useRef(createClient());
+  const supabase     = supabaseRef.current;
 
-  const [tournament, setTournament]           = useState<any>(null);
-  const [timeRemaining, setTimeRemaining]     = useState<number>(0);
-  const [currentScore, setCurrentScore]       = useState(0);
-  const [gameStarted, setGameStarted]         = useState(false);
-  const [gameEnded, setGameEnded]             = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(true);
-  const [playerFinished, setPlayerFinished]   = useState(false);
-  const [finalScore, setFinalScore]           = useState(0);
-  const [playerUsername, setPlayerUsername]   = useState('');
+  const [tournament, setTournament]         = useState<any>(null);
+  const [timeRemaining, setTimeRemaining]   = useState<number>(0);
+  const [currentScore, setCurrentScore]     = useState(0);   // kept for TIME'S UP overlay only
+  const [gameStarted, setGameStarted]       = useState(false);
+  const [gameEnded, setGameEnded]           = useState(false);
+  const [playerFinished, setPlayerFinished] = useState(false);
+  const [finalScore, setFinalScore]         = useState(0);
+  const [playerUsername, setPlayerUsername] = useState('');
   const [currentUserDbId, setCurrentUserDbId] = useState<string | null>(null);
-  // UI-only state — no effect on game logic
-  const [showInfoModal, setShowInfoModal]     = useState(false);
+  const [showInfoModal, setShowInfoModal]   = useState(false);
+  // Countdown: true = showing 5-4-3-2-1, false = game active
+  const [showCountdown, setShowCountdown]   = useState(false);
 
   const gameMetrics  = useRef({ balls_dropped: 0, merges_completed: 0, game_start_time: 0 });
   const lastSubmit   = useRef(0);
@@ -106,7 +137,7 @@ export default function TournamentGamePage() {
   const scoreRef     = useRef(0);
   const tournamentId = params.id as string;
 
-  // ── All logic below is UNCHANGED from previous version ───────────────────
+  // ── Logic (all unchanged) ─────────────────────────────────────────────────
 
   useEffect(() => {
     if (!session) return;
@@ -152,11 +183,11 @@ export default function TournamentGamePage() {
     return () => { supabase.removeChannel(ch); };
   }, [tournamentId]);
 
+  // When status becomes running: show countdown, then start game
   useEffect(() => {
     if (!tournament || gameStarted) return;
     if (tournament.status === 'running') {
-      setGameStarted(true);
-      gameMetrics.current.game_start_time = Date.now();
+      setShowCountdown(true); // countdown will call handleCountdownDone when finished
     }
   }, [tournament?.status, gameStarted]);
 
@@ -166,13 +197,18 @@ export default function TournamentGamePage() {
     return () => clearInterval(iv);
   }, [gameStarted, gameEnded]);
 
+  const handleCountdownDone = () => {
+    setShowCountdown(false);
+    setGameStarted(true);
+    gameMetrics.current.game_start_time = Date.now();
+  };
+
   const submitScore = async (isFinal: boolean): Promise<number> => {
     if (!session || !tournamentId) return scoreRef.current;
     const now = Date.now();
     if (!isFinal && now - lastSubmit.current < 2000) return scoreRef.current;
     lastSubmit.current = now;
     const scoreToSubmit = scoreRef.current;
-    console.log('[submitScore]', { scoreToSubmit, isFinal });
     try {
       await fetch('/api/tournaments/submit-score', {
         method: 'POST',
@@ -204,38 +240,22 @@ export default function TournamentGamePage() {
     }
   };
 
-  const handleEndTournament = async () => {
-    if (!window.confirm('End this tournament now for all players?')) return;
-    try {
-      const res = await fetch(`/api/tournaments/${tournamentId}/end`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const d = await res.json();
-        console.error('[play] end tournament failed:', d.error);
-      }
-    } catch (err) {
-      console.error('[play] end tournament error:', err);
-    }
-  };
-
-  // ── Formatting helpers ────────────────────────────────────────────────────
+  // ── Timer formatting ──────────────────────────────────────────────────────
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   const timerColor =
     timeRemaining <= 60  ? 'text-red-400'    :
-    timeRemaining <= 300 ? 'text-yellow-400' :
+    timeRemaining <= 300 ? 'text-yellow-300' :
                            'text-green-400';
 
-  const timerBg =
-    timeRemaining <= 60  ? 'bg-red-500/10 border-red-500/40'       :
-    timeRemaining <= 300 ? 'bg-yellow-500/10 border-yellow-500/40' :
-                           'bg-green-500/10 border-green-500/40';
+  const timerBorder =
+    timeRemaining <= 60  ? 'border-red-500/50'    :
+    timeRemaining <= 300 ? 'border-yellow-400/40' :
+                           'border-green-500/30';
 
-  // ── Early-exit renders (logic unchanged) ─────────────────────────────────
+  // ── Early exits ───────────────────────────────────────────────────────────
 
   if (!tournament) return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -251,12 +271,21 @@ export default function TournamentGamePage() {
     />
   );
 
-  // ── Main render ───────────────────────────────────────────────────────────
+  // ── Main layout ───────────────────────────────────────────────────────────
+  //
+  //  ┌─────────────────────────────────────────────┐
+  //  │  [ thin top bar: tournament name + ⓘ ]      │
+  //  ├──────────────────────┬──────────────────────┤
+  //  │   ⏱ 01:42            │                      │
+  //  │  ┌──────────────┐    │   LIVE LEADERBOARD   │
+  //  │  │  GAME CANVAS │    │                      │
+  //  │  └──────────────┘    │                      │
+  //  └──────────────────────┴──────────────────────┘
 
   return (
     <div className="min-h-screen bg-black flex flex-col overflow-hidden">
 
-      {/* Time-up overlay (logic unchanged) */}
+      {/* TIME'S UP overlay */}
       {gameEnded && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="text-center">
@@ -267,99 +296,64 @@ export default function TournamentGamePage() {
         </div>
       )}
 
-      {/* Info modal */}
       {showInfoModal && <InfoModal onClose={() => setShowInfoModal(false)} />}
 
-      {/* ── Header bar ──────────────────────────────────────────────────── */}
-      {/*                                                                    */}
-      {/*   [ Score ]     [ ⏱ TIMER ]     [ Ranks | End | ⓘ ]             */}
-      {/*                                                                    */}
-      {/* Timer is centered between score (left) and controls (right).      */}
-      <div className="flex-shrink-0 bg-black/90 backdrop-blur-md border-b border-purple-500/20">
-        <div className="max-w-7xl mx-auto px-4 py-2 grid grid-cols-3 items-center gap-2">
+      {/* ── Thin top bar: just tournament label + ⓘ ── */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-black/70 border-b border-purple-500/15">
+        <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">
+          🏆 Tournament
+        </span>
+        <button
+          onClick={() => setShowInfoModal(true)}
+          title="How to Play"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-gray-400 hover:text-white border border-gray-600/40 transition-colors text-sm font-bold"
+        >
+          ⓘ
+        </button>
+      </div>
 
-          {/* Left — current score */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 uppercase tracking-widest hidden sm:block">Score</span>
-            <span className="text-2xl font-black text-purple-300 tabular-nums">
-              {currentScore.toLocaleString()}
-            </span>
-          </div>
+      {/* ── Main content: canvas column + leaderboard column ── */}
+      <div className="flex flex-1 overflow-hidden">
 
-          {/* Centre — tournament timer, visually dominant */}
-          <div className="flex justify-center">
+        {/* LEFT: timer above canvas */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-950 gap-3 px-4 py-4">
+
+          {/* Timer — centered to the canvas width (360px max) */}
+          <div className="w-full flex justify-center" style={{ maxWidth: '360px' }}>
             <div className={`
-              flex items-center gap-2 px-5 py-2 rounded-xl border font-mono font-black
-              ${timerBg} ${timerColor}
+              w-full flex items-center justify-center gap-2 py-2 rounded-xl border
+              bg-black/60 font-mono font-black ${timerColor} ${timerBorder}
               ${timeRemaining <= 60 ? 'animate-pulse' : ''}
             `}>
-              <span className="text-lg">⏱</span>
+              <span className="text-base">⏱</span>
               <span className="text-3xl tracking-tight">{formatTime(timeRemaining)}</span>
             </div>
           </div>
 
-          {/* Right — controls */}
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => setShowLeaderboard(s => !s)}
-              className="px-3 py-2 bg-purple-800/50 hover:bg-purple-700/60 text-purple-200 rounded-lg font-bold text-xs border border-purple-500/30 transition-colors"
-            >
-              {showLeaderboard ? 'Hide' : 'Show'} Ranks
-            </button>
-            <button
-              onClick={handleEndTournament}
-              className="px-3 py-2 bg-red-900/30 hover:bg-red-800/50 text-red-400 rounded-lg font-bold text-xs border border-red-500/30 transition-colors"
-            >
-              🛑 End
-            </button>
-            {/* ⓘ Info button — opens How to Play / Merge Guide modal */}
-            <button
-              onClick={() => setShowInfoModal(true)}
-              title="How to Play"
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/60 hover:bg-gray-700/80 text-gray-400 hover:text-white border border-gray-600/40 transition-colors text-sm font-bold"
-            >
-              ⓘ
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Game canvas + Leaderboard (side-by-side, unchanged) ──────────── */}
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* Game canvas — left panel */}
-        <div className={`flex-1 overflow-hidden ${showLeaderboard ? 'sm:w-2/3' : 'w-full'}`}>
-          <div className="h-full flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
-            {/*
-              MergeGame receives tournamentMode=true which hides:
-                - "How to Play" section
-                - "Merge Guide" section
-                - "Restart Game" button
-              No changes to MergeGame props or logic.
-            */}
+          {/* Canvas + countdown overlay */}
+          <div className="relative" style={{ width: '360px', maxWidth: '100%' }}>
+            {showCountdown && <StartCountdown onDone={handleCountdownDone} />}
             <MergeGame
               tournamentMode={true}
               onScoreChange={(s) => { setCurrentScore(s); scoreRef.current = s; }}
               onBallDropped={() => gameMetrics.current.balls_dropped++}
               onMerge={() => gameMetrics.current.merges_completed++}
               onGameOver={() => handleGameEnd(false)}
-              disabled={gameEnded}
+              disabled={gameEnded || showCountdown}
             />
           </div>
         </div>
 
-        {/* Leaderboard — right panel */}
-        {showLeaderboard && (
-          <div className="hidden sm:flex sm:w-1/3 flex-col border-l border-purple-500/20 bg-gray-950/60 overflow-y-auto">
-            <div className="p-4 flex-1">
-              <LiveLeaderboard
-                tournamentId={tournamentId}
-                currentUserId={currentUserDbId || undefined}
-                compact={true}
-              />
-            </div>
+        {/* RIGHT: leaderboard — always visible, no hide button */}
+        <div className="hidden sm:flex w-80 flex-shrink-0 flex-col border-l border-purple-500/20 bg-gray-950/60 overflow-y-auto">
+          <div className="p-4 flex-1">
+            <LiveLeaderboard
+              tournamentId={tournamentId}
+              currentUserId={currentUserDbId || undefined}
+              compact={true}
+            />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
