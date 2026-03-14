@@ -394,17 +394,20 @@ export default function TournamentGamePage() {
         {/* LEFT: timer above canvas */}
         <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-950 gap-3 px-4 py-4">
 
-          {/* Timer — centered to the canvas width (360px max) */}
-          <div className="w-full flex justify-center" style={{ maxWidth: '360px' }}>
-            <div className={`
-              w-full flex items-center justify-center gap-2 py-2 rounded-xl border
-              bg-black/60 font-mono font-black ${timerColor} ${timerBorder}
-              ${timeRemaining <= 60 ? 'animate-pulse' : ''}
-            `}>
-              <span className="text-base">⏱</span>
-              <span className="text-3xl tracking-tight">{formatTime(timeRemaining)}</span>
+          {/* Timer — only shown after countdown ends (gameStarted=true).
+               During countdown the timer div is hidden entirely (Option A). */}
+          {gameStarted && (
+            <div className="w-full flex justify-center" style={{ maxWidth: '360px' }}>
+              <div className={`
+                w-full flex items-center justify-center gap-2 py-2 rounded-xl border
+                bg-black/60 font-mono font-black ${timerColor} ${timerBorder}
+                ${timeRemaining <= 60 ? 'animate-pulse' : ''}
+              `}>
+                <span className="text-base">⏱</span>
+                <span className="text-3xl tracking-tight">{formatTime(timeRemaining)}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Canvas + countdown overlay */}
           <div className="relative" style={{ width: '360px', maxWidth: '100%' }}>
