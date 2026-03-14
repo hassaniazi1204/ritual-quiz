@@ -17,7 +17,6 @@ import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
 import LiveLeaderboard from '@/components/LiveLeaderboard';
 import MergeGame from '@/components/MergeGame';
-import TournamentWaitingScreen from '@/components/TournamentWaitingScreen';
 
 // ── Info modal ────────────────────────────────────────────────────────────────
 function InfoModal({ onClose }: { onClose: () => void }) {
@@ -83,9 +82,6 @@ export default function TournamentGamePage() {
   const [currentScore, setCurrentScore]     = useState(0);   // kept for TIME'S UP overlay only
   const [gameStarted, setGameStarted]       = useState(false);
   const [gameEnded, setGameEnded]           = useState(false);
-  const [playerFinished, setPlayerFinished] = useState(false);
-  const [finalScore, setFinalScore]         = useState(0);
-  const [playerUsername, setPlayerUsername] = useState('');
   const [currentUserDbId, setCurrentUserDbId] = useState<string | null>(null);
   const [showInfoModal, setShowInfoModal]   = useState(false);
   // Music mute — owned here, pushed into MergeGame via externalIsMuted prop
@@ -93,8 +89,9 @@ export default function TournamentGamePage() {
 
   const gameMetrics  = useRef({ balls_dropped: 0, merges_completed: 0, game_start_time: 0 });
   const lastSubmit   = useRef(0);
-  const gameEndedRef = useRef(false);
-  const scoreRef     = useRef(0);
+  const gameEndedRef  = useRef(false);
+  const timeExpiredRef = useRef(false);  // true = timer ran out, false = game over (balls)
+  const scoreRef      = useRef(0);
   const tournamentId = params.id as string;
 
   // ── Logic (all unchanged) ─────────────────────────────────────────────────
@@ -147,6 +144,12 @@ export default function TournamentGamePage() {
     return () => clearInterval(iv);
   }, [gameStarted, gameEnded]);
 
+  // Realtime redirect — set up ONCE and never torn down during gameplay.
+  // Using a ref for the router so the handler always has the latest reference
+  // without needing router in the dependency array (which would re-subscribe).
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; }, [router]);
+
   useEffect(() => {
     if (!tournamentId) return;
     const ch = supabase
@@ -156,11 +159,11 @@ export default function TournamentGamePage() {
         filter: `id=eq.${tournamentId}`,
       }, (payload) => {
         if ((payload.new as any).status === 'finished')
-          router.push(`/tournament/${tournamentId}/results`);
+          routerRef.current.push(`/tournament/${tournamentId}/results`);
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [tournamentId]);
+  }, [tournamentId]);  // intentionally stable — never re-subscribes during gameplay
 
   // When status becomes running: start game immediately (no countdown)
   useEffect(() => {
@@ -205,22 +208,27 @@ export default function TournamentGamePage() {
   const handleGameEnd = async (timeExpired: boolean) => {
     if (gameEndedRef.current) return;
     gameEndedRef.current = true;
-    setGameEnded(true);
+    timeExpiredRef.current = timeExpired;
+    setGameEnded(true);  // shows the correct overlay (TIME'S UP or GAME OVER)
+
+    // Submit final score — always awaited before any further action
     const submitted = await submitScore(true);
-    if (!timeExpired) {
-      // Player's game ended (balls crossed line) before timer — show waiting screen
-      setPlayerFinished(true);
-      setFinalScore(submitted || scoreRef.current);
-      setPlayerUsername(session?.user?.name || session?.user?.email?.split('@')[0] || 'Player');
-    } else {
-      // Timer expired — this is the authoritative end of the tournament.
-      // Force-finalize regardless of whether other players have submitted.
-      // The TIME'S UP overlay is already showing; Realtime will redirect everyone.
+
+    if (timeExpired) {
+      // Timer ran out — force-finalize the tournament for everyone.
+      // Realtime will redirect all clients once status = 'finished'.
       try {
         await fetch(`/api/tournaments/${tournamentId}/finalize`, { method: 'POST' });
       } catch (e) {
         console.error('[play] force-finalize on timer expiry failed:', e);
       }
+      // Don't navigate — wait for Realtime redirect so the channel stays alive
+    } else {
+      // Player's balls crossed the line before timer ran out.
+      // submit-score auto-finalize will trigger if this was the last player.
+      // Stay on this page and let Realtime redirect everyone — keeping the
+      // subscription alive avoids missing the 'finished' event.
+      // Show a gentle "waiting" state via gameEnded overlay (not WaitingScreen).
     }
   };
 
@@ -247,13 +255,10 @@ export default function TournamentGamePage() {
     </div>
   );
 
-  if (playerFinished) return (
-    <TournamentWaitingScreen
-      tournamentId={tournamentId}
-      playerScore={finalScore}
-      playerUsername={playerUsername}
-    />
-  );
+  // NOTE: We no longer swap to TournamentWaitingScreen mid-game.
+  // Doing so unmounted the Realtime channel and caused non-creators to miss
+  // the 'finished' event. Instead, the gameEnded overlay stays visible and
+  // the existing Realtime subscription on this page handles the redirect.
 
   // ── Main layout ───────────────────────────────────────────────────────────
   //
@@ -269,12 +274,21 @@ export default function TournamentGamePage() {
   return (
     <div className="min-h-screen bg-black flex flex-col overflow-hidden">
 
-      {/* TIME'S UP overlay */}
+      {/* End-of-game overlay — message depends on HOW the game ended */}
       {gameEnded && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="text-center">
-            <h1 className="text-6xl font-black text-white mb-4">TIME'S UP!</h1>
-            <p className="text-2xl text-purple-400 mb-4">Final Score: {currentScore.toLocaleString()}</p>
+            {timeExpiredRef.current ? (
+              <>
+                <h1 className="text-6xl font-black text-white mb-4">TIME'S UP!</h1>
+                <p className="text-2xl text-purple-400 mb-4">Final Score: {currentScore.toLocaleString()}</p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-6xl font-black text-white mb-4">GAME OVER!</h1>
+                <p className="text-2xl text-purple-400 mb-4">Your Score: {currentScore.toLocaleString()}</p>
+              </>
+            )}
             <p className="text-gray-400">Waiting for results...</p>
           </div>
         </div>
