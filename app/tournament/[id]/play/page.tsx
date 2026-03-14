@@ -1,7 +1,6 @@
 'use client';
 // Play page — UI concerns only:
 //   - Timer above the game canvas, centered to canvas width
-//   - 5-second start countdown overlay
 //   - ⓘ info button (top-right)
 //   - No score display (canvas shows score)
 //   - No End button, no Hide Leaderboard button
@@ -12,7 +11,7 @@
 //   - Never calls /finalize directly
 //   - Realtime redirect when status → finished
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useSession } from 'next-auth/react';
@@ -71,71 +70,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Start countdown overlay ───────────────────────────────────────────────────
-// Sequence: 5 → 4 → 3 → 2 → 1 → GO! → [done]
-// Each step (including GO) shows for exactly 2 seconds.
-// Total: 12 seconds (6 steps × 2s). onDone() fires after GO disappears.
-//
-// State:  5..1 = show number,  0 = show GO,  -1 = call onDone + unmount
-// animKey increments every step so the CSS animation restarts cleanly.
-function StartCountdown({ onDone }: { onDone: () => void }) {
-  const [step, setStep]       = useState(5);   // 5,4,3,2,1,0,-1
-  const [animKey, setAnimKey] = useState(0);
-
-  useEffect(() => {
-    if (step === -1) { onDone(); return; }
-    const t = setTimeout(() => {
-      setStep(s => s - 1);
-      setAnimKey(k => k + 1);
-    }, 2000);                  // ← exactly 2 seconds per step
-    return () => clearTimeout(t);
-  }, [step, onDone]);
-
-  if (step === -1) return null;
-
-  return (
-    <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/55 backdrop-blur-[2px] rounded-2xl pointer-events-none">
-      <div className="text-center">
-        {step > 0 ? (
-          <div
-            key={animKey}
-            className="font-black text-white select-none"
-            style={{
-              fontSize: '9rem',
-              lineHeight: 1,
-              textShadow: '0 0 60px rgba(168,85,247,0.9), 0 0 20px rgba(168,85,247,0.5)',
-              animation: 'cdPop 1.8s ease-out forwards',
-            }}
-          >
-            {step}
-          </div>
-        ) : (
-          <div
-            key={animKey}
-            className="font-black text-purple-400 select-none"
-            style={{
-              fontSize: '7rem',
-              lineHeight: 1,
-              textShadow: '0 0 60px rgba(168,85,247,0.9)',
-              animation: 'cdPop 1.8s ease-out forwards',
-            }}
-          >
-            GO!
-          </div>
-        )}
-      </div>
-      <style>{`
-        @keyframes cdPop {
-          0%   { transform: scale(1.8); opacity: 0; }
-          15%  { transform: scale(1.0); opacity: 1; }
-          70%  { transform: scale(1.0); opacity: 1; }
-          100% { transform: scale(0.6); opacity: 0; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
 export default function TournamentGamePage() {
   const params       = useParams();
   const router       = useRouter();
@@ -154,8 +88,6 @@ export default function TournamentGamePage() {
   const [playerUsername, setPlayerUsername] = useState('');
   const [currentUserDbId, setCurrentUserDbId] = useState<string | null>(null);
   const [showInfoModal, setShowInfoModal]   = useState(false);
-  // Countdown: true = showing 5-4-3-2-1, false = game active
-  const [showCountdown, setShowCountdown]   = useState(false);
   // Music mute — owned here, pushed into MergeGame via externalIsMuted prop
   const [isMuted, setIsMuted]               = useState(false);
 
@@ -178,7 +110,7 @@ export default function TournamentGamePage() {
       .then(({ data }) => {
         if (!data) return;
         setTournament(data);
-        // timeRemaining is set only after countdown ends — see display timer below
+
       });
   }, [tournamentId]);
 
@@ -196,7 +128,6 @@ export default function TournamentGamePage() {
   }, [tournament?.started_at, tournament?.duration_minutes, gameEnded]);
 
   // ── Display timer ─────────────────────────────────────────────────────────
-  // Only starts after gameStarted=true (countdown has finished).
   // Initialises from duration_minutes * 60 so the player always sees
   // exactly 10:00 (or whatever duration was set) — never 10:12 or 9:58.
   // Counts down by comparing against a fixed gameEndTime ref so it stays
@@ -207,7 +138,7 @@ export default function TournamentGamePage() {
     // Anchor to the server deadline so display and enforcer agree
     gameEndTimeRef.current = new Date(tournament.started_at).getTime()
       + tournament.duration_minutes * 60 * 1000;
-    // Show full duration immediately when countdown ends
+    // Show full duration immediately
     setTimeRemaining(tournament.duration_minutes * 60);
     const iv = setInterval(() => {
       const remaining = Math.max(0, Math.floor((gameEndTimeRef.current - Date.now()) / 1000));
@@ -231,11 +162,12 @@ export default function TournamentGamePage() {
     return () => { supabase.removeChannel(ch); };
   }, [tournamentId]);
 
-  // When status becomes running: show countdown, then start game
+  // When status becomes running: start game immediately (no countdown)
   useEffect(() => {
     if (!tournament || gameStarted) return;
     if (tournament.status === 'running') {
-      setShowCountdown(true); // countdown will call handleCountdownDone when finished
+      setGameStarted(true);
+      gameMetrics.current.game_start_time = Date.now();
     }
   }, [tournament?.status, gameStarted]);
 
@@ -244,14 +176,6 @@ export default function TournamentGamePage() {
     const iv = setInterval(() => submitScore(false), 10000);
     return () => clearInterval(iv);
   }, [gameStarted, gameEnded]);
-
-  // useCallback gives a stable reference — without this, onDone changes every render
-  // which resets the countdown useEffect and causes the infinite restart bug.
-  const handleCountdownDone = useCallback(() => {
-    setShowCountdown(false);
-    setGameStarted(true);
-    gameMetrics.current.game_start_time = Date.now();
-  }, []);
 
   const submitScore = async (isFinal: boolean): Promise<number> => {
     if (!session || !tournamentId) return scoreRef.current;
@@ -394,31 +318,27 @@ export default function TournamentGamePage() {
         {/* LEFT: timer above canvas */}
         <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-950 gap-3 px-4 py-4">
 
-          {/* Timer — only shown after countdown ends (gameStarted=true).
-               During countdown the timer div is hidden entirely (Option A). */}
-          {gameStarted && (
-            <div className="w-full flex justify-center" style={{ maxWidth: '360px' }}>
-              <div className={`
-                w-full flex items-center justify-center gap-2 py-2 rounded-xl border
-                bg-black/60 font-mono font-black ${timerColor} ${timerBorder}
-                ${timeRemaining <= 60 ? 'animate-pulse' : ''}
-              `}>
-                <span className="text-base">⏱</span>
-                <span className="text-3xl tracking-tight">{formatTime(timeRemaining)}</span>
-              </div>
+          {/* Timer — shown as soon as the game starts */}
+          <div className="w-full flex justify-center" style={{ maxWidth: '360px' }}>
+            <div className={`
+              w-full flex items-center justify-center gap-2 py-2 rounded-xl border
+              bg-black/60 font-mono font-black ${timerColor} ${timerBorder}
+              ${timeRemaining <= 60 ? 'animate-pulse' : ''}
+            `}>
+              <span className="text-base">⏱</span>
+              <span className="text-3xl tracking-tight">{formatTime(timeRemaining)}</span>
             </div>
-          )}
+          </div>
 
-          {/* Canvas + countdown overlay */}
+          {/* Canvas */}
           <div className="relative" style={{ width: '360px', maxWidth: '100%' }}>
-            {showCountdown && <StartCountdown onDone={handleCountdownDone} />}
-            <MergeGame
+<MergeGame
               tournamentMode={true}
               onScoreChange={(s) => { setCurrentScore(s); scoreRef.current = s; }}
               onBallDropped={() => gameMetrics.current.balls_dropped++}
               onMerge={() => gameMetrics.current.merges_completed++}
               onGameOver={() => handleGameEnd(false)}
-              disabled={gameEnded || showCountdown}
+              disabled={gameEnded}
               externalIsMuted={isMuted}
               onMuteChange={(muted) => setIsMuted(muted)}
             />
