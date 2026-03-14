@@ -155,6 +155,20 @@ export default function LandingPage() {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.03)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)'; }}
           >Play Game</button>
+
+          <Link href="/siggychat" style={{ textDecoration: 'none' }}>
+            <button style={{
+              padding: '20px 56px', fontSize: 'clamp(1rem, 2vw, 1.25rem)', fontWeight: 800,
+              fontFamily: "'Barlow', sans-serif", letterSpacing: '0.04em', textTransform: 'uppercase',
+              color: '#000000', background: 'linear-gradient(135deg, #40FFAF 0%, #8840FF 100%)',
+              border: 'none', borderRadius: '14px', cursor: 'pointer',
+              boxShadow: '0 0 40px rgba(64,255,175,0.45), 0 8px 24px rgba(0,0,0,0.4)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.03)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)'; }}
+            >😼 SiggyChat</button>
+          </Link>
         </div>
       </div>
 
