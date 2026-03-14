@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
+import { finalizeTournament } from '@/app/api/tournaments/finalize-logic';
 
 const MAX_SCORE_PER_MERGE = 100;
 
@@ -88,9 +89,8 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId);
 
     // ── Auto-finalize when ALL participants have finished ────────────────────
-    // IMPORTANT: use tournament_participants as the total headcount, NOT
-    // tournament_scores. Scores only exist for players who have submitted,
-    // so comparing scores/scores gives 1/1 the moment the first player finishes.
+    // Call finalizeTournament() DIRECTLY — no HTTP fetch() to avoid Vercel
+    // server-to-server request failures that caused tournaments to hang forever.
     if (isFinal) {
       const { count: totalParticipants } = await supabase
         .from('tournament_participants')
@@ -110,9 +110,10 @@ export async function POST(request: NextRequest) {
         finishedScores    !== null &&
         finishedScores    >= totalParticipants
       ) {
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        fetch(`${baseUrl}/api/tournaments/${tournament_id}/finalize`, { method: 'POST' })
-          .catch(e => console.error('[submit-score] auto-finalize failed:', e.message));
+        // Direct call — no network hop, works reliably on Vercel
+        finalizeTournament(supabase, tournament_id)
+          .then(r => console.log('[submit-score] auto-finalize:', r.success ? 'ok' : r.error))
+          .catch(e => console.error('[submit-score] auto-finalize exception:', e.message));
       }
     }
 
