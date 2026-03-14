@@ -44,7 +44,7 @@ export default function SiggyChat() {
       });
       const data = await res.json();
       // Show the actual error from the server so issues are visible in the chat UI
-      const content = data.reply || (`⚠️ ${data.error}` ?? '…the Forge is silent.');
+      const content = data.reply || (data.error ? `⚠️ ${data.error}` : '…the Forge is silent.');
       setMessages(prev => [...prev, { role: 'assistant', content }]);
     } catch (err: any) {
       setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Network error: ${err.message}` }]);
