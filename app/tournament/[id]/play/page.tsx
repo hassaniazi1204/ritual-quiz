@@ -178,23 +178,43 @@ export default function TournamentGamePage() {
       .then(({ data }) => {
         if (!data) return;
         setTournament(data);
-        if (data.started_at && data.duration_minutes) {
-          const endMs = new Date(data.started_at).getTime() + data.duration_minutes * 60 * 1000;
-          setTimeRemaining(Math.max(0, Math.floor((endMs - Date.now()) / 1000)));
-        }
+        // timeRemaining is set only after countdown ends — see display timer below
       });
   }, [tournamentId]);
 
+  // ── Deadline enforcer ────────────────────────────────────────────────────────
+  // Runs as soon as tournament data loads. Watches the server deadline
+  // (started_at + duration_minutes) and calls handleGameEnd(true) when it
+  // expires. Never touches display state — purely a safety trigger.
   useEffect(() => {
-    if (!tournament?.started_at || gameEnded) return;
+    if (!tournament?.started_at || !tournament?.duration_minutes || gameEnded) return;
     const endMs = new Date(tournament.started_at).getTime() + tournament.duration_minutes * 60 * 1000;
     const iv = setInterval(() => {
-      const remaining = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
-      setTimeRemaining(remaining);
-      if (remaining === 0 && !gameEndedRef.current) handleGameEnd(true);
+      if (Date.now() >= endMs && !gameEndedRef.current) handleGameEnd(true);
     }, 1000);
     return () => clearInterval(iv);
   }, [tournament?.started_at, tournament?.duration_minutes, gameEnded]);
+
+  // ── Display timer ─────────────────────────────────────────────────────────
+  // Only starts after gameStarted=true (countdown has finished).
+  // Initialises from duration_minutes * 60 so the player always sees
+  // exactly 10:00 (or whatever duration was set) — never 10:12 or 9:58.
+  // Counts down by comparing against a fixed gameEndTime ref so it stays
+  // perfectly in sync with the deadline enforcer above.
+  const gameEndTimeRef = useRef<number>(0);
+  useEffect(() => {
+    if (!gameStarted || !tournament?.duration_minutes || gameEnded) return;
+    // Anchor to the server deadline so display and enforcer agree
+    gameEndTimeRef.current = new Date(tournament.started_at).getTime()
+      + tournament.duration_minutes * 60 * 1000;
+    // Show full duration immediately when countdown ends
+    setTimeRemaining(tournament.duration_minutes * 60);
+    const iv = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((gameEndTimeRef.current - Date.now()) / 1000));
+      setTimeRemaining(remaining);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [gameStarted, gameEnded]);
 
   useEffect(() => {
     if (!tournamentId) return;
