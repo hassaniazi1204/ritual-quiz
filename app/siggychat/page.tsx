@@ -43,9 +43,11 @@ export default function SiggyChat() {
         body: JSON.stringify({ messages: next.map(m => ({ role: m.role, content: m.content })) }),
       });
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply || data.error || '…' }]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'The Forge flickered… something went wrong in the multiverse.' }]);
+      // Show the actual error from the server so issues are visible in the chat UI
+      const content = data.reply || (`⚠️ ${data.error}` ?? '…the Forge is silent.');
+      setMessages(prev => [...prev, { role: 'assistant', content }]);
+    } catch (err: any) {
+      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Network error: ${err.message}` }]);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
