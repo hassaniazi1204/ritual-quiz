@@ -178,23 +178,39 @@ export default function TournamentGamePage() {
       .then(({ data }) => {
         if (!data) return;
         setTournament(data);
-        if (data.started_at && data.duration_minutes) {
-          const endMs = new Date(data.started_at).getTime() + data.duration_minutes * 60 * 1000;
-          setTimeRemaining(Math.max(0, Math.floor((endMs - Date.now()) / 1000)));
-        }
+        // Don't set timeRemaining here — display timer starts after countdown (gameStarted=true)
       });
   }, [tournamentId]);
 
+  // ── Deadline enforcer — always runs once tournament is loaded ───────────────
+  // This is the source of truth for when the tournament actually ends.
+  // It fires handleGameEnd(true) at the correct server deadline regardless
+  // of whether the player is still in the countdown or already playing.
+  // It does NOT touch timeRemaining display state.
   useEffect(() => {
-    if (!tournament?.started_at || gameEnded) return;
+    if (!tournament?.started_at || !tournament?.duration_minutes || gameEnded) return;
     const endMs = new Date(tournament.started_at).getTime() + tournament.duration_minutes * 60 * 1000;
     const iv = setInterval(() => {
       const remaining = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
-      setTimeRemaining(remaining);
       if (remaining === 0 && !gameEndedRef.current) handleGameEnd(true);
     }, 1000);
     return () => clearInterval(iv);
   }, [tournament?.started_at, tournament?.duration_minutes, gameEnded]);
+
+  // ── Display timer — starts only after countdown finishes (gameStarted=true) ─
+  // This drives the visible ⏱ countdown. It starts from whatever time is
+  // left at the moment the player's game actually begins, so the player
+  // sees an accurate remaining time that wasn't eaten by the countdown.
+  useEffect(() => {
+    if (!gameStarted || !tournament?.started_at || gameEnded) return;
+    const endMs = new Date(tournament.started_at).getTime() + tournament.duration_minutes * 60 * 1000;
+    // Set initial display value immediately (no 1s lag)
+    setTimeRemaining(Math.max(0, Math.floor((endMs - Date.now()) / 1000)));
+    const iv = setInterval(() => {
+      setTimeRemaining(Math.max(0, Math.floor((endMs - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [gameStarted, tournament?.started_at, tournament?.duration_minutes, gameEnded]);
 
   useEffect(() => {
     if (!tournamentId) return;
@@ -387,7 +403,6 @@ export default function TournamentGamePage() {
               onGameOver={() => handleGameEnd(false)}
               disabled={gameEnded || showCountdown}
               externalIsMuted={isMuted}
-              onMuteChange={(muted) => setIsMuted(muted)}
             />
           </div>
         </div>
