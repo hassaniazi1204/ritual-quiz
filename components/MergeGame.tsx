@@ -45,16 +45,21 @@ interface GameProps {
   onMerge?: () => void;
   onGameOver?: () => void;
   disabled?: boolean;
+  // Tournament page passes its own mute state in; MergeGame notifies back on change
+  externalIsMuted?: boolean;
+  onMuteChange?: (muted: boolean) => void;
 }
 
 export default function MergeGame(props?: GameProps) {
-  const { 
+  const {
     tournamentMode = false,
     onScoreChange,
     onBallDropped,
     onMerge,
     onGameOver,
-    disabled = false 
+    disabled = false,
+    externalIsMuted,
+    onMuteChange,
   } = props || {};
   
   const { data: session, status } = useSession();
@@ -91,6 +96,8 @@ export default function MergeGame(props?: GameProps) {
   
   const [savingScore, setSavingScore] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  // Tracks whether a user gesture has unlocked browser autoplay
+  const audioUnlockedRef = useRef(false);
   
   // Profile states
   const [userProfileImage, setUserProfileImage] = useState<string | null>(null);
@@ -140,22 +147,57 @@ export default function MergeGame(props?: GameProps) {
   }, [session, status, isMuted]);
 
 
-  // Handle mute toggle
+  // ── Sync externalIsMuted → internal state (tournament page drives mute) ──────
   useEffect(() => {
-    const audios = [
-      backgroundMusicRef.current,
-      dropSoundRef.current,
-      mergeSoundRef.current,
-      gameOverSoundRef.current,
-    ];
-    
-    audios.forEach(audio => {
-      if (audio) {
-        audio.muted = isMuted;
+    if (externalIsMuted !== undefined) setIsMuted(externalIsMuted);
+  }, [externalIsMuted]);
+
+  // ── Apply mute/unmute to all audio objects ────────────────────────────────
+  useEffect(() => {
+    const bg    = backgroundMusicRef.current;
+    const drop  = dropSoundRef.current;
+    const merge = mergeSoundRef.current;
+    const go    = gameOverSoundRef.current;
+
+    if (isMuted) {
+      if (bg)    { bg.pause(); bg.muted = true; }
+      if (drop)  { drop.muted  = true; }
+      if (merge) { merge.muted = true; }
+      if (go)    { go.muted    = true; }
+    } else {
+      if (bg) {
+        bg.muted = false;
+        // Only play if a user gesture has already unlocked autoplay
+        if (audioUnlockedRef.current) bg.play().catch(() => {});
       }
-    });
-    
-    console.log(isMuted ? '🔇 Audio muted' : '🔊 Audio unmuted');
+      if (drop)  { drop.muted  = false; }
+      if (merge) { merge.muted = false; }
+      if (go)    { go.muted    = false; }
+    }
+
+    // Notify tournament page so its button stays in sync
+    onMuteChange?.(isMuted);
+  }, [isMuted, onMuteChange]);
+
+  // ── Unlock audio on first user gesture (browser autoplay policy) ───────────
+  useEffect(() => {
+    const unlock = () => {
+      if (audioUnlockedRef.current) return;
+      audioUnlockedRef.current = true;
+      const bg = backgroundMusicRef.current;
+      if (bg && !isMuted) bg.play().catch(() => {});
+      document.removeEventListener('click',      unlock);
+      document.removeEventListener('keydown',    unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click',      unlock, { once: true });
+    document.addEventListener('keydown',    unlock, { once: true });
+    document.addEventListener('touchstart', unlock, { once: true });
+    return () => {
+      document.removeEventListener('click',      unlock);
+      document.removeEventListener('keydown',    unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
   }, [isMuted]);
 
   // Load all avatar images
@@ -181,6 +223,28 @@ export default function MergeGame(props?: GameProps) {
     
     // Initialize next ball
     setNextBall(getRandomBallLevel());
+
+    // ── Create audio objects (must happen client-side) ────────────────────
+    const bgMusic = new Audio('/sounds/background-music.mp3');
+    bgMusic.loop   = true;
+    bgMusic.volume = 0.4;
+    backgroundMusicRef.current = bgMusic;
+
+    const dropSfx = new Audio('/sounds/drop.mp3');
+    dropSfx.volume = 0.5;
+    dropSoundRef.current = dropSfx;
+
+    const mergeSfx = new Audio('/sounds/merge.mp3');
+    mergeSfx.volume = 0.6;
+    mergeSoundRef.current = mergeSfx;
+
+    const gameOverSfx = new Audio('/sounds/game-over.mp3');
+    gameOverSfx.volume = 0.7;
+    gameOverSoundRef.current = gameOverSfx;
+
+    return () => {
+      [bgMusic, dropSfx, mergeSfx, gameOverSfx].forEach(a => { a.pause(); a.src = ''; });
+    };
   }, []);
 
   // Initialize Matter.js physics engine
