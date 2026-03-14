@@ -16,7 +16,8 @@ export default function TournamentWaitingScreen({
   playerUsername,
 }: TournamentWaitingScreenProps) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
   const [tournament, setTournament] = useState<any>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
@@ -52,7 +53,7 @@ export default function TournamentWaitingScreen({
       }
 
       // Calculate time remaining
-      if (data.status === 'active' && data.started_at) {
+      if (data.status === 'running' && data.started_at) {
         const startTime = new Date(data.started_at).getTime();
         const durationMs = data.duration_minutes * 60 * 1000;
         const endTime = startTime + durationMs;
