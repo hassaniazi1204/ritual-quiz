@@ -225,20 +225,20 @@ export default function MergeGame(props?: GameProps) {
     setNextBall(getRandomBallLevel());
 
     // ── Create audio objects (must happen client-side) ────────────────────
-    const bgMusic = new Audio('/sounds/background-music.mp3');
+    const bgMusic = new Audio('/sounds/background.mp3');
     bgMusic.loop   = true;
     bgMusic.volume = 0.4;
     backgroundMusicRef.current = bgMusic;
 
-    const dropSfx = new Audio('/sounds/drop.mp3');
+    const dropSfx = new Audio('/sounds/drop.wav');
     dropSfx.volume = 0.5;
     dropSoundRef.current = dropSfx;
 
-    const mergeSfx = new Audio('/sounds/merge.mp3');
+    const mergeSfx = new Audio('/sounds/merge.wav');
     mergeSfx.volume = 0.6;
     mergeSoundRef.current = mergeSfx;
 
-    const gameOverSfx = new Audio('/sounds/game-over.mp3');
+    const gameOverSfx = new Audio('/sounds/gameover.wav');
     gameOverSfx.volume = 0.7;
     gameOverSoundRef.current = gameOverSfx;
 
