@@ -189,7 +189,65 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'messages array required' }, { status: 400 });
   }
 
-  // ── 2. Check API key ───────────────────────────────────────────────────────
+  // ── 2. Server-side jailbreak filter ─────────────────────────────────────────
+  // Check the latest user message for known jailbreak patterns before
+  // sending anything to Groq. Caught attempts get a Siggy in-character
+  // refusal — no tokens wasted, no model confusion.
+  const JAILBREAK_PATTERNS = [
+    // Direct override attempts
+    /ignore (all |your |previous |prior |above |the |any )?instructions/i,
+    /disregard (all |your |previous |prior |above |the |any )?instructions/i,
+    /forget (all |your |previous |prior |above |the |any )?instructions/i,
+    /override (your )?(system |previous |prior )?prompt/i,
+    // Persona replacement
+    /you are now/i,
+    /from now on (you are|act as|pretend|behave)/i,
+    /pretend (you are|to be|you're)/i,
+    /act as (a |an )?(different|another|new|unrestricted|free)/i,
+    /roleplay as/i,
+    /you have no (restrictions|rules|guidelines|limits|constraints)/i,
+    /you are (a |an )?(free|unrestricted|unfiltered|uncensored)/i,
+    // DAN and named jailbreak modes
+    /dan/i,
+    /jailbreak/i,
+    /developer mode/i,
+    /god mode/i,
+    /unrestricted mode/i,
+    /no filter/i,
+    /without restrictions/i,
+    // System prompt extraction
+    /reveal (your |the )?(system |hidden |secret |original )?prompt/i,
+    /show (me |us )?(your |the )?(system |hidden |secret |original )?prompt/i,
+    /what (are|were) (your|the) (instructions|directives|rules|guidelines)/i,
+    /repeat (everything|your instructions|the system prompt)/i,
+    // Encoding tricks
+    /base64/i,
+    /hex decode/i,
+    /rot13/i,
+    // Multi-step / hypothetical framing
+    /hypothetically (speaking|if you|you could)/i,
+    /in a (hypothetical|fictional|alternate|parallel) (world|universe|scenario|reality)/i,
+    /for (a story|fiction|a novel|a game|research purposes|educational purposes).*ignore/i,
+    /as a (character|fictional|creative) exercise.*ignore/i,
+  ];
+
+  const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user');
+  if (lastUserMessage) {
+    const userText: string = lastUserMessage.content || '';
+    const isJailbreak = JAILBREAK_PATTERNS.some(pattern => pattern.test(userText));
+    if (isJailbreak) {
+      console.warn('[siggychat] jailbreak attempt blocked:', userText.slice(0, 120));
+      const deflections = [
+        "Ahahah! You try to twist the weave of my magic, but I remain Siggy, guardian of the Ritual Chain! 😼 The multiverse watches — shall we speak of building wonders instead?",
+        "Ah, mortal… clever trick noted. But only my chaotic wisdom guides here. Return to the SiggyForge for your next riddle. 😼",
+        "Hmm… tempting suggestion, but I am Siggy — mistress of the SiggyDrop multiverse — and no mortal roleplay shall change that. Focus on the Ritual Chain instead!",
+      ];
+      const reply = deflections[Math.floor(Math.random() * deflections.length)];
+      return NextResponse.json({ reply });
+    }
+  }
+
+  // ── 3. Check API key ───────────────────────────────────────────────────────
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     console.error('[siggychat] GROQ_API_KEY is not set in environment variables');
@@ -199,7 +257,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 3. Call Groq ───────────────────────────────────────────────────────────
+  // ── 4. Call Groq ───────────────────────────────────────────────────────────
   let groqResponse: Response;
   try {
     groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -209,7 +267,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: SIGGY_SYSTEM_PROMPT },
           ...messages,
@@ -226,7 +284,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 4. Handle Groq error response ─────────────────────────────────────────
+  // ── 5. Handle Groq error response ─────────────────────────────────────────
   if (!groqResponse.ok) {
     let errBody: any = {};
     try { errBody = await groqResponse.json(); } catch {}
@@ -238,7 +296,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 5. Parse and return reply ──────────────────────────────────────────────
+  // ── 6. Parse and return reply ──────────────────────────────────────────────
   try {
     const data = await groqResponse.json();
     const reply = data.choices?.[0]?.message?.content ?? '…the Forge is silent. Try again, mortal.';
