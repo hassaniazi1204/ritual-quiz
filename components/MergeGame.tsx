@@ -53,6 +53,80 @@ interface GameProps {
   guestUsername?: string;
 }
 
+// ── Guest end-of-game screen ──────────────────────────────────────────────────
+// Shown instead of saving/redirecting when guestMode=true.
+// No DB interaction — score is display-only from local state.
+function GuestEndScreen({ score, username, onHome }: {
+  score: number;
+  username: string;
+  onHome: () => void;
+}) {
+  return (
+    <div className="text-center space-y-5 max-w-sm w-full" style={{ fontFamily: "'Barlow', sans-serif" }}>
+      {/* Score card */}
+      <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-purple-500/50 rounded-2xl p-6 shadow-2xl">
+        <div className="text-5xl mb-3">🎮</div>
+        <h2 className="text-3xl font-black mb-1" style={{ color: '#E554E8' }}>
+          Game Over!
+        </h2>
+        <p className="text-gray-400 text-sm mb-4">
+          Well played, <span className="text-white font-bold">{username}</span>!
+        </p>
+
+        <div className="bg-black/60 rounded-xl p-4 border border-purple-500/30 mb-2">
+          <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Your Score</div>
+          <p className="text-5xl font-black" style={{
+            background: 'linear-gradient(135deg, #8840FF, #E554E8)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>
+            {score.toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+      {/* Upsell card */}
+      <div className="bg-gradient-to-br from-purple-900/40 to-black border border-purple-500/30 rounded-2xl p-5 text-left space-y-3">
+        <p className="text-white font-bold text-sm text-center">
+          🔥 Want to keep your score?
+        </p>
+        <ul className="text-gray-300 text-xs space-y-2">
+          <li className="flex items-center gap-2">
+            <span className="text-green-400">✓</span> Save scores to the global leaderboard
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-green-400">✓</span> Compete in real-time tournaments
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-green-400">✓</span> Track your progress over time
+          </li>
+        </ul>
+        <a
+          href="/"
+          onClick={(e) => { e.preventDefault(); onHome(); }}
+          className="block w-full text-center py-3 rounded-xl font-bold text-sm transition-transform hover:scale-105"
+          style={{
+            background: 'linear-gradient(135deg, #8840FF 0%, #E554E8 100%)',
+            color: '#fff',
+            boxShadow: '0 0 20px rgba(136,64,255,0.4)',
+          }}
+        >
+          Sign Up Free →
+        </a>
+      </div>
+
+      {/* Back to home */}
+      <button
+        onClick={onHome}
+        className="w-full py-3 rounded-xl font-bold text-sm text-gray-400 border border-gray-700 hover:border-gray-500 hover:text-white transition-colors"
+        style={{ background: 'rgba(0,0,0,0.4)' }}
+      >
+        ← Back to Home
+      </button>
+    </div>
+  );
+}
+
 export default function MergeGame(props?: GameProps) {
   const {
     tournamentMode = false,
@@ -100,6 +174,8 @@ export default function MergeGame(props?: GameProps) {
  
   
   const [savingScore, setSavingScore] = useState(false);
+  // Guest-only: show end-of-game screen instead of redirecting
+  const [showGuestEndScreen, setShowGuestEndScreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   // Tracks whether a user gesture has unlocked browser autoplay
   const audioUnlockedRef = useRef(false);
@@ -1172,15 +1248,11 @@ export default function MergeGame(props?: GameProps) {
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
     console.log('saveScoreToLeaderboard called with:', { username, finalScore, tournamentMode, guestMode });
 
-    // Guest mode — no DB interaction at all, redirect to home after showing score
+    // Guest mode — no DB interaction at all, show end screen instead
     if (guestMode) {
-      console.log('Guest mode - skipping all DB interaction');
+      console.log('Guest mode - showing end screen, skipping all DB interaction');
       setSavingScore(false);
-      setTimeout(() => {
-        // Clear guest session so they don't get stuck in guest mode
-        localStorage.removeItem('guestUsername');
-        window.location.href = '/';
-      }, 2000);
+      setShowGuestEndScreen(true);
       return;
     }
 
@@ -1242,6 +1314,18 @@ export default function MergeGame(props?: GameProps) {
         className="relative w-full h-full flex items-center justify-center"
         style={{ fontFamily: "'Barlow', sans-serif" }}
       >
+        {/* Guest end screen overlay — tournament mode */}
+        {showGuestEndScreen && (
+          <GuestEndScreen
+            score={score}
+            username={guestUsername || 'Guest'}
+            onHome={() => {
+              localStorage.removeItem('guestUsername');
+              window.location.href = '/';
+            }}
+          />
+        )}
+
         <div
           className="relative"
           style={{ width: '360px', height: '800px', maxWidth: '100%' }}
@@ -1593,6 +1677,20 @@ export default function MergeGame(props?: GameProps) {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Guest end screen — shown instead of saving/redirecting */}
+            {showGuestEndScreen && (
+              <div className="absolute inset-0 bg-black/95 backdrop-blur-md rounded-2xl flex items-center justify-center p-4 z-10">
+                <GuestEndScreen
+                  score={score}
+                  username={guestUsername || 'Guest'}
+                  onHome={() => {
+                    localStorage.removeItem('guestUsername');
+                    window.location.href = '/';
+                  }}
+                />
               </div>
             )}
 
