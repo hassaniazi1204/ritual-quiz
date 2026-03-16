@@ -48,6 +48,9 @@ interface GameProps {
   // Tournament page passes its own mute state in; MergeGame notifies back on change
   externalIsMuted?: boolean;
   onMuteChange?: (muted: boolean) => void;
+  // Guest mode — play without any DB interaction
+  guestMode?: boolean;
+  guestUsername?: string;
 }
 
 export default function MergeGame(props?: GameProps) {
@@ -60,6 +63,8 @@ export default function MergeGame(props?: GameProps) {
     disabled = false,
     externalIsMuted,
     onMuteChange,
+    guestMode = false,
+    guestUsername,
   } = props || {};
   
   const { data: session, status } = useSession();
@@ -127,24 +132,28 @@ export default function MergeGame(props?: GameProps) {
   useEffect(() => {
     if (status === 'loading') return;
 
-    if (session?.user) {
+    if (guestMode && guestUsername) {
+      // Guest user — use the username from localStorage, no session needed
+      setUserName(guestUsername);
+      userNameRef.current = guestUsername;
+      if (backgroundMusicRef.current && !isMuted) {
+        backgroundMusicRef.current.play().catch(console.warn);
+      }
+    } else if (session?.user) {
       // User is logged in with OAuth
       const name = session.user.name || session.user.email || 'Player';
       setUserName(name);
       userNameRef.current = name;
       setUserProfileImage(session.user.image || null);
-      
       // Start music
       if (backgroundMusicRef.current && !isMuted) {
         backgroundMusicRef.current.play().catch(console.warn);
       }
     } else {
-      // No session - this shouldn't happen as page-level auth handles it
-      // But just in case, set a placeholder
       setUserName('Player');
       userNameRef.current = 'Player';
     }
-  }, [session, status, isMuted]);
+  }, [session, status, isMuted, guestMode, guestUsername]);
 
 
   // ── Sync externalIsMuted → internal state (tournament page drives mute) ──────
@@ -1161,8 +1170,20 @@ export default function MergeGame(props?: GameProps) {
 
 
   const saveScoreToLeaderboard = async (username: string, finalScore: number) => {
-    console.log('saveScoreToLeaderboard called with:', { username, finalScore, tournamentMode });
-    
+    console.log('saveScoreToLeaderboard called with:', { username, finalScore, tournamentMode, guestMode });
+
+    // Guest mode — no DB interaction at all, redirect to home after showing score
+    if (guestMode) {
+      console.log('Guest mode - skipping all DB interaction');
+      setSavingScore(false);
+      setTimeout(() => {
+        // Clear guest session so they don't get stuck in guest mode
+        localStorage.removeItem('guestUsername');
+        window.location.href = '/';
+      }, 2000);
+      return;
+    }
+
     // In tournament mode, don't save to solo leaderboard
     if (tournamentMode) {
       console.log('Tournament mode - skipping solo leaderboard save');
