@@ -9,19 +9,23 @@ export default function GamePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [shouldRender, setShouldRender] = useState(false);
+  const [guestUsername, setGuestUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only redirect if we're SURE the user is unauthenticated
-    if (status === 'unauthenticated') {
-      console.log('User not authenticated, redirecting to home');
-      router.push('/?play=true');
-    } else if (status === 'authenticated') {
-      console.log('User authenticated, rendering game');
+    if (status === 'authenticated') {
       setShouldRender(true);
+    } else if (status === 'unauthenticated') {
+      // Check for guest username set by PlayModeModal
+      const storedGuest = localStorage.getItem('guestUsername');
+      if (storedGuest && storedGuest.trim()) {
+        setGuestUsername(storedGuest.trim());
+        setShouldRender(true);
+      } else {
+        router.push('/?play=true');
+      }
     }
   }, [status, router]);
 
-  // Show loading while checking auth
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
@@ -33,11 +37,9 @@ export default function GamePage() {
     );
   }
 
-  // Don't render anything if unauthenticated (will redirect)
-  if (status === 'unauthenticated' || !shouldRender) {
-    return null;
-  }
+  if (!shouldRender) return null;
 
-  // User is authenticated - render game
-  return <MergeGame />;
+  // Authenticated users get the full game (scores saved to DB)
+  // Guest users get the same gameplay but scores are never saved
+  return <MergeGame guestMode={!!guestUsername} guestUsername={guestUsername ?? undefined} />;
 }
