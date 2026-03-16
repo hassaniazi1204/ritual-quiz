@@ -110,10 +110,17 @@ export async function POST(request: NextRequest) {
         finishedScores    !== null &&
         finishedScores    >= totalParticipants
       ) {
-        // Direct call — no network hop, works reliably on Vercel
-        finalizeTournament(supabase, tournament_id)
-          .then(r => console.log('[submit-score] auto-finalize:', r.success ? 'ok' : r.error))
-          .catch(e => console.error('[submit-score] auto-finalize exception:', e.message));
+        // AWAITED — must complete before we return so that status = 'finished'
+        // is written to the DB before the client receives { success: true }.
+        // If we fire-and-forget (.then()), the client gets the response,
+        // swaps to TournamentWaitingScreen, and the Realtime event fires
+        // before finalizeTournament() has run — nobody redirects to results.
+        try {
+          const r = await finalizeTournament(supabase, tournament_id);
+          console.log('[submit-score] auto-finalize:', r.success ? 'ok' : r.error);
+        } catch (e: any) {
+          console.error('[submit-score] auto-finalize exception:', e.message);
+        }
       }
     }
 
