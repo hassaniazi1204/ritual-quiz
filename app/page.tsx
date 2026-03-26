@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import PlayModeModal from '@/components/PlayModeModal';
+import { Button } from '@/components/ui/button';
 
 export default function LandingPage() {
   const [loaded, setLoaded] = useState(false);
@@ -22,175 +23,162 @@ export default function LandingPage() {
   }, [status]);
 
   return (
-    <main style={{
-      minHeight: '100vh', width: '100%',
-      backgroundImage: 'url(/brand-assets/Patterns/Wormhole.png)',
-      backgroundSize: 'cover', backgroundPosition: 'center center',
-      backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'space-between', fontFamily: "'Barlow', sans-serif",
-      position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 0 }} />
+    <main
+      className="relative min-h-screen w-full flex flex-col items-center justify-between overflow-hidden"
+      style={{
+        backgroundImage: 'url(/brand-assets/Patterns/Wormhole.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        fontFamily: "'Barlow', sans-serif",
+      }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/50 z-0" />
 
-      {/* TOP BAR — sign out button when logged in */}
+      {/* ── Top bar ── */}
       {status === 'authenticated' && (
-        <div style={{
-          position: 'relative', zIndex: 2, width: '100%',
-          display: 'flex', justifyContent: 'flex-end',
-          padding: '16px 24px', gap: '12px',
-        }}>
-          <Link href="/leaderboard/solo" style={{
-            padding: '8px 16px', background: 'rgba(64,255,175,0.15)',
-            border: '1px solid rgba(64,255,175,0.4)', borderRadius: '8px',
-            color: '#40FFAF', fontSize: '0.85rem', fontWeight: 600,
-            textDecoration: 'none', cursor: 'pointer',
-          }}>
-            🏆 Leaderboard
-          </Link>
-          <button
+        <div className="relative z-10 w-full flex justify-end items-center gap-3 px-6 py-4">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/leaderboard/solo">🏆 Leaderboard</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => signOut({ callbackUrl: '/' })}
-            style={{
-              padding: '8px 16px', background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
-              color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', fontWeight: 600,
-              cursor: 'pointer',
-            }}
           >
             Sign Out
-          </button>
+          </Button>
         </div>
       )}
 
-      {/* MAIN CONTENT */}
-      <div style={{
-        position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', flexGrow: 1,
-        width: '100%', padding: '60px 24px 0', textAlign: 'center',
-      }}>
+      {/* ── Main content ── */}
+      <div
+        className="relative z-10 flex flex-col items-center justify-center flex-1 w-full px-6 pb-8 text-center"
+        style={{ paddingTop: status === 'authenticated' ? '24px' : '80px' }}
+      >
         {/* Logo */}
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(-20px)',
-          transition: 'opacity 0.8s ease, transform 0.8s ease', marginBottom: '52px',
-        }}>
-          <img src="/brand-assets/Lockup/Translucent.png" alt="Ritual" style={{
-            width: 'clamp(200px, 30vw, 400px)', height: 'auto', display: 'block', margin: '0 auto',
-            filter: 'drop-shadow(0 0 40px rgba(64,255,175,0.35))',
-          }} />
+        <div
+          className="mb-12 transition-all duration-700"
+          style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? 'translateY(0)' : 'translateY(-20px)',
+          }}
+        >
+          <img
+            src="/brand-assets/Lockup/Translucent.png"
+            alt="Ritual"
+            style={{
+              width: 'clamp(180px, 28vw, 380px)',
+              height: 'auto',
+              display: 'block',
+              margin: '0 auto',
+              filter: 'drop-shadow(0 0 32px rgba(64,255,175,0.3))',
+            }}
+          />
         </div>
 
         {/* Heading */}
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s', marginBottom: '24px',
-        }}>
-          <h1 style={{
-            fontSize: 'clamp(2rem, 5vw, 4rem)', fontWeight: 900, color: '#FFFFFF',
-            letterSpacing: '-0.03em', lineHeight: 1.1, margin: 0,
-            textShadow: '0 2px 40px rgba(0,0,0,0.8)',
-          }}>
+        <div
+          className="mb-5 transition-all duration-700 delay-200"
+          style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? 'translateY(0)' : 'translateY(20px)',
+          }}
+        >
+          <h1
+            className="text-white font-black leading-none tracking-tight"
+            style={{ fontSize: 'clamp(1.9rem, 5vw, 3.8rem)', letterSpacing: '-0.03em' }}
+          >
             The state of AI is flawed.
           </h1>
         </div>
 
         {/* Sub-heading */}
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.8s ease 0.35s, transform 0.8s ease 0.35s',
-          marginBottom: '40px', maxWidth: '680px',
-        }}>
-          <p style={{
-            fontSize: 'clamp(1.05rem, 2.2vw, 1.45rem)', fontWeight: 500, color: '#40FFAF',
-            lineHeight: 1.6, margin: 0, textShadow: '0 0 30px rgba(64,255,175,0.4)',
-          }}>
-            Ritual is the solution.{' '}
-            <span style={{ color: '#E7E7E7', fontWeight: 400 }}>
-              It Brings AI to Every Protocol and App with Just a Few Lines of Code.
+        <div
+          className="mb-10 max-w-2xl transition-all duration-700 delay-300"
+          style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? 'translateY(0)' : 'translateY(20px)',
+          }}
+        >
+          <p style={{ fontSize: 'clamp(1rem, 2vw, 1.35rem)', lineHeight: 1.65 }}>
+            <span className="font-semibold" style={{ color: '#40FFAF' }}>
+              Ritual is the solution.
+            </span>{' '}
+            <span className="text-white/70 font-normal">
+              It brings AI to every protocol and app with just a few lines of code.
             </span>
           </p>
         </div>
 
-        {/* Welcome back message */}
+        {/* Welcome back */}
         {status === 'authenticated' && session?.user && (
-          <div style={{
-            opacity: loaded ? 1 : 0, transition: 'opacity 0.8s ease 0.4s',
-            marginBottom: '28px', padding: '10px 24px',
-            background: 'rgba(64,255,175,0.1)', border: '1px solid rgba(64,255,175,0.3)',
-            borderRadius: '12px', color: '#40FFAF', fontSize: '1rem', fontWeight: 600,
-          }}>
+          <div
+            className="mb-8 px-6 py-2.5 rounded-full text-sm font-semibold transition-opacity duration-700"
+            style={{
+              opacity: loaded ? 1 : 0,
+              background: 'rgba(64,255,175,0.08)',
+              border: '1px solid rgba(64,255,175,0.25)',
+              color: '#40FFAF',
+            }}
+          >
             Welcome back, {session.user.name || session.user.email?.split('@')[0]} 👋
           </div>
         )}
 
         {/* CTA Buttons */}
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.8s ease 0.5s, transform 0.8s ease 0.5s',
-          display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center',
-        }}>
-          <Link href="/quiz" style={{ textDecoration: 'none' }}>
-            <button style={{
-              padding: '20px 56px', fontSize: 'clamp(1rem, 2vw, 1.25rem)', fontWeight: 800,
-              fontFamily: "'Barlow', sans-serif", letterSpacing: '0.04em', textTransform: 'uppercase',
-              color: '#000000', background: 'linear-gradient(135deg, #40FFAF 0%, #077345 100%)',
-              border: 'none', borderRadius: '14px', cursor: 'pointer',
-              boxShadow: '0 0 40px rgba(64,255,175,0.45), 0 8px 24px rgba(0,0,0,0.4)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.03)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)'; }}
-            >Start Quiz</button>
-          </Link>
+        <div
+          className="flex flex-wrap gap-4 justify-center transition-all duration-700 delay-500"
+          style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? 'translateY(0)' : 'translateY(20px)',
+          }}
+        >
+          <Button asChild variant="primary" size="xl">
+            <Link href="/quiz">Start Quiz</Link>
+          </Button>
 
-          <button
+          <Button
+            variant="purple"
+            size="xl"
             onClick={() => setShowPlayModal(true)}
-            style={{
-              padding: '20px 56px', fontSize: 'clamp(1rem, 2vw, 1.25rem)', fontWeight: 800,
-              fontFamily: "'Barlow', sans-serif", letterSpacing: '0.04em', textTransform: 'uppercase',
-              color: '#FFFFFF', background: 'linear-gradient(135deg, #8840FF 0%, #E554E8 100%)',
-              border: 'none', borderRadius: '14px', cursor: 'pointer',
-              boxShadow: '0 0 40px rgba(136,64,255,0.45), 0 8px 24px rgba(0,0,0,0.4)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.03)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)'; }}
-          >Play Game</button>
+          >
+            Play Game
+          </Button>
 
-          <Link href="/siggychat" style={{ textDecoration: 'none' }}>
-            <button style={{
-              padding: '20px 56px', fontSize: 'clamp(1rem, 2vw, 1.25rem)', fontWeight: 800,
-              fontFamily: "'Barlow', sans-serif", letterSpacing: '0.04em', textTransform: 'uppercase',
-              color: '#000000', background: 'linear-gradient(135deg, #40FFAF 0%, #8840FF 100%)',
-              border: 'none', borderRadius: '14px', cursor: 'pointer',
-              boxShadow: '0 0 40px rgba(64,255,175,0.45), 0 8px 24px rgba(0,0,0,0.4)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.03)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)'; }}
-            >😼 SiggyChat</button>
-          </Link>
+          <Button asChild variant="primary" size="xl"
+            className="bg-gradient-to-r from-[#40FFAF] to-[#8840FF] text-black hover:opacity-90 hover:shadow-[0_0_28px_rgba(136,64,255,0.45)]"
+          >
+            <Link href="/siggychat">😼 SiggyChat</Link>
+          </Button>
         </div>
       </div>
 
-      {/* FOOTER */}
-      <footer style={{
-        position: 'relative', zIndex: 1, width: '100%', padding: '32px 24px',
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        gap: 'clamp(16px, 4vw, 48px)', flexWrap: 'wrap',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        opacity: loaded ? 1 : 0, transition: 'opacity 0.8s ease 0.7s',
-      }}>
+      {/* ── Footer ── */}
+      <footer
+        className="relative z-10 w-full flex flex-wrap justify-center items-center gap-8 px-6 py-8 transition-opacity duration-700 delay-700"
+        style={{
+          opacity: loaded ? 1 : 0,
+          borderTop: '1px solid rgba(255,255,255,0.07)',
+        }}
+      >
         {[
-          { label: 'ritual.net', href: 'https://ritual.net/' },
-          { label: 'ritualfoundation.org', href: 'https://www.ritualfoundation.org/' },
-          { label: '@ritualnet', href: 'https://x.com/ritualnet' },
-          { label: '@ritualfnd', href: 'https://x.com/ritualfnd' },
+          { label: 'ritual.net',            href: 'https://ritual.net/' },
+          { label: 'ritualfoundation.org',   href: 'https://www.ritualfoundation.org/' },
+          { label: '@ritualnet',             href: 'https://x.com/ritualnet' },
+          { label: '@ritualfnd',             href: 'https://x.com/ritualfnd' },
         ].map(link => (
-          <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer"
-            style={{ color: 'rgba(255,255,255,0.55)', textDecoration: 'none', fontSize: 'clamp(0.8rem, 1.5vw, 0.95rem)', fontWeight: 500, fontFamily: "'Barlow', sans-serif", letterSpacing: '0.02em', transition: 'color 0.2s ease' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#40FFAF'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)'; }}
-          >{link.label}</a>
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/45 text-sm font-medium hover:text-[#40FFAF] transition-colors duration-200"
+            style={{ letterSpacing: '0.02em' }}
+          >
+            {link.label}
+          </a>
         ))}
       </footer>
 
