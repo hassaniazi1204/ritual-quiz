@@ -11,10 +11,14 @@ function generateCode(): string {
 
 async function resolveUserId(supabase: any, session: any): Promise<string | null> {
   const nextauthId = (session.user as any).id || session.user.email;
-  if (!nextauthId) return null;
+  if (!nextauthId) {
+    console.error('[resolveUserId] no nextauthId — session.user:', JSON.stringify(session.user));
+    return null;
+  }
 
-  const { data: existing } = await supabase
+  const { data: existing, error: findErr } = await supabase
     .from('users').select('id').eq('nextauth_id', nextauthId).maybeSingle();
+  if (findErr) console.error('[resolveUserId] find error:', findErr.message);
   if (existing) return existing.id;
 
   const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
@@ -23,8 +27,19 @@ async function resolveUserId(supabase: any, session: any): Promise<string | null
     .insert({ nextauth_id: nextauthId, username, email: session.user.email, avatar: session.user.image })
     .select('id').single();
 
-  if (error) { console.error('[resolveUserId]', error.message); return null; }
-  return created.id;
+  if (error) {
+    console.error('[resolveUserId] insert failed:', {
+      message: error.message,
+      code:    error.code,
+      details: error.details,
+      hint:    error.hint,
+      nextauthId,
+      hasUrl:  !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasKey:  !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    return null;
+  }
+  return created?.id ?? null;
 }
 
 export async function POST(request: NextRequest) {
