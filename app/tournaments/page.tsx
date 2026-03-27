@@ -3,277 +3,222 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
+type View = 'home' | 'create' | 'join';
 
 export default function TournamentHubPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [view, setView] = useState<View>('home');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Tournament creation form
+  // Create form
   const [tournamentName, setTournamentName] = useState('');
   const [duration, setDuration] = useState(5);
   const [maxPlayers, setMaxPlayers] = useState(10);
 
-  // Tournament join form
+  // Join form
   const [tournamentCode, setTournamentCode] = useState('');
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/');
-    }
+    if (status === 'unauthenticated') router.push('/');
   }, [status, router]);
 
-  const handleCreateTournament = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+    setLoading(true); setError(null);
     try {
-      const response = await fetch('/api/tournaments/create', {
+      const res = await fetch('/api/tournaments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: tournamentName,
-          duration_minutes: duration,
-          max_players: maxPlayers,
-        }),
+        body: JSON.stringify({ name: tournamentName, duration_minutes: duration, max_players: maxPlayers }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to create tournament');
-        setLoading(false);
-        return;
-      }
-
-      // Redirect to tournament lobby
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to create'); setLoading(false); return; }
       router.push(`/tournament/${data.tournament.id}`);
-    } catch (err) {
-      console.error('Create error:', err);
-      setError('Failed to create tournament');
-      setLoading(false);
-    }
+    } catch { setError('Failed to create tournament'); setLoading(false); }
   };
 
-  const handleJoinTournament = async (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+    setLoading(true); setError(null);
     try {
-      const response = await fetch('/api/tournaments/join', {
+      const res = await fetch('/api/tournaments/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournament_code: tournamentCode.toUpperCase() }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to join tournament');
-        setLoading(false);
-        return;
-      }
-
-      // Redirect based on tournament status
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to join'); setLoading(false); return; }
       router.push(`/tournament/${data.tournament_id}`);
-    } catch (err) {
-      console.error('Join error:', err);
-      setError('Failed to join tournament');
-      setLoading(false);
-    }
+    } catch { setError('Failed to join tournament'); setLoading(false); }
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900">
-        <div className="text-white text-2xl">Loading...</div>
-      </div>
-    );
-  }
+  if (status === 'loading') return (
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="w-10 h-10 border-2 border-[#40FFAF] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 p-4 flex items-center justify-center">
-      <div className="max-w-4xl w-full">
+    <div className="min-h-screen bg-black px-4 py-12">
+      <div className="max-w-xl mx-auto">
+
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl sm:text-6xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-            🏆 Tournaments
+        <div className="mb-10">
+          {view !== 'home' ? (
+            <button
+              onClick={() => { setView('home'); setError(null); }}
+              className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm mb-6 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+              Back
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm mb-6 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+              Home
+            </button>
+          )}
+          <p className="text-xs font-bold text-[#40FFAF] uppercase tracking-[0.2em] mb-2">Arena</p>
+          <h1 className="text-4xl font-black text-white tracking-tight">
+            {view === 'home'   && 'Tournaments'}
+            {view === 'create' && 'Create Tournament'}
+            {view === 'join'   && 'Join Tournament'}
           </h1>
-          <p className="text-gray-400 text-lg">Create or join a tournament to compete</p>
         </div>
 
-        {/* Main Options */}
-        {!showCreateForm && !showJoinForm && (
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Create Tournament Card */}
-            <div
-              onClick={() => setShowCreateForm(true)}
-              className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-2 border-purple-500/30 hover:border-purple-500 rounded-3xl p-8 cursor-pointer transition-all hover:scale-105 group"
+        {/* Home — two cards */}
+        {view === 'home' && (
+          <div className="space-y-3">
+            <button
+              onClick={() => setView('create')}
+              className="w-full text-left p-6 rounded-2xl border border-white/8 bg-white/2 hover:bg-white/5 hover:border-[#8840FF]/50 transition-all duration-200 group"
             >
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">🎮</div>
-              <h2 className="text-3xl font-black text-white mb-2">Create Tournament</h2>
-              <p className="text-gray-400 mb-6">
-                Host a new tournament and invite players with a code
-              </p>
-              <div className="flex items-center text-purple-400 font-bold">
-                <span>Get Started</span>
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <div className="flex items-center gap-5">
+                <span className="text-4xl">🎮</span>
+                <div className="flex-1">
+                  <h2 className="text-white font-black text-xl tracking-tight">Create Tournament</h2>
+                  <p className="text-white/40 text-sm mt-0.5">Host and invite players with a code</p>
+                </div>
+                <svg className="text-white/20 group-hover:text-[#8840FF] transition-colors flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="m9 18 6-6-6-6"/>
                 </svg>
               </div>
-            </div>
+            </button>
 
-            {/* Join Tournament Card */}
-            <div
-              onClick={() => setShowJoinForm(true)}
-              className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border-2 border-blue-500/30 hover:border-blue-500 rounded-3xl p-8 cursor-pointer transition-all hover:scale-105 group"
+            <button
+              onClick={() => setView('join')}
+              className="w-full text-left p-6 rounded-2xl border border-white/8 bg-white/2 hover:bg-white/5 hover:border-[#40FFAF]/50 transition-all duration-200 group"
             >
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">🎯</div>
-              <h2 className="text-3xl font-black text-white mb-2">Join Tournament</h2>
-              <p className="text-gray-400 mb-6">
-                Enter a tournament code to join an existing tournament
-              </p>
-              <div className="flex items-center text-blue-400 font-bold">
-                <span>Enter Code</span>
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <div className="flex items-center gap-5">
+                <span className="text-4xl">🎯</span>
+                <div className="flex-1">
+                  <h2 className="text-white font-black text-xl tracking-tight">Join Tournament</h2>
+                  <p className="text-white/40 text-sm mt-0.5">Enter a code to join an existing game</p>
+                </div>
+                <svg className="text-white/20 group-hover:text-[#40FFAF] transition-colors flex-shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="m9 18 6-6-6-6"/>
                 </svg>
               </div>
-            </div>
+            </button>
           </div>
         )}
 
-        {/* Create Tournament Form */}
-        {showCreateForm && (
-          <div className="bg-gray-900/80 backdrop-blur-lg border-2 border-purple-500/30 rounded-3xl p-8 max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-black text-white">Create Tournament</h2>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        {/* Create form */}
+        {view === 'create' && (
+          <form onSubmit={handleCreate} className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                Tournament Name
+              </label>
+              <Input
+                value={tournamentName}
+                onChange={e => setTournamentName(e.target.value)}
+                placeholder="Enter a name"
+                required
+              />
             </div>
-
-            <form onSubmit={handleCreateTournament} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-2">Tournament Name</label>
-                <input
-                  type="text"
-                  value={tournamentName}
-                  onChange={(e) => setTournamentName(e.target.value)}
-                  placeholder="Enter tournament name"
-                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white outline-none transition-colors"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-300 mb-2">Duration (minutes)</label>
-                <input
+                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                  Duration (min)
+                </label>
+                <Input
                   type="number"
                   value={duration}
-                  onChange={(e) => setDuration(parseInt(e.target.value))}
-                  min={1}
-                  max={60}
-                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white outline-none transition-colors"
+                  onChange={e => setDuration(parseInt(e.target.value))}
+                  min={1} max={60}
                   required
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-2">Max Players</label>
-                <input
+                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                  Max Players
+                </label>
+                <Input
                   type="number"
                   value={maxPlayers}
-                  onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                  min={2}
-                  max={50}
-                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-purple-500 rounded-xl text-white outline-none transition-colors"
+                  onChange={e => setMaxPlayers(parseInt(e.target.value))}
+                  min={2} max={50}
                   required
                 />
               </div>
-
-              {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {loading ? 'Creating...' : 'Create Tournament'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Join Tournament Form */}
-        {showJoinForm && (
-          <div className="bg-gray-900/80 backdrop-blur-lg border-2 border-blue-500/30 rounded-3xl p-8 max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-black text-white">Join Tournament</h2>
-              <button
-                onClick={() => setShowJoinForm(false)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
-
-            <form onSubmit={handleJoinTournament} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-300 mb-2">Tournament Code</label>
-                <input
-                  type="text"
-                  value={tournamentCode}
-                  onChange={(e) => setTournamentCode(e.target.value.toUpperCase().slice(0, 6))}
-                  placeholder="Enter 6-digit code"
-                  className="w-full px-4 py-3 bg-gray-800 border-2 border-gray-700 focus:border-blue-500 rounded-xl text-white text-center text-2xl font-mono font-bold outline-none transition-colors uppercase"
-                  maxLength={6}
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || tournamentCode.length !== 6}
-                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-700 disabled:to-gray-700 text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {loading ? 'Joining...' : 'Join Tournament'}
-              </button>
-            </form>
-          </div>
+            {error && (
+              <p className="text-red-400 text-sm px-4 py-3 rounded-xl bg-red-500/8 border border-red-500/20">
+                {error}
+              </p>
+            )}
+            <Button variant="purple" size="md" className="w-full" disabled={loading}>
+              {loading ? 'Creating…' : 'Create Tournament'}
+            </Button>
+          </form>
         )}
 
-        {/* Back Button */}
-        <div className="text-center mt-8">
-          <button
-            onClick={() => router.push('/')}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            ← Back to Home
-          </button>
-        </div>
+        {/* Join form */}
+        {view === 'join' && (
+          <form onSubmit={handleJoin} className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">
+                Tournament Code
+              </label>
+              <Input
+                value={tournamentCode}
+                onChange={e => setTournamentCode(e.target.value.toUpperCase().slice(0, 6))}
+                placeholder="XXXXXX"
+                className="text-center font-mono text-2xl font-black tracking-[0.3em] h-16"
+                maxLength={6}
+                required
+              />
+              <p className="text-right text-xs text-white/25 mt-1.5">{tournamentCode.length}/6</p>
+            </div>
+            {error && (
+              <p className="text-red-400 text-sm px-4 py-3 rounded-xl bg-red-500/8 border border-red-500/20">
+                {error}
+              </p>
+            )}
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full"
+              disabled={loading || tournamentCode.length !== 6}
+            >
+              {loading ? 'Joining…' : 'Join Tournament'}
+            </Button>
+          </form>
+        )}
       </div>
     </div>
   );
