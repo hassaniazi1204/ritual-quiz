@@ -1,43 +1,63 @@
 // app/api/leaderboard/route.ts — Solo leaderboard (top 20, server-enforced)
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
 async function resolveUserId(supabase: any, session: any): Promise<string | null> {
   const nextauthId = (session.user as any).id || session.user.email;
   if (!nextauthId) {
-    console.error('[resolveUserId] no nextauthId — session.user:', JSON.stringify(session.user));
+    console.error('[resolveUserId] no nextauthId in session:', JSON.stringify(session.user));
     return null;
   }
-  const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
 
-  // Find existing user
+  // 1. Try to find existing user
   const { data: existing, error: findErr } = await supabase
-    .from('users').select('id').eq('nextauth_id', nextauthId).maybeSingle();
+    .from('users')
+    .select('id')
+    .eq('nextauth_id', nextauthId)
+    .maybeSingle();
+
   if (findErr) console.error('[resolveUserId] find error:', findErr.message);
   if (existing) return existing.id;
 
-  // Create new user
-  const { data: created, error } = await supabase
+  // 2. Insert new user
+  const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
+  const { data: created, error: insertErr } = await supabase
     .from('users')
-    .insert({ nextauth_id: nextauthId, username, email: session.user.email, avatar: session.user.image })
-    .select('id').single();
+    .insert({
+      nextauth_id: nextauthId,
+      username,
+      email:  session.user.email,
+      avatar: session.user.image,
+    })
+    .select('id')
+    .single();
 
-  if (error) {
-    console.error('[resolveUserId] insert failed:', {
-      message: error.message,
-      code:    error.code,
-      details: error.details,
-      hint:    error.hint,
-      nextauthId,
-      hasUrl:  !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasKey:  !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    });
-    return null;
+  if (!insertErr) return created?.id ?? null;
+
+  // 3. Insert failed — if it's a duplicate (23505), another request already created the row
+  //    Do a second find to get the id
+  if (insertErr.code === '23505') {
+    console.warn('[resolveUserId] duplicate insert, re-fetching:', nextauthId);
+    const { data: retry } = await supabase
+      .from('users')
+      .select('id')
+      .eq('nextauth_id', nextauthId)
+      .maybeSingle();
+    return retry?.id ?? null;
   }
-  return created?.id ?? null;
+
+  console.error('[resolveUserId] insert failed:', {
+    message: insertErr.message,
+    code:    insertErr.code,
+    details: insertErr.details,
+    hint:    insertErr.hint,
+    nextauthId,
+    hasUrl:  !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasKey:  !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
+  return null;
 }
 
 export async function GET() {
