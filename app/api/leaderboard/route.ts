@@ -7,25 +7,37 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/auth-options';
 
 async function resolveUserId(supabase: any, session: any): Promise<string | null> {
   const nextauthId = (session.user as any).id || session.user.email;
-  if (!nextauthId) return null;
+  if (!nextauthId) {
+    console.error('[resolveUserId] no nextauthId — session.user:', JSON.stringify(session.user));
+    return null;
+  }
   const username = session.user.name || session.user.email?.split('@')[0] || 'Player';
 
-  // Find existing
-  const { data: existing } = await supabase
+  // Find existing user
+  const { data: existing, error: findErr } = await supabase
     .from('users').select('id').eq('nextauth_id', nextauthId).maybeSingle();
+  if (findErr) console.error('[resolveUserId] find error:', findErr.message);
   if (existing) return existing.id;
 
-  // Create new
+  // Create new user
   const { data: created, error } = await supabase
     .from('users')
     .insert({ nextauth_id: nextauthId, username, email: session.user.email, avatar: session.user.image })
     .select('id').single();
 
   if (error) {
-    console.error('[resolveUserId] insert failed:', error.message, error.code);
+    console.error('[resolveUserId] insert failed:', {
+      message: error.message,
+      code:    error.code,
+      details: error.details,
+      hint:    error.hint,
+      nextauthId,
+      hasUrl:  !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasKey:  !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
     return null;
   }
-  return created.id;
+  return created?.id ?? null;
 }
 
 export async function GET() {
