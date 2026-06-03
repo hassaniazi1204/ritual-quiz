@@ -1442,7 +1442,7 @@ export default function MergeGame(props?: GameProps) {
               {/* Left side - Logo/Title */}
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  SIGGYDROP
+                  sonydrop
                 </span>
               </div>
               
@@ -1533,7 +1533,7 @@ export default function MergeGame(props?: GameProps) {
         </div>
 
       <div className="max-w-4xl mx-auto px-4 relative">
-        {/* Left Side - SIGGYDROP (top to bottom) */}
+        {/* Left Side - sonydrop (top to bottom) */}
         <div 
           className="hidden xl:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full"
           style={{
@@ -1555,10 +1555,10 @@ export default function MergeGame(props?: GameProps) {
             userSelect: 'none',
           }}
         >
-          SIGGYDROP
+          sonydrop
         </div>
 
-        {/* Right Side - SIGGYDROP (bottom to top) */}
+        {/* Right Side - sonydrop (bottom to top) */}
         <div 
           className="hidden xl:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-full"
           style={{
@@ -1580,7 +1580,7 @@ export default function MergeGame(props?: GameProps) {
             userSelect: 'none',
           }}
         >
-          SIGGYDROP
+          sonydrop
         </div>
 
         {/* Game Layout */}
