@@ -6,16 +6,16 @@ import { useSession, signOut } from 'next-auth/react';
 
 // Ball level configuration
 const BALL_CONFIG = [
-  { level: 1, radius: 15, image: '/avatars/stefan2.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
-  { level: 2, radius: 20, image: '/avatars/raintaro2.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
-  { level: 3, radius: 33, image: '/avatars/itoshi2.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
-  { level: 4, radius: 38, image: '/avatars/hinata2.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
-  { level: 5, radius: 43, image: '/avatars/willow.png', color: '#10B981', score: 50, name: 'willow', shape: 'circle' as const },
-  { level: 6, radius: 48, image: '/avatars/jezz2.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
-  { level: 7, radius: 53, image: '/avatars/dunken2.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
-  { level: 8, radius: 58, image: '/avatars/josh2.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
-  { level: 9, radius: 63, image: '/avatars/niraj2.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
-  { level: 10, radius: 73, image: '/avatars/ritual2.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
+  { level: 1, radius: 15, image: '/avatars/100.png', color: '#8B5CF6', score: 10, name: 'stefan', shape: 'square' as const },
+  { level: 2, radius: 20, image: '/avatars/99.png', color: '#3B82F6', score: 20, name: 'raintaro', shape: 'cylinder' as const },
+  { level: 3, radius: 33, image: '/avatars/88.png', color: '#EC4899', score: 30, name: 'itoshi', shape: 'circle' as const },
+  { level: 4, radius: 38, image: '/avatars/77.png', color: '#F59E0B', score: 40, name: 'hinata', shape: 'circle' as const },
+  { level: 5, radius: 43, image: '/avatars/66.png', color: '#10B981', score: 50, name: 'willow', shape: 'circle' as const },
+  { level: 6, radius: 48, image: '/avatars/55.png', color: '#EF4444', score: 60, name: 'jezz', shape: 'circle' as const },
+  { level: 7, radius: 53, image: '/avatars/44.png', color: '#8B5CF6', score: 70, name: 'dunken', shape: 'circle' as const },
+  { level: 8, radius: 58, image: '/avatars/33.png', color: '#3B82F6', score: 80, name: 'josh', shape: 'circle' as const },
+  { level: 9, radius: 63, image: '/avatars/22.png', color: '#EC4899', score: 90, name: 'niraj', shape: 'circle' as const },
+  { level: 10, radius: 73, image: '/avatars/11.png', color: '#F59E0B', score: 100, name: 'ritual', shape: 'circle' as const },
 ];
 
 interface Ball {
