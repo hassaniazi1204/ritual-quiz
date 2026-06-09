@@ -1510,15 +1510,22 @@ export default function MergeGame(props?: GameProps) {
               ← Home
             </a>
             <div className="text-center flex justify-center">
-              <img
-                src="/brand-assets/Lockup/Translucent.png"
-                alt="Ritual"
-                style={{
-                  height: 'auto',
-                  width: 'clamp(200px, 40vw, 400px)',
-                  filter: 'drop-shadow(0 0 30px rgba(64,255,175,0.4))',
-                }}
-              />
+              <p
+  style={{
+    fontSize: 'clamp(48px, 10vw, 100px)',
+    fontWeight: 900,
+    letterSpacing: '0.08em',
+    textAlign: 'center',
+    background: 'linear-gradient(135deg, #ffffff 0%, #40FFAF 60%, #8840FF 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    filter: 'drop-shadow(0 0 32px rgba(64,255,175,0.3))',
+    margin: 0,
+  }}
+>
+  SONEIUM
+</p>
             </div>
             {/* Mute/Unmute Button */}
             <button
