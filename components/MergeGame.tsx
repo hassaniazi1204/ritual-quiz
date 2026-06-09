@@ -1442,7 +1442,7 @@ export default function MergeGame(props?: GameProps) {
               {/* Left side - Logo/Title */}
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  SONY DROP
+                  SONYTALE DROP
                 </span>
               </div>
               
@@ -1533,7 +1533,7 @@ export default function MergeGame(props?: GameProps) {
         </div>
 
       <div className="max-w-4xl mx-auto px-4 relative">
-        {/* Left Side - SONY DROP (top to bottom) */}
+        {/* Left Side - SONYTALE DROP (top to bottom) */}
         <div 
           className="hidden xl:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full"
           style={{
@@ -1555,7 +1555,7 @@ export default function MergeGame(props?: GameProps) {
             userSelect: 'none',
           }}
         >
-          SONY DROP
+          SONYTALE DROP
         </div>
 
         {/* Right Side - SONY DROP (bottom to top) */}
@@ -1580,7 +1580,7 @@ export default function MergeGame(props?: GameProps) {
             userSelect: 'none',
           }}
         >
-          SONY DROP
+          SONYTALE DROP
         </div>
 
         {/* Game Layout */}
