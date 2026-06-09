@@ -90,7 +90,7 @@ export default function LandingPage() {
             className="text-white font-black leading-none tracking-tight"
             style={{ fontSize: 'clamp(1.9rem, 5vw, 3.8rem)', letterSpacing: '-0.03em' }}
           >
-            The state of AI is flawed.
+            Every Merge Leads to Soneium.
           </h1>
         </div>
 
@@ -104,10 +104,10 @@ export default function LandingPage() {
         >
           <p style={{ fontSize: 'clamp(1rem, 2vw, 1.35rem)', lineHeight: 1.65 }}>
             <span className="font-semibold" style={{ color: '#40FFAF' }}>
-              Ritual is the solution.
+              Soneium is the solution.
             </span>{' '}
             <span className="text-white/70 font-normal">
-              It brings AI to every protocol and app with just a few lines of code.
+              Inspiring Emotion and Unleashing Creativity.
             </span>
           </p>
         </div>
@@ -157,10 +157,10 @@ export default function LandingPage() {
         }}
       >
         {[
-          { label: 'ritual.net',            href: 'https://ritual.net/' },
-          { label: 'ritualfoundation.org',   href: 'https://www.ritualfoundation.org/' },
-          { label: '@ritualnet',             href: 'https://x.com/ritualnet' },
-          { label: '@ritualfnd',             href: 'https://x.com/ritualfnd' },
+          { label: 'soneium.org',            href: 'https://soneium.org/' },
+          { label: 'startale.com',   href: 'https://www.startale.com/' },
+          { label: '@soneium',             href: 'https://x.com/soneium' },
+          { label: '@startaleApp',             href: 'https://x.com/startaleApp' },
         ].map(link => (
           <a
             key={link.href}
