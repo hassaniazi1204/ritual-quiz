@@ -66,7 +66,7 @@ export default function LandingPage() {
           }}
         >
           <img
-            src="/brand-assets/Lockup/Translucent.png"
+            src="/brand-assets/Lockup/Translucent.jpeg"
             alt="Soneium"
             style={{
               width: 'clamp(180px, 28vw, 380px)',
