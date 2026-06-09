@@ -135,9 +135,6 @@ export default function LandingPage() {
             transform: loaded ? 'translateY(0)' : 'translateY(20px)',
           }}
         >
-          <Button asChild variant="primary" size="xl">
-            <Link href="/quiz">Start Quiz</Link>
-          </Button>
 
           <Button
             variant="purple"
@@ -147,11 +144,7 @@ export default function LandingPage() {
             Play Game
           </Button>
 
-          <Button asChild variant="primary" size="xl"
-            className="bg-gradient-to-r from-[#40FFAF] to-[#8840FF] text-black hover:opacity-90 hover:shadow-[0_0_28px_rgba(136,64,255,0.45)]"
-          >
-            <Link href="/siggychat">😼 SiggyChat</Link>
-          </Button>
+          
         </div>
       </div>
 
