@@ -67,7 +67,7 @@ export default function LandingPage() {
         >
           <img
             src="/brand-assets/Lockup/Translucent.png"
-            alt="Ritual"
+            alt="Soneium"
             style={{
               width: 'clamp(180px, 28vw, 380px)',
               height: 'auto',
