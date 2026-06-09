@@ -65,17 +65,22 @@ export default function LandingPage() {
             transform: loaded ? 'translateY(0)' : 'translateY(-20px)',
           }}
         >
-          <img
-            src="/brand-assets/Lockup/Translucent.jpg"
-            alt="Soneium"
-            style={{
-              width: 'clamp(180px, 28vw, 380px)',
-              height: 'auto',
-              display: 'block',
-              margin: '0 auto',
-              filter: 'drop-shadow(0 0 32px rgba(64,255,175,0.3))',
-            }}
-          />
+          <p
+  style={{
+    fontSize: 'clamp(48px, 10vw, 100px)',
+    fontWeight: 900,
+    letterSpacing: '0.08em',
+    textAlign: 'center',
+    background: 'linear-gradient(135deg, #ffffff 0%, #40FFAF 60%, #8840FF 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    filter: 'drop-shadow(0 0 32px rgba(64,255,175,0.3))',
+    margin: 0,
+  }}
+>
+  SONEIUM
+</p>
         </div>
 
         {/* Heading */}
